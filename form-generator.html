@@ -404,8 +404,6 @@
               }
 
               // ensure at least one item exists so scanPopulate can detect the name
-              list.appendChild(document.createElement('div'));
-              list.removeChild(list.firstChild);
               addPathItem('');
 
               addBtn.addEventListener('click', () => addPathItem(''));
