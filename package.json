@@ -1,7 +1,7 @@
 {
   "name": "note-form-generator",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "scripts": {
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
