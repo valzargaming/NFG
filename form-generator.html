@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Inline JSON Form Generator</title>
+    <style>
+      :root {
+        --bg: #f7f9fc;
+        --card: #ffffff;
+        --text: #111216;
+        --accent: #2b8cff;
+        --muted: #666666;
+        --border: #e9eef6;
+        --panel: #fbfdff;
+      }
+      .dark {
+        --bg: #0b1220;
+        --card: #0f1724;
+        --text: #e6eef8;
+        --accent: #4aa3ff;
+        --muted: #94a9c2;
+        --border: #253244;
+        --panel: #071226;
+      }
+      body {
+        font-family: Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        transition: background 0.18s, color 0.18s;
+      }
+      .container {
+        max-width: 960px;
+        margin: 28px auto;
+        padding: 18px;
+        background: var(--card);
+        border-radius: 8px;
+        box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0;
+      }
+      .tabs {
+        display: flex;
+        gap: 6px;
+        margin-top: 14px;
+        border-bottom: 1px solid var(--border);
+      }
+      .tab {
+        padding: 10px 14px;
+        cursor: pointer;
+        border-radius: 6px 6px 0 0;
+        color: var(--muted);
+      }
+      .tab.active {
+        background: linear-gradient(180deg, #fff, #f4f8ff);
+        color: var(--accent);
+        box-shadow: 0 -4px 12px rgba(43, 140, 255, 0.06);
+        border-bottom: 2px solid #fff;
+      }
+      .tab-content {
+        padding: 18px;
+      }
+      .field {
+        margin-bottom: 12px;
+      }
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 600;
+      }
+      input[type='text'],
+      input[type='number'],
+      select,
+      textarea {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--text);
+      }
+      .subtabs {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      .subtab {
+        padding: 6px 10px;
+        border-radius: 6px;
+        background: transparent;
+        border: 1px solid var(--border);
+        cursor: pointer;
+        color: var(--muted);
+      }
+      .subtab.active {
+        background: var(--accent);
+        color: #fff;
+      }
+      .btn {
+        display: inline-block;
+        padding: 8px 12px;
+        border-radius: 6px;
+        background: var(--accent);
+        color: #fff;
+        border: 0;
+        cursor: pointer;
+      }
+      .btn.ghost {
+        background: #f2f6ff;
+        color: var(--accent);
+        border: 1px solid #d7e7ff;
+      }
+      .meta {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .preview-list {
+        border: 1px solid var(--border);
+        padding: 10px;
+        border-radius: 6px;
+        background: var(--panel);
+      }
+      .preview-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 0;
+        border-bottom: 1px dashed #f0f4fb;
+      }
+      .preview-item:last-child {
+        border-bottom: none;
+      }
+      .small {
+        font-size: 13px;
+        color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="top">
+        <h1>Inline JSON Form Generator</h1>
+        <div style="display: flex; align-items: center; gap: 10px">
+          <div class="meta">
+            Copyright ©️ 2026 Valithor Obsidion &lt;valithor@discordphp.org&gt;
+          </div>
+          <button id="themeToggle" class="btn ghost" type="button" aria-label="Toggle dark mode">
+            Dark
+          </button>
+        </div>
+      </div>
+
+      <div id="tabbar" class="tabs"></div>
+      <div id="contents"></div>
+    </div>
+
+    <script>
+      const formConfig = [
+        {
+          title: 'Person A',
+          // example: sprintf-style formatting using %(name)s tokens
+          format: { type: 'sprintf', template: '%(firstName)s %(lastName)s - %(email)s' },
+          fields: [
+            { label: 'First Name', name: 'firstName', type: 'text', placeholder: 'Bob' },
+            { label: 'Last Name', name: 'lastName', type: 'text', placeholder: 'Jones' },
+            { label: 'Phone', name: 'phone', type: 'text', placeholder: '(555) 123-4567' },
+            { label: 'Email', name: 'email', type: 'text', placeholder: '' },
+          ],
+        },
+        {
+          title: 'Person B',
+          // example: sprintf-style formatting using %(name)s tokens
+          format: { type: 'sprintf', template: '%(firstName)s %(lastName)s - %(email)s' },
+          fields: [
+            { label: 'First Name', name: 'firstName', type: 'text', placeholder: 'Bob' },
+            { label: 'Last Name', name: 'lastName', type: 'text', placeholder: 'Jones' },
+            { label: 'Phone', name: 'phone', type: 'text', placeholder: '(555) 123-4567' },
+            { label: 'Email', name: 'email', type: 'text', placeholder: '' },
+          ],
+        },
+        {
+          title: 'Survey',
+          // no explicit format provided -> will default to JSON output
+          fields: [
+            { label: 'Respondent', name: 'firstName', type: 'text', placeholder: '' },
+            { label: 'Contact Email', name: 'email', type: 'text', placeholder: '' },
+            { label: 'Comments', name: 'notes', type: 'textarea', placeholder: '' },
+          ],
+        },
+      ];
+
+      const tabbar = document.getElementById('tabbar');
+      const contents = document.getElementById('contents');
+
+      // Build list of available templates (include JSON fallback)
+      const templates = [{ id: '__json__', label: 'JSON (full)', cfg: null }];
+      formConfig.forEach((t, idx) => {
+        if (t.format) {
+          const id = `tpl-${idx}`;
+          const label = t.format.label ? t.format.label : `${t.title}`;
+          templates.push({ id, label, cfg: t.format });
+          // keep a reference on the config so we can detect default
+          t._templateId = id;
+        }
+      });
+      const templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
+
+      function build() {
+        tabbar.innerHTML = '';
+        contents.innerHTML = '';
+        formConfig.forEach((tab, i) => {
+          const t = document.createElement('div');
+          t.className = 'tab';
+          t.textContent = tab.title;
+          t.dataset.index = i;
+          t.addEventListener('click', () => activateTab(i));
+          tabbar.appendChild(t);
+
+          const pane = document.createElement('div');
+          pane.className = 'tab-pane';
+          pane.style.display = 'none';
+          pane.dataset.index = i;
+
+          // subtabs: Form and Populate
+          const subtabs = document.createElement('div');
+          subtabs.className = 'subtabs';
+          const stForm = document.createElement('div');
+          stForm.className = 'subtab active';
+          stForm.textContent = 'Form';
+          const stPop = document.createElement('div');
+          stPop.className = 'subtab';
+          stPop.textContent = 'Populate';
+          subtabs.appendChild(stForm);
+          subtabs.appendChild(stPop);
+          pane.appendChild(subtabs);
+
+          const formArea = document.createElement('div');
+          formArea.className = 'tab-content form-area';
+          const populateArea = document.createElement('div');
+          populateArea.className = 'tab-content populate-area';
+          populateArea.style.display = 'none';
+
+          // build form
+          const form = document.createElement('form');
+          form.className = 'generated-form';
+          tab.fields.forEach((f) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'field';
+            const label = document.createElement('label');
+            label.textContent = f.label || f.name;
+            wrapper.appendChild(label);
+
+            let input;
+            if (f.type === 'textarea') {
+              input = document.createElement('textarea');
+              input.rows = 4;
+            } else if (f.type === 'select') {
+              input = document.createElement('select');
+              (f.options || []).forEach((opt) => {
+                const o = document.createElement('option');
+                o.value = opt.value ?? opt;
+                o.textContent = opt.label ?? opt;
+                input.appendChild(o);
+              });
+            } else {
+              input = document.createElement('input');
+              input.type = f.type || 'text';
+            }
+            input.name = f.name;
+            input.placeholder = f.placeholder || '';
+            if (f.default) input.value = f.default;
+            wrapper.appendChild(input);
+            form.appendChild(wrapper);
+          });
+
+          // top-of-page clear button for this tab's form
+          const topClear = document.createElement('button');
+          topClear.className = 'btn ghost';
+          topClear.type = 'button';
+          topClear.textContent = 'Clear Form';
+          topClear.style.marginBottom = '8px';
+          topClear.addEventListener('click', () => {
+            Array.from(form.elements).forEach((e) => {
+              if (!e.name) return;
+              try {
+                if (e.type === 'checkbox' || e.type === 'radio') e.checked = false;
+                else e.value = '';
+              } catch (err) {}
+            });
+          });
+          formArea.appendChild(topClear);
+          formArea.appendChild(form);
+
+          // template selector
+          const tplRow = document.createElement('div');
+          tplRow.style.display = 'flex';
+          tplRow.style.alignItems = 'center';
+          tplRow.style.gap = '8px';
+          tplRow.style.marginTop = '6px';
+          const tplLabel = document.createElement('div');
+          tplLabel.className = 'meta';
+          tplLabel.textContent = 'Template:';
+          const tplSelect = document.createElement('select');
+          tplSelect.style.padding = '6px';
+          tplSelect.style.borderRadius = '6px';
+          tplSelect.style.border = '1px solid var(--border)';
+          templates.forEach((tpl) => {
+            const o = document.createElement('option');
+            o.value = tpl.id;
+            o.textContent = tpl.label;
+            tplSelect.appendChild(o);
+          });
+          // default to this tab's configured template if present
+          if (formConfig[i] && formConfig[i]._templateId)
+            tplSelect.value = formConfig[i]._templateId;
+          tplRow.appendChild(tplLabel);
+          tplRow.appendChild(tplSelect);
+          formArea.appendChild(tplRow);
+
+          // --- Generate UI: button + output area
+          const genWrapper = document.createElement('div');
+          genWrapper.style.marginTop = '12px';
+          const genBtn = document.createElement('button');
+          genBtn.className = 'btn';
+          genBtn.type = 'button';
+          genBtn.textContent = 'Generate';
+          const copyBtn = document.createElement('button');
+          copyBtn.className = 'btn ghost';
+          copyBtn.type = 'button';
+          copyBtn.textContent = 'Copy';
+          copyBtn.style.marginLeft = '8px';
+          const clearOutBtn = document.createElement('button');
+          clearOutBtn.className = 'btn ghost';
+          clearOutBtn.type = 'button';
+          clearOutBtn.textContent = 'Clear';
+          clearOutBtn.style.marginLeft = '8px';
+          const out = document.createElement('textarea');
+          out.readOnly = true;
+          out.rows = 3;
+          out.style.width = '100%';
+          out.style.marginTop = '8px';
+          out.style.padding = '8px';
+          out.style.borderRadius = '6px';
+          out.style.border = '1px solid #eee';
+          genWrapper.appendChild(genBtn);
+          genWrapper.appendChild(copyBtn);
+          genWrapper.appendChild(clearOutBtn);
+          genWrapper.appendChild(out);
+          formArea.appendChild(genWrapper);
+
+          genBtn.addEventListener('click', () => {
+            const values = {};
+            Array.from(form.elements).forEach((e) => {
+              if (e.name) values[e.name] = e.value !== undefined ? e.value : '';
+            });
+            const sel = tplSelect.value || '__json__';
+            const cfg = templatesMap[sel] && templatesMap[sel].cfg ? templatesMap[sel].cfg : null;
+            out.value = generateOutput(cfg, values);
+          });
+          copyBtn.addEventListener('click', async () => {
+            const text = out.value || '';
+            try {
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+              } else {
+                out.select();
+                document.execCommand('copy');
+              }
+              alert('Copied:\n' + text);
+            } catch (err) {
+              try {
+                out.select();
+                document.execCommand('copy');
+                alert('Copied:\n' + text);
+              } catch (e) {
+                alert('Copy failed');
+              }
+            }
+          });
+          clearOutBtn.addEventListener('click', () => {
+            out.value = '';
+          });
+
+          // populate area UI
+          const info = document.createElement('div');
+          info.className = 'meta';
+          info.textContent = 'Scan other tabs for values with matching field names.';
+          const scanBtn = document.createElement('button');
+          scanBtn.className = 'btn ghost';
+          scanBtn.type = 'button';
+          scanBtn.textContent = 'Scan';
+          const autoBtn = document.createElement('button');
+          autoBtn.className = 'btn';
+          autoBtn.type = 'button';
+          autoBtn.style.marginLeft = '8px';
+          autoBtn.textContent = 'Auto Apply All';
+          const preview = document.createElement('div');
+          preview.className = 'preview-list';
+          preview.style.marginTop = '12px';
+
+          populateArea.appendChild(info);
+          populateArea.appendChild(scanBtn);
+          populateArea.appendChild(autoBtn);
+          populateArea.appendChild(preview);
+
+          pane.appendChild(formArea);
+          pane.appendChild(populateArea);
+          contents.appendChild(pane);
+
+          // subtabs switching
+          stForm.addEventListener('click', () => {
+            stForm.classList.add('active');
+            stPop.classList.remove('active');
+            formArea.style.display = 'block';
+            populateArea.style.display = 'none';
+          });
+          stPop.addEventListener('click', () => {
+            stPop.classList.add('active');
+            stForm.classList.remove('active');
+            formArea.style.display = 'none';
+            populateArea.style.display = 'block';
+            scanPopulate(i, preview);
+          });
+
+          // actions
+          scanBtn.addEventListener('click', () => scanPopulate(i, preview));
+          autoBtn.addEventListener('click', () => {
+            const items = scanPopulate(i, preview);
+            const selections = [];
+            items.forEach((it) => {
+              if (it.candidates && it.candidates.length > 0) {
+                const c = it.candidates[0];
+                selections.push({ name: it.name, value: c.value });
+              }
+            });
+            applyPreviewSelections(i, selections);
+          });
+        });
+
+        activateTab(0);
+      }
+
+      function activateTab(index) {
+        Array.from(tabbar.children).forEach((t) =>
+          t.classList.toggle('active', Number(t.dataset.index) === index)
+        );
+        Array.from(contents.children).forEach(
+          (p) => (p.style.display = Number(p.dataset.index) === index ? '' : 'none')
+        );
+      }
+
+      // Scans other tabs for values matching field names in target tab.
+      // Returns array of items {name, value, fromTabIndex, fromTabTitle, found}
+      function scanPopulate(targetIndex, previewContainer) {
+        const targetPane = contents.querySelector(`.tab-pane[data-index='${targetIndex}']`);
+        const targetForm = targetPane.querySelector('form.generated-form');
+        const targetNames = Array.from(targetForm.elements)
+          .map((e) => e.name)
+          .filter(Boolean);
+        const items = targetNames.map((n) => ({ name: n, candidates: [] }));
+
+        formConfig.forEach((tab, ti) => {
+          if (ti === targetIndex) return;
+          const pane = contents.querySelector(`.tab-pane[data-index='${ti}']`);
+          if (!pane) return;
+          const form = pane.querySelector('form.generated-form');
+          if (!form) return;
+          targetNames.forEach((name, idx) => {
+            const els = Array.from(form.querySelectorAll(`[name="${CSS.escape(name)}"]`));
+            if (!els || els.length === 0) return;
+            // collect candidate(s) from this tab
+            if (els[0].type === 'radio') {
+              const checked = els.find((e) => e.checked);
+              if (checked)
+                items[idx].candidates.push({
+                  value: checked.value || '',
+                  fromTab: ti,
+                  fromTitle: tab.title,
+                });
+            } else if (els[0].type === 'checkbox') {
+              const checked = els.find((e) => e.checked);
+              if (checked)
+                items[idx].candidates.push({
+                  value: checked.value || 'on',
+                  fromTab: ti,
+                  fromTitle: tab.title,
+                });
+            } else {
+              for (const e of els) {
+                if (e.value !== undefined && String(e.value).trim() !== '') {
+                  items[idx].candidates.push({ value: e.value, fromTab: ti, fromTitle: tab.title });
+                  break;
+                }
+              }
+            }
+          });
+        });
+
+        // render preview with multiple candidate choices per field
+        previewContainer.innerHTML = '';
+        items.forEach((it) => {
+          const row = document.createElement('div');
+          row.className = 'preview-item';
+          const label = document.createElement('div');
+          label.style.flex = '1';
+          const name = document.createElement('div');
+          name.className = 'small';
+          name.textContent = it.name;
+          label.appendChild(name);
+
+          if (it.candidates.length === 0) {
+            const none = document.createElement('div');
+            none.className = 'meta';
+            none.textContent = 'no value found';
+            label.appendChild(none);
+          } else {
+            const list = document.createElement('div');
+            // add keep-current option first (default) and show the current value
+            const keepOpt = document.createElement('div');
+            keepOpt.style.display = 'flex';
+            keepOpt.style.alignItems = 'center';
+            keepOpt.style.gap = '8px';
+            keepOpt.style.padding = '2px 0';
+            const keepRadio = document.createElement('input');
+            keepRadio.type = 'radio';
+            keepRadio.name = `choose-${targetIndex}-${it.name}`;
+            keepRadio.value = '__keep__';
+            keepRadio.checked = true;
+            // determine current value from the target form
+            let currentVal = '';
+            try {
+              const currentEls = Array.from(
+                targetForm.querySelectorAll(`[name="${CSS.escape(it.name)}"]`)
+              );
+              if (currentEls && currentEls.length) {
+                if (currentEls[0].type === 'radio') {
+                  const c = currentEls.find((e) => e.checked);
+                  if (c) currentVal = c.value || '';
+                } else if (currentEls[0].type === 'checkbox') {
+                  const c = currentEls.find((e) => e.checked);
+                  if (c) currentVal = c.value || 'on';
+                } else {
+                  currentVal = currentEls[0].value || '';
+                }
+              }
+            } catch (e) {
+              currentVal = '';
+            }
+            const keepTxt = document.createElement('div');
+            keepTxt.className = 'meta';
+            keepTxt.textContent = `${currentVal || ''} (Keep current)`;
+            keepOpt.appendChild(keepRadio);
+            keepOpt.appendChild(keepTxt);
+            list.appendChild(keepOpt);
+
+            it.candidates.forEach((c, ci) => {
+              const opt = document.createElement('div');
+              opt.style.display = 'flex';
+              opt.style.alignItems = 'center';
+              opt.style.gap = '8px';
+              opt.style.padding = '2px 0';
+              const r = document.createElement('input');
+              r.type = 'radio';
+              r.name = `choose-${targetIndex}-${it.name}`;
+              r.value = String(ci);
+              const txt = document.createElement('div');
+              txt.className = 'meta';
+              txt.textContent = `${c.value} (from ${c.fromTitle})`;
+              opt.appendChild(r);
+              opt.appendChild(txt);
+              list.appendChild(opt);
+            });
+            label.appendChild(list);
+          }
+
+          row.appendChild(label);
+          previewContainer.appendChild(row);
+          it._candidates = it.candidates; // store for later
+        });
+
+        // Apply selected button
+        const applyBtn = document.createElement('button');
+        applyBtn.className = 'btn';
+        applyBtn.type = 'button';
+        applyBtn.textContent = 'Apply Selected';
+        applyBtn.style.marginTop = '8px';
+        applyBtn.addEventListener('click', () => {
+          const selections = [];
+          items.forEach((it) => {
+            const radios = previewContainer.querySelectorAll(
+              `input[name="choose-${targetIndex}-${it.name}"]`
+            );
+            if (!radios || radios.length === 0) return;
+            const checked = Array.from(radios).find((r) => r.checked);
+            if (!checked) return;
+            const ci = Number(checked.value);
+            const cand = it._candidates && it._candidates[ci];
+            if (cand) selections.push({ name: it.name, value: cand.value });
+          });
+          applyPreviewSelections(targetIndex, selections);
+        });
+        previewContainer.appendChild(applyBtn);
+
+        return items;
+      }
+
+      // Generate output based on format configuration and values object
+      function generateOutput(formatCfg, values) {
+        if (!formatCfg) return JSON.stringify(values, null, 2);
+        const tpl = formatCfg.template || '';
+        if (formatCfg.type === 'template') {
+          return tpl.replace(/\{([^}]+)\}/g, (_, name) =>
+            values[name] !== undefined ? values[name] : ''
+          );
+        }
+        if (formatCfg.type === 'sprintf') {
+          // support Python-style named tokens: %(name)s
+          return tpl.replace(/%\(([^)]+)\)s/g, (_, name) =>
+            values[name] !== undefined ? values[name] : ''
+          );
+        }
+        // fallback: if formatCfg is string treat as template
+        if (typeof formatCfg === 'string') {
+          return formatCfg.replace(/\{([^}]+)\}/g, (_, name) =>
+            values[name] !== undefined ? values[name] : ''
+          );
+        }
+        return JSON.stringify(values, null, 2);
+      }
+
+      function applyPreviewSelections(targetIndex, selections) {
+        const targetPane = contents.querySelector(`.tab-pane[data-index='${targetIndex}']`);
+        const targetForm = targetPane.querySelector('form.generated-form');
+        selections.forEach((sel) => {
+          const els = Array.from(targetForm.querySelectorAll(`[name="${CSS.escape(sel.name)}"]`));
+          if (!els || els.length === 0) return;
+          // radios
+          if (els[0].type === 'radio') {
+            els.forEach((r) => {
+              r.checked = r.value == sel.value;
+            });
+            return;
+          }
+          // checkboxes
+          if (els[0].type === 'checkbox') {
+            els.forEach((c) => {
+              c.checked = !!sel.value && String(sel.value) !== 'false' && String(sel.value) !== '0';
+            });
+            return;
+          }
+          // text/select/textarea - set first element's value
+          const e = els[0];
+          try {
+            e.value = sel.value;
+          } catch (e) {}
+        });
+      }
+
+      // initial build
+      build();
+
+      // Theme handling: toggle dark mode and persist choice
+      (function () {
+        const key = 'nfg-theme';
+        const btn = document.getElementById('themeToggle');
+        function applyTheme(t) {
+          if (t === 'dark') document.documentElement.classList.add('dark');
+          else document.documentElement.classList.remove('dark');
+          if (btn) btn.textContent = t === 'dark' ? 'Light' : 'Dark';
+        }
+        const saved =
+          localStorage.getItem(key) ||
+          (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light');
+        applyTheme(saved);
+        if (btn)
+          btn.addEventListener('click', () => {
+            const isDark = document.documentElement.classList.toggle('dark');
+            const next = isDark ? 'dark' : 'light';
+            localStorage.setItem(key, next);
+            if (btn) btn.textContent = isDark ? 'Light' : 'Dark';
+          });
+      })();
+    </script>
+  </body>
+</html>
