@@ -216,6 +216,61 @@
       // counter used to give generated dynamic inputs unique ids
       let dynamicIdCounter = 0;
 
+      // Create a step row (key input + value input + remove button) and append to `list`.
+      // `baseName` is the field name, `keyVal` can be a string value or {key,val}.
+      function createStepRow(baseName, keyVal, container, list) {
+        const kv = { key: '', val: '' };
+        if (keyVal && typeof keyVal === 'object') {
+          kv.key = keyVal.key || '';
+          kv.val = keyVal.val || '';
+        } else if (typeof keyVal === 'string') {
+          kv.val = keyVal;
+        }
+
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.gap = '8px';
+        row.style.marginTop = '6px';
+
+        const keyInp = document.createElement('input');
+        keyInp.type = 'text';
+        keyInp.name = baseName + '_key';
+        keyInp.placeholder = 'key';
+        keyInp.style.width = '80px';
+
+        let defaultKey = kv.key || '';
+        if (!defaultKey && container && container.dataset) {
+          if (container.dataset.keyMode === 'numbered') {
+            const existing = list.querySelectorAll(`[name="${baseName}"]`);
+            defaultKey = String(existing.length + 1);
+          } else if (container.dataset.keyMode === 'bullet') {
+            defaultKey = '-';
+          }
+        }
+        keyInp.value = defaultKey;
+
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.name = baseName;
+        inp.id = baseName + '-' + (++dynamicIdCounter);
+        inp.placeholder = 'Step';
+        if (kv.val) inp.value = kv.val;
+
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'btn ghost';
+        remove.textContent = '-';
+        remove.addEventListener('click', () => {
+          row.remove();
+        });
+
+        row.appendChild(keyInp);
+        row.appendChild(inp);
+        row.appendChild(remove);
+        if (list) list.appendChild(row);
+        return inp;
+      }
+
       function build() {
         tabbar.innerHTML = '';
         contents.innerHTML = '';
@@ -356,51 +411,7 @@
                 } else if (typeof val === 'string') {
                   keyVal.val = val;
                 }
-
-                const row = document.createElement('div');
-                row.style.display = 'flex';
-                row.style.gap = '8px';
-                row.style.marginTop = '6px';
-
-                // small key/prefix input
-                const keyInp = document.createElement('input');
-                keyInp.type = 'text';
-                keyInp.name = f.name + '_key';
-                keyInp.placeholder = 'key';
-                keyInp.style.width = '80px';
-                // default to provided key or auto-number if container mode is numbered
-                let defaultKey = keyVal.key || '';
-                if (!defaultKey && container && container.dataset) {
-                  if (container.dataset.keyMode === 'numbered') {
-                    const existing = list.querySelectorAll(`[name="${f.name}"]`);
-                    defaultKey = String(existing.length + 1);
-                  } else if (container.dataset.keyMode === 'bullet') {
-                    defaultKey = '-';
-                  }
-                }
-                keyInp.value = defaultKey;
-
-                // value input (the actual step)
-                const inp = document.createElement('input');
-                inp.type = 'text';
-                inp.name = f.name; // same name so scanPopulate finds it
-                inp.id = f.name + '-' + (++dynamicIdCounter);
-                inp.placeholder = 'Step';
-                if (keyVal.val) inp.value = keyVal.val;
-
-                const remove = document.createElement('button');
-                remove.type = 'button';
-                remove.className = 'btn ghost';
-                remove.textContent = '-';
-                remove.addEventListener('click', () => {
-                  row.remove();
-                });
-
-                row.appendChild(keyInp);
-                row.appendChild(inp);
-                row.appendChild(remove);
-                list.appendChild(row);
-                return inp;
+                return createStepRow(f.name, keyVal, container, list);
               }
 
               // ensure at least one item exists so scanPopulate can detect the name
@@ -844,49 +855,13 @@
               // create inputs per part
               parts.forEach((p) => {
                 if (list) {
-                  const row = document.createElement('div');
-                  row.style.display = 'flex';
-                  row.style.gap = '8px';
-                  row.style.marginTop = '6px';
-                  // support key=>value pairs
-                  let key = '';
-                  let val = p;
                   if (p.includes('=>')) {
                     const [k, ...rest] = p.split('=>');
-                    key = k.trim();
-                    val = rest.join('=>').trim();
+                    const val = rest.join('=>').trim();
+                    createStepRow(sel.name, { key: k.trim(), val }, container, list);
+                  } else {
+                    createStepRow(sel.name, p, container, list);
                   }
-                  const keyInp = document.createElement('input');
-                  keyInp.type = 'text';
-                  keyInp.name = sel.name + '_key';
-                  keyInp.placeholder = 'key';
-                  keyInp.style.width = '80px';
-                  // if no explicit key and mode is numbered or bullet, auto-fill
-                  if (!key && container && container.dataset) {
-                    if (container.dataset.keyMode === 'numbered') {
-                      const existing = list.querySelectorAll(`[name="${sel.name}"]`);
-                      key = String(existing.length + 1);
-                    } else if (container.dataset.keyMode === 'bullet') {
-                      key = '-';
-                    }
-                  }
-                  keyInp.value = key;
-
-                  const inp = document.createElement('input');
-                  inp.type = 'text';
-                  inp.name = sel.name;
-                  inp.id = sel.name + '-' + (++dynamicIdCounter);
-                  inp.value = val;
-                  inp.placeholder = 'Step';
-                  const remove = document.createElement('button');
-                  remove.type = 'button';
-                  remove.className = 'btn ghost';
-                  remove.textContent = '-';
-                  remove.addEventListener('click', () => row.remove());
-                  row.appendChild(keyInp);
-                  row.appendChild(inp);
-                  row.appendChild(remove);
-                  list.appendChild(row);
                 }
               });
             }
@@ -921,41 +896,7 @@
               );
               const list = container && container.querySelector('.steps-list');
               for (let i = els.length; i < parts.length; i++) {
-                if (list) {
-                  const row = document.createElement('div');
-                  row.style.display = 'flex';
-                  row.style.gap = '8px';
-                  row.style.marginTop = '6px';
-                  const keyInp = document.createElement('input');
-                  keyInp.type = 'text';
-                  keyInp.name = sel.name + '_key';
-                  keyInp.placeholder = 'key';
-                  keyInp.style.width = '80px';
-                  // auto-fill key if mode is numbered or bullet
-                  if (container && container.dataset) {
-                    if (container.dataset.keyMode === 'numbered') {
-                      const existing = list.querySelectorAll(`[name="${sel.name}"]`);
-                      keyInp.value = String(existing.length + 1);
-                    } else if (container.dataset.keyMode === 'bullet') {
-                      keyInp.value = '-';
-                    }
-                  }
-
-                  const inp = document.createElement('input');
-                  inp.type = 'text';
-                  inp.name = sel.name;
-                  inp.id = sel.name + '-' + (++dynamicIdCounter);
-                  inp.placeholder = 'Step';
-                  const remove = document.createElement('button');
-                  remove.type = 'button';
-                  remove.className = 'btn ghost';
-                  remove.textContent = '-';
-                  remove.addEventListener('click', () => row.remove());
-                  row.appendChild(keyInp);
-                  row.appendChild(inp);
-                  row.appendChild(remove);
-                  list.appendChild(row);
-                }
+                if (list) createStepRow(sel.name, '', container, list);
               }
             }
             const newEls = Array.from(
