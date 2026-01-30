@@ -10,6 +10,9 @@
     "cs-fixer:prettier": "prettier --write \"**/*.{js,html,json,css,md}\"",
     "cs-fixer:eslint": "node -e \"require('child_process').spawnSync('eslint',['--fix','**/*.js'],{stdio:'inherit',shell:true})\"",
     "build": "esbuild src/index.js --bundle --format=esm --outfile=dist/index.esm.js && esbuild src/index.js --bundle --format=cjs --outfile=dist/index.cjs.js",
+    "build:browser": "esbuild src/index.js --bundle --format=iife --global-name=NFG --outfile=dist/form-generator.js --minify",
+    "build:html": "node scripts/generate-html.js",
+    "build:all": "npm run build && npm run build:browser && npm run build:html",
     "prepare": "npm run build"
   },
   "main": "dist/index.cjs.js",
