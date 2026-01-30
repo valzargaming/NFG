@@ -71,8 +71,8 @@ npm run cs-fixer:eslint
 ## Build / Distribution
 
 - `npm run build` produces distributable bundles for Node consumers:
-	- `dist/index.esm.js` (ES module)
-	- `dist/index.cjs.js` (CommonJS)
+  - `dist/index.esm.js` (ES module)
+  - `dist/index.cjs.js` (CommonJS)
 - `npm run build:browser` produces a browser-friendly IIFE bundle at `dist/form-generator.js`.
 - `npm run build:html` copies the repository's `form-generator.html` into `dist/form-generator.html` and will auto-mount the IIFE bundle when present.
 - `npm run build:all` runs all build steps. The `prepare` script runs `build` so `npm publish` / `npm pack` will include `dist/` artifacts.

@@ -64,6 +64,7 @@ npm publish --access public  # for scoped public packages
 ```
 
 Notes for authors:
+
 - Use semantic versioning (`MAJOR.MINOR.PATCH`) and create a Git tag for
   releases.
 - Include a license file and repository field so consumers can find the
@@ -78,11 +79,13 @@ npm install @yourorg/nfg
 Import examples:
 
 ESM:
+
 ```js
 import { scanPopulate } from '@yourorg/nfg';
 ```
 
 CommonJS:
+
 ```js
 const { scanPopulate } = require('@yourorg/nfg');
 ```
