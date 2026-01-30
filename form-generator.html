@@ -413,7 +413,6 @@
                   .split('>')
                   .map((s) => s.trim())
                   .filter(Boolean);
-                if (!list) return;
                 list.innerHTML = '';
                 if (parts.length === 0) {
                   addPathItem('');
