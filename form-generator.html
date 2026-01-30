@@ -825,8 +825,13 @@
         const targetPane = contents.querySelector(`.tab-pane[data-index='${targetIndex}']`);
         const targetForm = targetPane.querySelector('form.generated-form');
         selections.forEach((sel) => {
-          // If this is a steps and there are no inputs yet, create items
-          if (sel.name === 'steps') {
+          // resolve field config for this target tab + field name
+          const fieldCfg =
+            formConfig[targetIndex] && formConfig[targetIndex].fields
+              ? formConfig[targetIndex].fields.find((f) => f.name === sel.name)
+              : null;
+          // If this field's type is 'steps' and there are no inputs yet, create items
+          if (fieldCfg && fieldCfg.type === 'steps') {
             const parts = String(sel.value || '')
               .split('>')
               .map((s) => s.trim())
@@ -906,8 +911,8 @@
             });
             return;
           }
-          // For steps, if sel.value contains '>' distribute values
-          if (sel.name === 'steps' && String(sel.value || '').includes('>')) {
+          // For steps fields, if sel.value contains '>' distribute values
+          if (fieldCfg && fieldCfg.type === 'steps' && String(sel.value || '').includes('>')) {
             const parts = String(sel.value || '')
               .split('>')
               .map((s) => s.trim())
