@@ -303,9 +303,40 @@
               combinedRow.appendChild(input);
               combinedRow.appendChild(parseBtnTop);
               wrapper.appendChild(combinedRow);
+              // default key behavior selector (none | numbered)
+              const controlRow = document.createElement('div');
+              controlRow.style.display = 'flex';
+              controlRow.style.alignItems = 'center';
+              controlRow.style.gap = '8px';
+              controlRow.style.marginTop = '8px';
+              const modeLabel = document.createElement('div');
+              modeLabel.className = 'meta';
+              modeLabel.textContent = 'Default key:';
+              const modeSelect = document.createElement('select');
+              const oNone = document.createElement('option');
+              oNone.value = 'none';
+              oNone.textContent = 'None (blank)';
+              const oNum = document.createElement('option');
+              oNum.value = 'numbered';
+              oNum.textContent = 'Numbered';
+              const oBullet = document.createElement('option');
+              oBullet.value = 'bullet';
+              oBullet.textContent = 'Bullet (-)';
+              modeSelect.appendChild(oNone);
+              modeSelect.appendChild(oNum);
+              modeSelect.appendChild(oBullet);
+              modeSelect.value = 'none';
+              modeSelect.addEventListener('change', () => {
+                container.dataset.keyMode = modeSelect.value;
+              });
+              controlRow.appendChild(modeLabel);
+              controlRow.appendChild(modeSelect);
+              wrapper.appendChild(controlRow);
               const container = document.createElement('div');
               container.className = 'steps-container';
               container.dataset.name = f.name;
+              // initialize key mode on the container after it's created
+              container.dataset.keyMode = modeSelect.value;
 
               const list = document.createElement('div');
               list.className = 'steps-list';
@@ -317,16 +348,46 @@
               addBtn.style.marginLeft = '8px';
 
               function addPathItem(val) {
+                // val can be a string value or an object { key, val }
+                const keyVal = { key: '', val: '' };
+                if (val && typeof val === 'object') {
+                  keyVal.key = val.key || '';
+                  keyVal.val = val.val || '';
+                } else if (typeof val === 'string') {
+                  keyVal.val = val;
+                }
+
                 const row = document.createElement('div');
                 row.style.display = 'flex';
                 row.style.gap = '8px';
                 row.style.marginTop = '6px';
+
+                // small key/prefix input
+                const keyInp = document.createElement('input');
+                keyInp.type = 'text';
+                keyInp.name = f.name + '_key';
+                keyInp.placeholder = 'key';
+                keyInp.style.width = '80px';
+                // default to provided key or auto-number if container mode is numbered
+                let defaultKey = keyVal.key || '';
+                if (!defaultKey && container && container.dataset) {
+                  if (container.dataset.keyMode === 'numbered') {
+                    const existing = list.querySelectorAll(`[name="${f.name}"]`);
+                    defaultKey = String(existing.length + 1);
+                  } else if (container.dataset.keyMode === 'bullet') {
+                    defaultKey = '-';
+                  }
+                }
+                keyInp.value = defaultKey;
+
+                // value input (the actual step)
                 const inp = document.createElement('input');
                 inp.type = 'text';
                 inp.name = f.name; // same name so scanPopulate finds it
                 inp.id = f.name + '-' + (++dynamicIdCounter);
                 inp.placeholder = 'Step';
-                if (val) inp.value = val;
+                if (keyVal.val) inp.value = keyVal.val;
+
                 const remove = document.createElement('button');
                 remove.type = 'button';
                 remove.className = 'btn ghost';
@@ -334,6 +395,8 @@
                 remove.addEventListener('click', () => {
                   row.remove();
                 });
+
+                row.appendChild(keyInp);
                 row.appendChild(inp);
                 row.appendChild(remove);
                 list.appendChild(row);
@@ -348,16 +411,24 @@
               addBtn.addEventListener('click', () => addPathItem(''));
               // parse top combined input into steps
               parseBtnTop.addEventListener('click', () => {
-                const v = (input.value || '')
+                const parts = (input.value || '')
                   .split('>')
                   .map((s) => s.trim())
                   .filter(Boolean);
                 if (!list) return;
                 list.innerHTML = '';
-                if (v.length === 0) {
+                if (parts.length === 0) {
                   addPathItem('');
                 } else {
-                  v.forEach((p) => addPathItem(p));
+                  parts.forEach((p) => {
+                    if (p.includes('=>')) {
+                      const [k, ...rest] = p.split('=>');
+                      const val = rest.join('=>').trim();
+                      addPathItem({ key: k.trim(), val });
+                    } else {
+                      addPathItem(p);
+                    }
+                  });
                 }
               });
               wrapper.appendChild(container);
@@ -455,6 +526,24 @@
               } else {
                 values[e.name] = v;
               }
+            });
+            // Combine key=>value pairs for fields that have an associated _key input
+            Object.keys(values).forEach((k) => {
+              if (!k.endsWith('_key')) return;
+              const base = k.slice(0, -4);
+              if (!Object.prototype.hasOwnProperty.call(values, base)) return;
+              const keys = Array.isArray(values[k]) ? values[k] : [values[k]];
+              const vals = Array.isArray(values[base]) ? values[base] : [values[base]];
+              const combined = vals.map((v, i) => {
+                const keyRaw = keys[i] || '';
+                let prefix = '';
+                if (/^\d+$/.test(keyRaw)) prefix = keyRaw + '. ';
+                else if (keyRaw) prefix = keyRaw + ' ';
+                return prefix + v;
+              });
+              values[base] = combined.length === 1 ? combined[0] : combined;
+              // optionally remove the keys entry
+              delete values[k];
             });
             const sel = tplSelect.value || '__json__';
             const cfg = templatesMap[sel] && templatesMap[sel].cfg ? templatesMap[sel].cfg : null;
@@ -559,7 +648,8 @@
         const targetForm = targetPane.querySelector('form.generated-form');
         const targetNames = Array.from(targetForm.elements)
           .map((e) => e.name)
-          .filter(Boolean);
+          .filter(Boolean)
+          .filter((n) => !n.endsWith('_key') && !n.endsWith('_combined'));
         const items = targetNames.map((n) => ({ name: n, candidates: [] }));
 
         formConfig.forEach((tab, ti) => {
@@ -756,17 +846,42 @@
                   row.style.display = 'flex';
                   row.style.gap = '8px';
                   row.style.marginTop = '6px';
+                  // support key=>value pairs
+                  let key = '';
+                  let val = p;
+                  if (p.includes('=>')) {
+                    const [k, ...rest] = p.split('=>');
+                    key = k.trim();
+                    val = rest.join('=>').trim();
+                  }
+                  const keyInp = document.createElement('input');
+                  keyInp.type = 'text';
+                  keyInp.name = sel.name + '_key';
+                  keyInp.placeholder = 'key';
+                  keyInp.style.width = '80px';
+                  // if no explicit key and mode is numbered or bullet, auto-fill
+                  if (!key && container && container.dataset) {
+                    if (container.dataset.keyMode === 'numbered') {
+                      const existing = list.querySelectorAll(`[name="${sel.name}"]`);
+                      key = String(existing.length + 1);
+                    } else if (container.dataset.keyMode === 'bullet') {
+                      key = '-';
+                    }
+                  }
+                  keyInp.value = key;
+
                   const inp = document.createElement('input');
                   inp.type = 'text';
                   inp.name = sel.name;
                   inp.id = sel.name + '-' + (++dynamicIdCounter);
-                  inp.value = p;
+                  inp.value = val;
                   inp.placeholder = 'Step';
                   const remove = document.createElement('button');
                   remove.type = 'button';
                   remove.className = 'btn ghost';
                   remove.textContent = '-';
                   remove.addEventListener('click', () => row.remove());
+                  row.appendChild(keyInp);
                   row.appendChild(inp);
                   row.appendChild(remove);
                   list.appendChild(row);
@@ -809,6 +924,21 @@
                   row.style.display = 'flex';
                   row.style.gap = '8px';
                   row.style.marginTop = '6px';
+                  const keyInp = document.createElement('input');
+                  keyInp.type = 'text';
+                  keyInp.name = sel.name + '_key';
+                  keyInp.placeholder = 'key';
+                  keyInp.style.width = '80px';
+                  // auto-fill key if mode is numbered or bullet
+                  if (container && container.dataset) {
+                    if (container.dataset.keyMode === 'numbered') {
+                      const existing = list.querySelectorAll(`[name="${sel.name}"]`);
+                      keyInp.value = String(existing.length + 1);
+                    } else if (container.dataset.keyMode === 'bullet') {
+                      keyInp.value = '-';
+                    }
+                  }
+
                   const inp = document.createElement('input');
                   inp.type = 'text';
                   inp.name = sel.name;
@@ -819,6 +949,7 @@
                   remove.className = 'btn ghost';
                   remove.textContent = '-';
                   remove.addEventListener('click', () => row.remove());
+                  row.appendChild(keyInp);
                   row.appendChild(inp);
                   row.appendChild(remove);
                   list.appendChild(row);
@@ -828,8 +959,25 @@
             const newEls = Array.from(
               targetForm.querySelectorAll(`[name="${CSS.escape(sel.name)}"]`)
             );
+            const newKeys = Array.from(
+              targetForm.querySelectorAll(`[name="${CSS.escape(sel.name + '_key')}"]`)
+            );
             parts.forEach((p, idx) => {
-              if (newEls[idx]) newEls[idx].value = p;
+              let key = '';
+              let val = p;
+              if (p.includes('=>')) {
+                const [k, ...rest] = p.split('=>');
+                key = k.trim();
+                val = rest.join('=>').trim();
+              }
+              if (newEls[idx]) newEls[idx].value = val;
+              if (newKeys[idx]) {
+                if (key) newKeys[idx].value = key;
+                else if (container && container.dataset) {
+                  if (container.dataset.keyMode === 'numbered') newKeys[idx].value = String(idx + 1);
+                  else if (container.dataset.keyMode === 'bullet') newKeys[idx].value = '-';
+                }
+              }
             });
             return;
           }
