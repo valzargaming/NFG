@@ -192,6 +192,7 @@
           fields: [
             { label: 'Respondent', name: 'firstName', type: 'text', placeholder: '' },
             { label: 'Contact Email', name: 'email', type: 'text', placeholder: '' },
+            { label: 'Steps', name: 'steps', type: 'steps', placeholder: '' },
             { label: 'Comments', name: 'notes', type: 'textarea', placeholder: '' },
           ],
         },
@@ -212,6 +213,8 @@
         }
       });
       const templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
+      // counter used to give generated dynamic inputs unique ids
+      let dynamicIdCounter = 0;
 
       function build() {
         tabbar.innerHTML = '';
@@ -278,7 +281,92 @@
             input.placeholder = f.placeholder || '';
             if (f.default) input.value = f.default;
             wrapper.appendChild(input);
-            form.appendChild(wrapper);
+            // Special handling for steps type: build dynamic list UI
+            if (f.type === 'steps') {
+              // Rename the top input to be the combined input so it does not
+              // conflict with the per-step inputs below (which share the base name).
+              input.name = f.name + '_combined';
+              input.placeholder = 'Step 1 > Step 2 > Step 3';
+              input.style.width = '70%';
+              input.style.display = 'inline-block';
+
+              const parseBtnTop = document.createElement('button');
+              parseBtnTop.type = 'button';
+              parseBtnTop.className = 'btn ghost';
+              parseBtnTop.textContent = 'Parse';
+              parseBtnTop.style.marginLeft = '8px';
+              // place the combined input and button inside a row
+              const combinedRow = document.createElement('div');
+              combinedRow.style.display = 'flex';
+              combinedRow.style.alignItems = 'center';
+              combinedRow.style.gap = '8px';
+              combinedRow.appendChild(input);
+              combinedRow.appendChild(parseBtnTop);
+              wrapper.appendChild(combinedRow);
+              const container = document.createElement('div');
+              container.className = 'steps-container';
+              container.dataset.name = f.name;
+
+              const list = document.createElement('div');
+              list.className = 'steps-list';
+
+              const addBtn = document.createElement('button');
+              addBtn.type = 'button';
+              addBtn.className = 'btn ghost';
+              addBtn.textContent = '+ Add';
+              addBtn.style.marginLeft = '8px';
+
+              function addPathItem(val) {
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.gap = '8px';
+                row.style.marginTop = '6px';
+                const inp = document.createElement('input');
+                inp.type = 'text';
+                inp.name = f.name; // same name so scanPopulate finds it
+                inp.id = f.name + '-' + (++dynamicIdCounter);
+                inp.placeholder = 'Step';
+                if (val) inp.value = val;
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'btn ghost';
+                remove.textContent = '-';
+                remove.addEventListener('click', () => {
+                  row.remove();
+                });
+                row.appendChild(inp);
+                row.appendChild(remove);
+                list.appendChild(row);
+                return inp;
+              }
+
+              // ensure at least one item exists so scanPopulate can detect the name
+              list.appendChild(document.createElement('div'));
+              list.removeChild(list.firstChild);
+              addPathItem('');
+
+              addBtn.addEventListener('click', () => addPathItem(''));
+              // parse top combined input into steps
+              parseBtnTop.addEventListener('click', () => {
+                const v = (input.value || '')
+                  .split('>')
+                  .map((s) => s.trim())
+                  .filter(Boolean);
+                if (!list) return;
+                list.innerHTML = '';
+                if (v.length === 0) {
+                  addPathItem('');
+                } else {
+                  v.forEach((p) => addPathItem(p));
+                }
+              });
+              wrapper.appendChild(container);
+              container.appendChild(list);
+              container.appendChild(addBtn);
+              form.appendChild(wrapper);
+            } else {
+              form.appendChild(wrapper);
+            }
           });
 
           // top-of-page clear button for this tab's form
@@ -359,7 +447,14 @@
           genBtn.addEventListener('click', () => {
             const values = {};
             Array.from(form.elements).forEach((e) => {
-              if (e.name) values[e.name] = e.value !== undefined ? e.value : '';
+              if (!e.name) return;
+              const v = e.value !== undefined ? e.value : '';
+              if (Object.prototype.hasOwnProperty.call(values, e.name)) {
+                if (!Array.isArray(values[e.name])) values[e.name] = [values[e.name]];
+                values[e.name].push(v);
+              } else {
+                values[e.name] = v;
+              }
             });
             const sel = tplSelect.value || '__json__';
             const cfg = templatesMap[sel] && templatesMap[sel].cfg ? templatesMap[sel].cfg : null;
@@ -640,6 +735,46 @@
         const targetPane = contents.querySelector(`.tab-pane[data-index='${targetIndex}']`);
         const targetForm = targetPane.querySelector('form.generated-form');
         selections.forEach((sel) => {
+          // If this is a steps and there are no inputs yet, create items
+          if (sel.name === 'steps') {
+            const parts = String(sel.value || '')
+              .split('>')
+              .map((s) => s.trim())
+              .filter(Boolean);
+            const existing = Array.from(
+              targetForm.querySelectorAll(`[name="${CSS.escape(sel.name)}"]`)
+            );
+            const container = targetForm.querySelector(`.steps-container[data-name="${sel.name}"]`);
+            const list = container && container.querySelector('.steps-list');
+            if (parts.length > 1) {
+              // clear existing list
+              if (list) list.innerHTML = '';
+              // create inputs per part
+              parts.forEach((p) => {
+                if (list) {
+                  const row = document.createElement('div');
+                  row.style.display = 'flex';
+                  row.style.gap = '8px';
+                  row.style.marginTop = '6px';
+                  const inp = document.createElement('input');
+                  inp.type = 'text';
+                  inp.name = sel.name;
+                  inp.id = sel.name + '-' + (++dynamicIdCounter);
+                  inp.value = p;
+                  inp.placeholder = 'Step';
+                  const remove = document.createElement('button');
+                  remove.type = 'button';
+                  remove.className = 'btn ghost';
+                  remove.textContent = '-';
+                  remove.addEventListener('click', () => row.remove());
+                  row.appendChild(inp);
+                  row.appendChild(remove);
+                  list.appendChild(row);
+                }
+              });
+            }
+          }
+
           const els = Array.from(targetForm.querySelectorAll(`[name="${CSS.escape(sel.name)}"]`));
           if (!els || els.length === 0) return;
           // radios
@@ -656,6 +791,49 @@
             });
             return;
           }
+          // For steps, if sel.value contains '>' distribute values
+          if (sel.name === 'steps' && String(sel.value || '').includes('>')) {
+            const parts = String(sel.value || '')
+              .split('>')
+              .map((s) => s.trim())
+              .filter(Boolean);
+            // ensure we have enough inputs
+            if (parts.length > els.length) {
+              const container = targetForm.querySelector(
+                `.steps-container[data-name="${sel.name}"]`
+              );
+              const list = container && container.querySelector('.steps-list');
+              for (let i = els.length; i < parts.length; i++) {
+                if (list) {
+                  const row = document.createElement('div');
+                  row.style.display = 'flex';
+                  row.style.gap = '8px';
+                  row.style.marginTop = '6px';
+                  const inp = document.createElement('input');
+                  inp.type = 'text';
+                  inp.name = sel.name;
+                  inp.id = sel.name + '-' + (++dynamicIdCounter);
+                  inp.placeholder = 'Step';
+                  const remove = document.createElement('button');
+                  remove.type = 'button';
+                  remove.className = 'btn ghost';
+                  remove.textContent = '-';
+                  remove.addEventListener('click', () => row.remove());
+                  row.appendChild(inp);
+                  row.appendChild(remove);
+                  list.appendChild(row);
+                }
+              }
+            }
+            const newEls = Array.from(
+              targetForm.querySelectorAll(`[name="${CSS.escape(sel.name)}"]`)
+            );
+            parts.forEach((p, idx) => {
+              if (newEls[idx]) newEls[idx].value = p;
+            });
+            return;
+          }
+
           // text/select/textarea - set first element's value
           const e = els[0];
           try {
