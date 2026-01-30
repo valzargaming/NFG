@@ -171,7 +171,7 @@ export const html = `<!DOCTYPE html>
 
 export function mount(container) {
   if (typeof container === 'string') container = document.querySelector(container);
-  if (!container || !container.innerHTML !== undefined) {
+  if (!container || container.innerHTML === undefined) {
     throw new Error('Invalid container element');
   }
   container.innerHTML = html;
