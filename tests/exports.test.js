@@ -10,7 +10,7 @@ describe('package exports', () => {
     expect(typeof pkg.html === 'string' || typeof pkg.default?.html === 'string').toBe(true);
 
     // mount should be a function (support both named and default exports)
-    const mount = pkg.mount || pkg.default && pkg.default.mount;
+    const mount = pkg.mount || (pkg.default && pkg.default.mount);
     expect(typeof mount).toBe('function');
 
     // Create a JSDOM document and mount into a container
