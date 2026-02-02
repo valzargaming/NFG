@@ -59,6 +59,9 @@
         border-radius: 6px 6px 0 0;
         color: var(--muted);
       }
+      .tab.right {
+        margin-left: auto;
+      }
       .tab.active {
         background: linear-gradient(180deg, #fff, #f4f8ff);
         color: var(--accent);
@@ -202,17 +205,27 @@
       const contents = document.getElementById('contents');
 
       // Build list of available templates (include JSON fallback)
-      const templates = [{ id: '__json__', label: 'JSON (full)', cfg: null }];
+      const defaultTemplates = [{ id: '__json__', label: 'JSON (full)', cfg: null }];
       formConfig.forEach((t, idx) => {
         if (t.format) {
           const id = `tpl-${idx}`;
           const label = t.format.label ? t.format.label : `${t.title}`;
-          templates.push({ id, label, cfg: t.format });
-          // keep a reference on the config so we can detect default
+          defaultTemplates.push({ id, label, cfg: t.format });
+          // keep a reference on the config so we can detect default when using defaults
           t._templateId = id;
         }
       });
-      const templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
+
+      // Load editable templates from localStorage if present, otherwise use defaults
+      let templates;
+      try {
+        const saved = localStorage.getItem('nfg-templates');
+        if (saved) templates = JSON.parse(saved);
+      } catch (e) {}
+      if (!templates) templates = defaultTemplates.slice();
+
+      // map for quick lookup
+      let templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
       // counter used to give generated dynamic inputs unique ids
       let dynamicIdCounter = 0;
 
@@ -636,6 +649,78 @@
             applyPreviewSelections(i, selections);
           });
         });
+
+        // Add a dedicated 'Templates' tab where the templates JSON can be edited.
+        (function addTemplatesTab() {
+          const tplIndex = formConfig.length;
+          const tplTab = document.createElement('div');
+          tplTab.className = 'tab right';
+          tplTab.textContent = 'Templates';
+          tplTab.dataset.index = tplIndex;
+          tplTab.addEventListener('click', () => activateTab(tplIndex));
+          tabbar.appendChild(tplTab);
+
+          const tplPane = document.createElement('div');
+          tplPane.className = 'tab-pane';
+          tplPane.style.display = 'none';
+          tplPane.dataset.index = tplIndex;
+
+          const paneContent = document.createElement('div');
+          paneContent.className = 'tab-content';
+          const label = document.createElement('label');
+          label.textContent = 'Editable templates (JSON array)';
+          paneContent.appendChild(label);
+          const ta = document.createElement('textarea');
+          ta.rows = 14;
+          ta.style.width = '100%';
+          try {
+            ta.value = JSON.stringify(templates, null, 2);
+          } catch (e) {
+            ta.value = '[]';
+          }
+          paneContent.appendChild(ta);
+
+          const saveBtn = document.createElement('button');
+          saveBtn.className = 'btn';
+          saveBtn.type = 'button';
+          saveBtn.textContent = 'Save';
+          const resetBtn = document.createElement('button');
+          resetBtn.className = 'btn ghost';
+          resetBtn.type = 'button';
+          resetBtn.textContent = 'Reset to defaults';
+          resetBtn.style.marginLeft = '8px';
+          paneContent.appendChild(saveBtn);
+          paneContent.appendChild(resetBtn);
+
+          tplPane.appendChild(paneContent);
+          contents.appendChild(tplPane);
+
+          saveBtn.addEventListener('click', () => {
+            try {
+              const parsed = JSON.parse(ta.value);
+              if (!Array.isArray(parsed)) throw new Error('Templates must be a JSON array');
+              // ensure items have ids and labels
+              parsed.forEach((it, i) => {
+                if (!it.id) it.id = `custom-${i}`;
+                if (!it.label) it.label = it.id;
+              });
+              templates = parsed;
+              templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
+              localStorage.setItem('nfg-templates', JSON.stringify(templates));
+              build();
+            } catch (err) {
+              alert('Invalid JSON: ' + err.message);
+            }
+          });
+
+          resetBtn.addEventListener('click', () => {
+            localStorage.removeItem('nfg-templates');
+            templates = defaultTemplates.slice();
+            templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
+            ta.value = JSON.stringify(templates, null, 2);
+            build();
+          });
+        })();
 
         activateTab(0);
       }
