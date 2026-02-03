@@ -1138,14 +1138,31 @@
           const help = document.createElement('div');
           help.className = 'meta';
           help.style.marginTop = '8px';
-          help.innerHTML =
-            '<strong>How to edit templates:</strong> <ul style="margin:6px 0 0 18px;padding:0;">' +
-            '<li>Select an existing template or click <em>+ New</em> to create one.</li>' +
-            '<li><em>Label</em>: a friendly name shown in selects.</li>' +
-            '<li><em>Template</em>: JSON object (leave blank for full JSON output). Example: <code>{"type":"template","template":"Hello {firstName}"}</code> or <code>{"type":"sprintf","template":"%(firstName)s"}</code>.</li>' +
-            '<li><em>Fields</em>: a JSON array of field objects, e.g. <code>[{"label":"Respondent","name":"firstName","type":"text"}, ...]</code>.</li>' +
-            '<li>Click <em>Save</em> to apply — left-side forms update immediately and the template is saved to localStorage.</li>' +
-            '</ul>';
+          help.innerHTML = `
+            <strong>How to edit templates:</strong>
+            <ul style="margin:6px 0 0 18px;padding:0;">
+              <li>Select an existing template or click <em>+ New</em> to create one.</li>
+              <li><em>Label</em>: a friendly name shown in selects.</li>
+              <li>
+                <em>Template</em>: a JSON object that controls output formatting. Common forms:
+                <ul>
+                  <li><strong>type: "template"</strong> — use placeholders like <code>{firstName}</code>. When a field exposes a combined input (see <em>Fields</em> below), you can reference the combined value as <code>{fieldName_combined}</code> or the explicit per-field value as <code>{fieldName}</code>.</li>
+                  <li><strong>type: "sprintf"</strong> — use Python-style tokens like <code>%(firstName)s</code>.</li>
+                  <li><strong>Blank/JSON fallback</strong> — leave the Template blank to output raw JSON.</li>
+                </ul>
+              </li>
+              <li>
+                <em>Fields</em>: a JSON array of field definitions. Example:
+                <code>[ { "label": "Name", "name": "firstName", "type": "text" } ]</code>.
+                For step-like fields use <code>"type":"steps"</code>. A steps field provides:
+                <ul>
+                  <li>a top combined input named <code>FIELD_combined</code> (e.g. <code>tasks_combined</code>) where users enter values like <code>Step 1 &gt; Step 2</code>;</li>
+                  <li>and per-step inputs named <code>FIELD</code> (plus optional <code>FIELD_key</code>) created when parsing the combined string.</li>
+                </ul>
+                The generator prefers the combined input when present (use <code>{FIELD_combined}</code> in templates), but templates can also handle arrays or combined strings — the runtime will format arrays as numbered lists when appropriate.
+              </li>
+              <li>Click <em>Save</em> to apply — left-side form tabs update immediately and templates are persisted to localStorage (only templates are saved; user-entered form values are never persisted).</li>
+            </ul>`;
           paneContent.appendChild(help);
 
           const tplSelectorRow = document.createElement('div');
