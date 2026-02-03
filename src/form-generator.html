@@ -285,16 +285,66 @@
           if (!header) return;
           const wrapper = document.createElement('label');
           wrapper.className = 'switch';
+          wrapper.dataset.devToggle = 'true';
           wrapper.style.marginLeft = '6px';
           // inner structure: checkbox + knob + label
           wrapper.innerHTML = `<input id="devToggle" type="checkbox" ${devMode ? 'checked' : ''}><span class="knob"></span><span class="label">${devMode ? 'Dev On' : 'Dev Off'}</span>`;
           const checkbox = wrapper.querySelector('input');
           if (checkbox) checkbox.autocomplete = 'off';
           const textLabel = wrapper.querySelector('.label');
+          // export button (visible only in dev mode)
+          const exportBtn = document.createElement('button');
+          exportBtn.type = 'button';
+          exportBtn.className = 'btn ghost';
+          exportBtn.textContent = 'Export HTML';
+          exportBtn.style.marginLeft = '8px';
+          exportBtn.style.display = devMode ? '' : 'none';
+          exportBtn.dataset.exportButton = 'true';
+          exportBtn.addEventListener('click', () => {
+            try {
+              const seed = [];
+              try { seed.push("window.formConfig = " + JSON.stringify(formConfig) + ";"); } catch (e) {}
+              try { seed.push("localStorage.setItem('nfg-forms', " + JSON.stringify(forms) + ");"); } catch (e) {}
+              try { seed.push("localStorage.setItem('nfg-outputs', " + JSON.stringify(outputs) + ");"); } catch (e) {}
+              try {
+                // Compute current mapping from formConfig -> template id so the
+                // exported HTML reflects the currently loaded form per-tab even
+                // if the mapping wasn't previously persisted.
+                const exportMap = {};
+                try {
+                  for (let ei = 0; ei < formConfig.length; ei++) {
+                    const tid = formConfig[ei] && formConfig[ei]._templateId;
+                    if (tid && formsMap && formsMap[tid]) exportMap[ei] = tid;
+                  }
+                } catch (e) {}
+                seed.push("localStorage.setItem('nfg-form-map', " + JSON.stringify(exportMap) + ");");
+              } catch (e) {}
+              try { seed.push("localStorage.setItem('nfg-dev-mode', 'false');"); } catch (e) {}
+              const seedScript = `<script>try{${seed.join('')} }catch(e){}<\/script>`;
+              // create a cleaned clone of the document and remove dev UI elements
+              const docClone = document.documentElement.cloneNode(true);
+              try {
+                const toRemove = docClone.querySelectorAll('[data-dev-toggle], [data-export-button]');
+                toRemove.forEach((n) => n.remove());
+              } catch (e) {}
+              let html = '<!doctype html>\n' + docClone.outerHTML;
+              html = html.replace(/<body([^>]*)>/i, (m, attrs) => `<body${attrs}>${seedScript}`);
+              const blob = new Blob([html], { type: 'text/html' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'nfg-export.html';
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              setTimeout(() => URL.revokeObjectURL(url), 5000);
+            } catch (err) { alert('Export failed: ' + (err && err.message)); }
+          });
           function apply() {
             try { localStorage.setItem(devKey, devMode ? 'true' : 'false'); } catch (e) {}
             if (checkbox) checkbox.checked = devMode;
             if (textLabel) textLabel.textContent = 'Dev';
+            if (exportBtn) exportBtn.style.display = devMode ? '' : 'none';
             // Preserve all current form values across the rebuild so toggling
             // dev mode doesn't clear user input.
             const allPrev = {};
@@ -356,6 +406,13 @@
             devMode = !!checkbox.checked;
             apply();
           });
+          // Place the Export button to the left of the theme toggle so enabling
+          // dev mode doesn't drastically shift layout. Insert before the
+          // `#themeToggle` button when present, otherwise append.
+          const themeBtnEl = header.querySelector('#themeToggle');
+          if (themeBtnEl) header.insertBefore(exportBtn, themeBtnEl);
+          else header.appendChild(exportBtn);
+          // Keep the dev toggle after the theme button (end of controls)
           header.appendChild(wrapper);
           apply();
         } catch (e) {}
@@ -1295,26 +1352,10 @@
             try {
               const parsedF = fieldsTaOut.value.trim() ? JSON.parse(fieldsTaOut.value) : [];
               if (!Array.isArray(parsedF)) throw new Error('Fields must be an array');
-              // If no explicit fields provided, derive them from placeholders
-              // found in the output template string (e.g. "Steps: {steps}").
-              if ((!parsedF || parsedF.length === 0) && o.cfg && typeof o.cfg.template === 'string') {
-                const tpl = o.cfg.template;
-                const re = /\{([a-zA-Z0-9_]+)\}/g;
-                const seen = new Set();
-                const gen = [];
-                let m;
-                while ((m = re.exec(tpl)) !== null) {
-                  const name = m[1];
-                  if (seen.has(name)) continue;
-                  seen.add(name);
-                  const label = name === 'steps' ? 'Steps' : (name.charAt(0).toUpperCase() + name.slice(1));
-                  const type = name === 'steps' ? 'steps' : 'text';
-                  gen.push({ label, name, type, placeholder: '' });
-                }
-                o.fields = gen;
-              } else {
-                o.fields = parsedF;
-              }
+              // Do not auto-generate fields from the template when saving — respect
+              // whatever the user has entered in the Fields textarea. Only validate
+              // that it's a JSON array and then save it.
+              o.fields = parsedF;
             } catch (e) { alert('Invalid fields JSON: ' + e.message); return; }
             outputsMap = Object.fromEntries(outputs.map((x) => [x.id, x]));
             // persist outputs so Templates can reference them later
@@ -1610,9 +1651,22 @@
               alert('Please select an existing Output first.');
               return;
             }
-            const id = `custom-${Date.now()}`;
             const baseOut = outputsMap[outId] || null;
-            const nt = { id, label: lblInput.value || id, cfg: baseOut && baseOut.cfg ? JSON.parse(JSON.stringify(baseOut.cfg)) : null, fields: baseOut && baseOut.fields ? JSON.parse(JSON.stringify(baseOut.fields)) : [], outputId: outId };
+            // Auto-populate the Label input with the selected Output's displayed name (option text)
+            try {
+              if (lblInput && (!lblInput.value || String(lblInput.value).trim() === '')) {
+                let displayLabel = null;
+                try {
+                  if (outSelect && typeof outSelect.selectedIndex === 'number' && outSelect.options && outSelect.options.length) {
+                    displayLabel = outSelect.options[outSelect.selectedIndex].textContent || null;
+                  }
+                } catch (e) {}
+                if (!displayLabel && baseOut && baseOut.label) displayLabel = baseOut.label;
+                if (displayLabel) lblInput.value = displayLabel;
+              }
+            } catch (e) {}
+            const id = `custom-${Date.now()}`;
+            const nt = { id, label: lblInput.value || (baseOut && baseOut.label) || id, cfg: baseOut && baseOut.cfg ? JSON.parse(JSON.stringify(baseOut.cfg)) : null, fields: baseOut && baseOut.fields ? JSON.parse(JSON.stringify(baseOut.fields)) : [], outputId: outId };
             forms.push(nt);
             formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
             localStorage.setItem('nfg-forms', JSON.stringify(forms));
