@@ -43,6 +43,23 @@
         justify-content: space-between;
         align-items: center;
       }
+      .top {
+        /* keep the header stable and prevent reflow when tabs change */
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        padding-bottom: 8px;
+      }
+      .top h1 {
+        flex: 0 0 auto;
+      }
+      .top-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
       h1 {
         font-size: 18px;
         margin: 0;
@@ -52,12 +69,16 @@
         gap: 6px;
         margin-top: 14px;
         border-bottom: 1px solid var(--border);
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
       }
       .tab {
         padding: 10px 14px;
         cursor: pointer;
         border-radius: 6px 6px 0 0;
         color: var(--muted);
+        flex: 0 0 auto;
       }
       .tab.right {
         margin-left: auto;
@@ -145,16 +166,68 @@
         font-size: 13px;
         color: #333;
       }
+      /* Dev toggle switch */
+      .switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: 6px;
+      }
+      .switch input {
+        display: none;
+      }
+      .switch .knob {
+        width: 40px;
+        height: 20px;
+        background: #d7dbe0;
+        border-radius: 20px;
+        position: relative;
+        transition: background 0.15s;
+        box-shadow: inset 0 -2px 0 rgba(0,0,0,0.03);
+      }
+      .switch .knob::after {
+        content: '';
+        position: absolute;
+        left: 3px;
+        top: 3px;
+        width: 14px;
+        height: 14px;
+        background: #fff;
+        border-radius: 50%;
+        transition: left 0.15s;
+        box-shadow: 0 1px 2px rgba(2,6,23,0.08);
+      }
+      .switch input:checked + .knob {
+        background: var(--accent);
+      }
+      .switch input:checked + .knob::after {
+        left: 23px;
+      }
+      .switch .label {
+        font-size: 13px;
+        color: var(--muted);
+        user-select: none;
+      }
+      .footer {
+        margin-top: 12px;
+        border-top: 1px solid var(--border);
+        padding-top: 10px;
+        text-align: center;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .footer-inner {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 0 18px;
+      }
     </style>
   </head>
   <body>
     <div class="container">
       <div class="top">
         <h1>Inline JSON Form Generator</h1>
-        <div style="display: flex; align-items: center; gap: 10px">
-          <div class="meta">
-            Copyright ©️ 2026 Valithor Obsidion &lt;valithor@discordphp.org&gt;
-          </div>
+        <div class="top-controls">
           <button id="themeToggle" class="btn ghost" type="button" aria-label="Toggle dark mode">
             Dark
           </button>
@@ -164,70 +237,183 @@
       <div id="tabbar" class="tabs"></div>
       <div id="contents"></div>
     </div>
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="meta">Copyright ©️ 2026 Valithor Obsidion &lt;valithor@discordphp.org&gt;</div>
+      </div>
+    </footer>
 
     <script>
-      const formConfig = [
-        {
-          title: 'Person A',
-          // example: sprintf-style formatting using %(name)s tokens
-          format: { type: 'sprintf', template: '%(firstName)s %(lastName)s - %(email)s' },
-          fields: [
-            { label: 'First Name', name: 'firstName', type: 'text', placeholder: 'Bob' },
-            { label: 'Last Name', name: 'lastName', type: 'text', placeholder: 'Jones' },
-            { label: 'Phone', name: 'phone', type: 'text', placeholder: '(555) 123-4567' },
-            { label: 'Email', name: 'email', type: 'text', placeholder: '' },
-          ],
-        },
-        {
-          title: 'Person B',
-          // example: sprintf-style formatting using %(name)s tokens
-          format: { type: 'sprintf', template: '%(firstName)s %(lastName)s - %(email)s' },
-          fields: [
-            { label: 'First Name', name: 'firstName', type: 'text', placeholder: 'Bob' },
-            { label: 'Last Name', name: 'lastName', type: 'text', placeholder: 'Jones' },
-            { label: 'Phone', name: 'phone', type: 'text', placeholder: '(555) 123-4567' },
-            { label: 'Email', name: 'email', type: 'text', placeholder: '' },
-          ],
-        },
-        {
-          title: 'Survey',
-          // no explicit format provided -> will default to JSON output
-          fields: [
-            { label: 'Respondent', name: 'firstName', type: 'text', placeholder: '' },
-            { label: 'Contact Email', name: 'email', type: 'text', placeholder: '' },
-            { label: 'Steps', name: 'steps', type: 'steps', placeholder: '' },
-            { label: 'Comments', name: 'notes', type: 'textarea', placeholder: '' },
-          ],
-        },
-      ];
+      const formConfig = (window.formConfig && Array.isArray(window.formConfig))
+        ? window.formConfig
+        : [];
+
+      // Keep a pristine copy of the original formConfig so we can restore defaults
+      const originalFormConfig = JSON.parse(JSON.stringify(formConfig));
 
       const tabbar = document.getElementById('tabbar');
       const contents = document.getElementById('contents');
 
+      // Dev mode toggle: when true, Templates pane and per-form Unload buttons are visible.
+      // Persisted in localStorage key 'nfg-dev-mode'. Default is true to preserve current behavior.
+      const devKey = 'nfg-dev-mode';
+      let devMode = true;
+      try {
+        const s = localStorage.getItem(devKey);
+        if (s !== null) devMode = s === 'true';
+      } catch (e) {}
+
+      // create a small Dev toggle switch next to theme toggle
+      (function addDevToggleBtn() {
+        try {
+          const header = document.querySelector('.top > div');
+          if (!header) return;
+          const wrapper = document.createElement('label');
+          wrapper.className = 'switch';
+          wrapper.style.marginLeft = '6px';
+          // inner structure: checkbox + knob + label
+          wrapper.innerHTML = `<input id="devToggle" type="checkbox" ${devMode ? 'checked' : ''}><span class="knob"></span><span class="label">${devMode ? 'Dev On' : 'Dev Off'}</span>`;
+          const checkbox = wrapper.querySelector('input');
+          const textLabel = wrapper.querySelector('.label');
+          function apply() {
+            try { localStorage.setItem(devKey, devMode ? 'true' : 'false'); } catch (e) {}
+            if (checkbox) checkbox.checked = devMode;
+            if (textLabel) textLabel.textContent = devMode ? 'Dev On' : 'Dev Off';
+            // Preserve all current form values across the rebuild so toggling
+            // dev mode doesn't clear user input.
+            const allPrev = {};
+            try {
+              Array.from(contents.querySelectorAll('.tab-pane')).forEach((pane) => {
+                const idx = pane.dataset.index;
+                const form = pane.querySelector('form.generated-form');
+                if (!form) return;
+                const map = {};
+                Array.from(form.elements).forEach((e) => {
+                  if (!e.name) return;
+                  const name = e.name;
+                  const val = e.type === 'checkbox' ? (e.checked ? e.value || 'on' : '') : e.value;
+                  if (Object.prototype.hasOwnProperty.call(map, name)) {
+                    if (!Array.isArray(map[name])) map[name] = [map[name]];
+                    map[name].push(val);
+                  } else {
+                    map[name] = val;
+                  }
+                });
+                allPrev[idx] = map;
+              });
+            } catch (e) {}
+            try { build(); } catch (e) {}
+            try {
+              Object.keys(allPrev).forEach((idx) => {
+                const pane = contents.querySelector(`.tab-pane[data-index='${idx}']`);
+                if (!pane) return;
+                const form = pane.querySelector('form.generated-form');
+                if (!form) return;
+                const prev = allPrev[idx] || {};
+                Object.keys(prev).forEach((name) => {
+                  try {
+                    const els = Array.from(form.querySelectorAll(`[name="${CSS.escape(name)}"]`));
+                    if (!els || els.length === 0) return;
+                    const pv = prev[name];
+                    if (els[0].type === 'radio') {
+                      els.forEach((r) => (r.checked = r.value == pv));
+                      return;
+                    }
+                    if (els[0].type === 'checkbox') {
+                      els.forEach((c) => {
+                        if (Array.isArray(pv)) c.checked = pv.includes(c.value);
+                        else c.checked = !!pv && String(pv) !== 'false' && String(pv) !== '0';
+                      });
+                      return;
+                    }
+                    if (Array.isArray(pv)) {
+                      for (let k = 0; k < els.length && k < pv.length; k++) els[k].value = pv[k];
+                    } else {
+                      els[0].value = pv;
+                    }
+                  } catch (e) {}
+                });
+              });
+            } catch (e) {}
+          }
+          checkbox.addEventListener('change', () => {
+            devMode = !!checkbox.checked;
+            apply();
+          });
+          header.appendChild(wrapper);
+          apply();
+        } catch (e) {}
+      })();
+
       // Build list of available templates (include JSON fallback)
       const defaultTemplates = [{ id: '__json__', label: 'JSON (full)', cfg: null }];
+      // Create a default template entry for every tab so each tab has a template option
       formConfig.forEach((t, idx) => {
-        if (t.format) {
-          const id = `tpl-${idx}`;
-          const label = t.format.label ? t.format.label : `${t.title}`;
-          defaultTemplates.push({ id, label, cfg: t.format });
-          // keep a reference on the config so we can detect default when using defaults
-          t._templateId = id;
-        }
+        const id = `tpl-${idx}`;
+        const label = t.format && t.format.label ? t.format.label : `${t.title}`;
+        const cfg = t.format ? t.format : null;
+        defaultTemplates.push({ id, label, cfg });
+        // keep a reference on the config so we can detect default when using defaults
+        t._templateId = id;
       });
 
-      // Load editable templates from localStorage if present, otherwise use defaults
+      // Load editable templates from localStorage if present, otherwise merge with defaults
       let templates;
       try {
         const saved = localStorage.getItem('nfg-templates');
-        if (saved) templates = JSON.parse(saved);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            // Start from defaults and overlay saved entries (saved entries override defaults)
+            const map = Object.fromEntries(defaultTemplates.map((t) => [t.id, t]));
+            for (const s of parsed) {
+              if (s && s.id) map[s.id] = s;
+            }
+            templates = Object.values(map);
+          }
+        }
       } catch (e) {}
       if (!templates) templates = defaultTemplates.slice();
 
       // map for quick lookup
       let templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
+      // key for persisting per-tab template selection (map index -> templateId)
+      const templateMapKey = 'nfg-template-map';
+      let templateMap = {};
+      // try to load saved mapping and apply to formConfig
+      try {
+        const savedMap = localStorage.getItem(templateMapKey);
+        if (savedMap) {
+          const parsed = JSON.parse(savedMap);
+          if (parsed && typeof parsed === 'object') {
+            templateMap = parsed;
+            Object.keys(parsed).forEach((k) => {
+              const idx = Number(k);
+              const id = parsed[k];
+              if (!Number.isNaN(idx) && formConfig[idx] && templatesMap[id]) {
+                formConfig[idx]._templateId = id;
+              }
+            });
+          }
+        }
+      } catch (e) {}
+
+      function persistTemplateMap() {
+        try {
+          const map = {};
+          for (let i = 0; i < formConfig.length; i++) {
+            if (formConfig[i] && formConfig[i]._templateId && templatesMap[formConfig[i]._templateId]) {
+              map[i] = formConfig[i]._templateId;
+            }
+          }
+          templateMap = map;
+          localStorage.setItem(templateMapKey, JSON.stringify(map));
+        } catch (e) {}
+      }
       // counter used to give generated dynamic inputs unique ids
       let dynamicIdCounter = 0;
+      // when true, tpl select change handlers should not activate tabs (used during programmatic updates)
+      let suppressTabActivation = false;
 
       // Create a step row (key input + value input + remove button) and append to `list`.
       // `baseName` is the field name, `keyVal` can be a string value or {key,val}.
@@ -370,7 +556,15 @@
               combinedRow.style.gap = '8px';
               combinedRow.appendChild(input);
               combinedRow.appendChild(parseBtnTop);
+              // If the field defines a default combined steps string, prefill and parse it
+              if (f.default && typeof f.default === 'string' && f.default.trim()) {
+                input.value = f.default;
+              }
               wrapper.appendChild(combinedRow);
+              if (f.default && typeof f.default === 'string' && f.default.trim()) {
+                // trigger parse to populate individual step rows
+                parseBtnTop.click();
+              }
               // default key behavior selector (none | numbered)
               const controlRow = document.createElement('div');
               controlRow.style.display = 'flex';
@@ -501,8 +695,99 @@
           // default to this tab's configured template if present
           if (formConfig[i] && formConfig[i]._templateId)
             tplSelect.value = formConfig[i]._templateId;
+          // when a template is selected, apply its fields and cfg to this tab and rebuild
+          tplSelect.addEventListener('change', () => {
+            const sel = tplSelect.value || '__json__';
+            const tpl = templatesMap[sel];
+            if (!tpl) return;
+            // capture current values to avoid losing user input on rebuild
+            const prevValues = {};
+            try {
+              Array.from(form.elements).forEach((e) => {
+                if (!e.name) return;
+                const name = e.name;
+                const val = e.type === 'checkbox' ? (e.checked ? e.value || 'on' : '') : e.value;
+                if (Object.prototype.hasOwnProperty.call(prevValues, name)) {
+                  if (!Array.isArray(prevValues[name])) prevValues[name] = [prevValues[name]];
+                  prevValues[name].push(val);
+                } else {
+                  prevValues[name] = val;
+                }
+              });
+            } catch (e) {}
+            try {
+              if (Array.isArray(tpl.fields) && tpl.fields.length) {
+                formConfig[i].fields = JSON.parse(JSON.stringify(tpl.fields));
+              }
+              if (tpl.cfg) {
+                formConfig[i].format = JSON.parse(JSON.stringify(tpl.cfg));
+              }
+            } catch (e) {}
+            try {
+              formConfig[i]._templateId = sel;
+              persistTemplateMap();
+            } catch (e) {}
+            const preserveIndex = i;
+            build();
+            try {
+              // restore preserved values into rebuilt pane
+              if (!suppressTabActivation) activateTab(Number(preserveIndex));
+              const newPane = contents.querySelector(`.tab-pane[data-index='${preserveIndex}']`);
+              if (newPane) {
+                const newForm = newPane.querySelector('form.generated-form');
+                if (newForm) {
+                  Object.keys(prevValues).forEach((name) => {
+                    try {
+                      const els = Array.from(newForm.querySelectorAll(`[name="${CSS.escape(name)}"]`));
+                      if (!els || els.length === 0) return;
+                      const pv = prevValues[name];
+                      if (els[0].type === 'radio') {
+                        els.forEach((r) => (r.checked = r.value == pv));
+                        return;
+                      }
+                      if (els[0].type === 'checkbox') {
+                        els.forEach((c) => {
+                          if (Array.isArray(pv)) c.checked = pv.includes(c.value);
+                          else c.checked = !!pv && String(pv) !== 'false' && String(pv) !== '0';
+                        });
+                        return;
+                      }
+                      if (Array.isArray(pv)) {
+                        for (let k = 0; k < els.length && k < pv.length; k++) els[k].value = pv[k];
+                      } else {
+                        els[0].value = pv;
+                      }
+                    } catch (e) {}
+                  });
+                }
+              }
+            } catch (e) {}
+          });
           tplRow.appendChild(tplLabel);
           tplRow.appendChild(tplSelect);
+          // if dev mode is enabled, expose an Unload button for this form
+          if (devMode) {
+            const unloadBtn = document.createElement('button');
+            unloadBtn.type = 'button';
+            unloadBtn.className = 'btn ghost';
+            unloadBtn.textContent = 'Unload';
+            unloadBtn.style.marginLeft = '8px';
+            unloadBtn.addEventListener('click', () => {
+              try {
+                const tid = formConfig[i] && formConfig[i]._templateId;
+                if (tid && /^tpl-(\d+)$/.test(tid)) {
+                  alert('Cannot unload a default form tab.');
+                  return;
+                }
+                // remove this form tab
+                formConfig.splice(i, 1);
+                try { persistTemplateMap(); } catch (e) {}
+                build();
+                try { activateTab(Math.max(0, i - 1)); } catch (e) {}
+              } catch (e) {}
+            });
+            tplRow.appendChild(unloadBtn);
+          }
           formArea.appendChild(tplRow);
 
           // --- Generate UI: button + output area
@@ -651,7 +936,9 @@
         });
 
         // Add a dedicated 'Templates' tab where the templates JSON can be edited.
+        // Only add when devMode is enabled.
         (function addTemplatesTab() {
+          if (!devMode) return;
           const tplIndex = formConfig.length;
           const tplTab = document.createElement('div');
           tplTab.className = 'tab right';
@@ -668,58 +955,435 @@
           const paneContent = document.createElement('div');
           paneContent.className = 'tab-content';
           const label = document.createElement('label');
-          label.textContent = 'Editable templates (JSON array)';
+          label.textContent = 'Templates';
           paneContent.appendChild(label);
-          const ta = document.createElement('textarea');
-          ta.rows = 14;
-          ta.style.width = '100%';
-          try {
-            ta.value = JSON.stringify(templates, null, 2);
-          } catch (e) {
-            ta.value = '[]';
-          }
-          paneContent.appendChild(ta);
+
+          // Inline help explaining how to edit templates
+          const help = document.createElement('div');
+          help.className = 'meta';
+          help.style.marginTop = '8px';
+          help.innerHTML =
+            '<strong>How to edit templates:</strong> <ul style="margin:6px 0 0 18px;padding:0;">' +
+            '<li>Select an existing template or click <em>+ New</em> to create one.</li>' +
+            '<li><em>Label</em>: a friendly name shown in selects.</li>' +
+            '<li><em>Template config</em>: JSON object (leave blank for full JSON output). Example: <code>{"type":"template","template":"Hello {firstName}"}</code> or <code>{"type":"sprintf","template":"%(firstName)s"}</code>.</li>' +
+            '<li><em>Fields</em>: a JSON array of field objects, e.g. <code>[{"label":"Respondent","name":"firstName","type":"text"}, ...]</code>.</li>' +
+            '<li>Click <em>Save</em> to apply — left-side forms update immediately and the template is saved to localStorage.</li>' +
+            '</ul>';
+          paneContent.appendChild(help);
+
+          const tplSelectorRow = document.createElement('div');
+          tplSelectorRow.style.display = 'flex';
+          tplSelectorRow.style.alignItems = 'center';
+          tplSelectorRow.style.gap = '8px';
+          tplSelectorRow.style.marginTop = '8px';
+          const tplSelect = document.createElement('select');
+          tplSelect.style.flex = '1';
+          const addBtn = document.createElement('button');
+          addBtn.type = 'button';
+          addBtn.className = 'btn ghost';
+          addBtn.textContent = '+ New';
+          tplSelectorRow.appendChild(tplSelect);
+          tplSelectorRow.appendChild(addBtn);
+          paneContent.appendChild(tplSelectorRow);
+
+          const labelRow = document.createElement('div');
+          labelRow.style.marginTop = '8px';
+          const lblLabel = document.createElement('label');
+          lblLabel.textContent = 'Label';
+          const lblInput = document.createElement('input');
+          lblInput.type = 'text';
+          lblInput.style.width = '100%';
+          labelRow.appendChild(lblLabel);
+          labelRow.appendChild(lblInput);
+          paneContent.appendChild(labelRow);
+
+          const cfgLabel = document.createElement('label');
+          cfgLabel.textContent = 'Template config (JSON)';
+          cfgLabel.style.marginTop = '8px';
+          const cfgTa = document.createElement('textarea');
+          cfgTa.rows = 6;
+          cfgTa.style.width = '100%';
+          paneContent.appendChild(cfgLabel);
+          paneContent.appendChild(cfgTa);
+
+          const fieldsLabel = document.createElement('label');
+          fieldsLabel.textContent = 'Fields (JSON array)';
+          fieldsLabel.style.marginTop = '8px';
+          const fieldsTa = document.createElement('textarea');
+          fieldsTa.rows = 8;
+          fieldsTa.style.width = '100%';
+          paneContent.appendChild(fieldsLabel);
+          paneContent.appendChild(fieldsTa);
 
           const saveBtn = document.createElement('button');
           saveBtn.className = 'btn';
           saveBtn.type = 'button';
           saveBtn.textContent = 'Save';
+          const loadBtn = document.createElement('button');
+          loadBtn.className = 'btn ghost';
+          loadBtn.type = 'button';
+          loadBtn.textContent = 'Load';
+          loadBtn.style.marginLeft = '8px';
+          const unloadBtn = document.createElement('button');
+          unloadBtn.className = 'btn ghost';
+          unloadBtn.type = 'button';
+          unloadBtn.textContent = 'Unload';
+          unloadBtn.style.marginLeft = '8px';
+          const delBtn = document.createElement('button');
+          delBtn.className = 'btn ghost';
+          delBtn.type = 'button';
+          delBtn.textContent = 'Delete';
+          delBtn.style.marginLeft = '8px';
           const resetBtn = document.createElement('button');
           resetBtn.className = 'btn ghost';
           resetBtn.type = 'button';
           resetBtn.textContent = 'Reset to defaults';
           resetBtn.style.marginLeft = '8px';
           paneContent.appendChild(saveBtn);
+          paneContent.appendChild(loadBtn);
+          paneContent.appendChild(unloadBtn);
+          paneContent.appendChild(delBtn);
           paneContent.appendChild(resetBtn);
 
-          tplPane.appendChild(paneContent);
-          contents.appendChild(tplPane);
+          // helper: populate selector
+          function refreshTplSelect() {
+            tplSelect.innerHTML = '';
+            templates.forEach((t) => {
+              const o = document.createElement('option');
+              o.value = t.id;
+              o.textContent = t.label || t.id;
+              tplSelect.appendChild(o);
+            });
+          }
+          refreshTplSelect();
+
+          function loadSelected() {
+            const id = tplSelect.value;
+            const t = templates.find((x) => x.id === id);
+            if (!t) {
+              lblInput.value = '';
+              cfgTa.value = '';
+              fieldsTa.value = '';
+              return;
+            }
+            lblInput.value = t.label || '';
+            try {
+              cfgTa.value = t.cfg ? JSON.stringify(t.cfg, null, 2) : '';
+            } catch (e) {
+              cfgTa.value = '';
+            }
+            try {
+              fieldsTa.value = t.fields ? JSON.stringify(t.fields, null, 2) : '';
+            } catch (e) {
+              fieldsTa.value = '';
+            }
+          }
+          tplSelect.addEventListener('change', loadSelected);
+          loadSelected();
+
+          addBtn.addEventListener('click', () => {
+            const id = `custom-${Date.now()}`;
+            const nt = { id, label: id, cfg: null, fields: [] };
+            templates.push(nt);
+            // create a corresponding new form tab for this custom template
+            try {
+              const newForm = {
+                title: nt.label || nt.id,
+                format: nt.cfg ? JSON.parse(JSON.stringify(nt.cfg)) : null,
+                fields: JSON.parse(JSON.stringify(nt.fields || [])),
+                _templateId: nt.id,
+              };
+              formConfig.push(newForm);
+              // persist mapping for the newly created tab
+              persistTemplateMap();
+            } catch (e) {}
+            templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
+            localStorage.setItem('nfg-templates', JSON.stringify(templates));
+            refreshTplSelect();
+            tplSelect.value = id;
+            loadSelected();
+            // rebuild so the new form tab appears on the left
+            build();
+          });
+
+          // Load: create a form tab for the selected template if none exists
+          loadBtn.addEventListener('click', () => {
+            const id = tplSelect.value;
+            if (!id) return;
+            try {
+              // if a tab already exists for this template, do nothing
+              let exists = false;
+              for (let j = 0; j < formConfig.length; j++) {
+                if (formConfig[j] && formConfig[j]._templateId === id) {
+                  exists = true;
+                  break;
+                }
+              }
+              if (!exists) {
+                const t = templates.find((x) => x.id === id) || templatesMap[id];
+                const newForm = {
+                  title: (t && t.label) || id,
+                  format: t && t.cfg ? JSON.parse(JSON.stringify(t.cfg)) : null,
+                  fields: t && t.fields ? JSON.parse(JSON.stringify(t.fields)) : [],
+                  _templateId: id,
+                };
+                formConfig.push(newForm);
+                templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
+                // persist mapping and templates
+                try { persistTemplateMap(); } catch (e) {}
+                build();
+                // activate the newly created tab (last index)
+                try { activateTab(formConfig.length - 1); } catch (e) {}
+              }
+            } catch (e) {}
+            // keep templates pane active
+            try { activateTab(Number(tplPane.dataset.index)); } catch (e) {}
+          });
+
+          // Unload button handled elsewhere in templates pane; per-form Unload exists below when devMode enabled.
 
           saveBtn.addEventListener('click', () => {
+            const id = tplSelect.value;
+            const t = templates.find((x) => x.id === id);
+            if (!t) return;
+            t.label = lblInput.value || t.label || t.id;
             try {
-              const parsed = JSON.parse(ta.value);
-              if (!Array.isArray(parsed)) throw new Error('Templates must be a JSON array');
-              // ensure items have ids and labels
-              parsed.forEach((it, i) => {
-                if (!it.id) it.id = `custom-${i}`;
-                if (!it.label) it.label = it.id;
-              });
-              templates = parsed;
-              templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
-              localStorage.setItem('nfg-templates', JSON.stringify(templates));
-              build();
-            } catch (err) {
-              alert('Invalid JSON: ' + err.message);
+              const parsedCfg = cfgTa.value.trim() ? JSON.parse(cfgTa.value) : null;
+              t.cfg = parsedCfg;
+            } catch (e) {
+              alert('Invalid template config JSON: ' + e.message);
+              return;
             }
+            try {
+              const parsedFields = fieldsTa.value.trim() ? JSON.parse(fieldsTa.value) : [];
+              if (!Array.isArray(parsedFields)) throw new Error('Fields must be an array');
+              t.fields = parsedFields;
+            } catch (e) {
+              alert('Invalid fields JSON: ' + e.message);
+              return;
+            }
+            // If this template maps to a default form (tpl-<index>), update that formConfig entry
+            try {
+              const m = /^tpl-(\d+)$/.exec(t.id);
+              if (m) {
+                const idx = Number(m[1]);
+                if (formConfig[idx]) {
+                  // apply fields and cfg to the in-memory formConfig so the tab reflects changes
+                  formConfig[idx].fields = JSON.parse(JSON.stringify(t.fields || []));
+                  if (t.cfg) formConfig[idx].format = JSON.parse(JSON.stringify(t.cfg));
+                  formConfig[idx]._templateId = t.id;
+                }
+              } else {
+                // For custom templates, if a corresponding form exists, update it too
+                try {
+                  for (let j = 0; j < formConfig.length; j++) {
+                    if (formConfig[j] && formConfig[j]._templateId === t.id) {
+                      formConfig[j].fields = JSON.parse(JSON.stringify(t.fields || []));
+                      if (t.cfg) formConfig[j].format = JSON.parse(JSON.stringify(t.cfg));
+                      formConfig[j].title = t.label || formConfig[j].title;
+                    }
+                  }
+                } catch (e) {}
+              }
+            } catch (e) {}
+            templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
+            localStorage.setItem('nfg-templates', JSON.stringify(templates));
+            // persist any mapping changes made by save
+            try { persistTemplateMap(); } catch (e) {}
+            // preserve templates tab and selection after rebuild
+            const preserveIndex = tplPane.dataset.index;
+            const preserveId = t.id;
+            build();
+            try {
+              activateTab(Number(preserveIndex));
+              const newPane = contents.querySelector(`.tab-pane[data-index='${preserveIndex}']`);
+              if (newPane) {
+                const newSelect = newPane.querySelector('select');
+                if (newSelect) {
+                  newSelect.value = preserveId;
+                  newSelect.dispatchEvent(new Event('change'));
+                }
+                // status appended after applying to form panes below
+              }
+            } catch (e) {}
+            // Also trigger change on any form panes that currently have this template selected
+            try {
+              suppressTabActivation = true;
+              for (let fi = 0; fi < formConfig.length; fi++) {
+                const formPane = contents.querySelector(`.tab-pane[data-index='${fi}']`);
+                if (!formPane) continue;
+                const formTpl = formPane.querySelector('select');
+                if (!formTpl) continue;
+                if (formTpl.value === preserveId) {
+                  formTpl.dispatchEvent(new Event('change'));
+                }
+              }
+            } catch (e) {}
+            finally { suppressTabActivation = false; }
+            // re-activate templates tab and show saved status (after form panes updated)
+            try {
+              activateTab(Number(preserveIndex));
+              const tplPane = contents.querySelector(`.tab-pane[data-index='${preserveIndex}']`);
+              if (tplPane) {
+                const status = document.createElement('div');
+                status.className = 'meta';
+                status.textContent = 'Saved';
+                status.style.marginTop = '8px';
+                tplPane.querySelector('.tab-content').appendChild(status);
+                setTimeout(() => status.remove(), 1800);
+              }
+            } catch (e) {}
+          });
+
+          delBtn.addEventListener('click', () => {
+            const id = tplSelect.value;
+            const preserveIndex = tplPane.dataset.index;
+            templates = templates.filter((x) => x.id !== id);
+            templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
+            localStorage.setItem('nfg-templates', JSON.stringify(templates));
+            // update persisted mapping after deletion
+            try { persistTemplateMap(); } catch (e) {}
+            refreshTplSelect();
+            loadSelected();
+            // If this was a custom template that had an associated form tab, remove that tab
+            try {
+              if (id && id.startsWith('custom-')) {
+                for (let j = formConfig.length - 1; j >= 0; j--) {
+                  if (formConfig[j] && formConfig[j]._templateId === id) formConfig.splice(j, 1);
+                }
+              }
+            } catch (e) {}
+            build();
+            // pick first available template in the templates pane (no status yet)
+            try {
+              activateTab(Number(preserveIndex));
+              const newPane = contents.querySelector(`.tab-pane[data-index='${preserveIndex}']`);
+              if (newPane) {
+                const newSelect = newPane.querySelector('select');
+                if (newSelect && newSelect.options.length) newSelect.selectedIndex = 0;
+              }
+            } catch (e) {}
+
+            // If any form panes used the deleted template, reset them to first option
+            try {
+              suppressTabActivation = true;
+              for (let fi = 0; fi < formConfig.length; fi++) {
+                const formPane = contents.querySelector(`.tab-pane[data-index='${fi}']`);
+                if (!formPane) continue;
+                const formTpl = formPane.querySelector('select');
+                if (!formTpl) continue;
+                // if the select no longer has the previously selected value, pick first and trigger change
+                if (!formTpl.querySelector(`option[value="${id}"]`)) {
+                  if (formTpl.options.length) {
+                    formTpl.selectedIndex = 0;
+                    formTpl.dispatchEvent(new Event('change'));
+                  }
+                }
+              }
+            } catch (e) {}
+            finally { suppressTabActivation = false; }
+
+            // finally re-activate templates tab and show Deleted status
+            try {
+              const newTplTab = tabbar.querySelector('.tab.right');
+              if (newTplTab) {
+                activateTab(Number(newTplTab.dataset.index));
+                const finalPane = contents.querySelector(`.tab-pane[data-index='${newTplTab.dataset.index}']`);
+                if (finalPane) {
+                  const status = document.createElement('div');
+                  status.className = 'meta';
+                  status.textContent = 'Deleted';
+                  status.style.marginTop = '8px';
+                  finalPane.querySelector('.tab-content').appendChild(status);
+                  setTimeout(() => status.remove(), 1800);
+                }
+              }
+            } catch (e) {}
           });
 
           resetBtn.addEventListener('click', () => {
+            const preserveIndex = tplPane.dataset.index;
             localStorage.removeItem('nfg-templates');
+            // remove persisted per-tab template mapping as well
+            try { localStorage.removeItem(templateMapKey); templateMap = {}; } catch (e) {}
             templates = defaultTemplates.slice();
             templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
-            ta.value = JSON.stringify(templates, null, 2);
+            refreshTplSelect();
+            loadSelected();
+            // restore original formConfig fields/formats for default tabs
+            try {
+              for (let idx = 0; idx < formConfig.length; idx++) {
+                if (originalFormConfig[idx]) {
+                  formConfig[idx].fields = JSON.parse(JSON.stringify(originalFormConfig[idx].fields || []));
+                  formConfig[idx].format = JSON.parse(JSON.stringify(originalFormConfig[idx].format || null));
+                  if (originalFormConfig[idx]._templateId) formConfig[idx]._templateId = originalFormConfig[idx]._templateId;
+                }
+              }
+            } catch (e) {}
             build();
+            try {
+              const newTplTab = tabbar.querySelector('.tab.right');
+              if (newTplTab) {
+                activateTab(Number(newTplTab.dataset.index));
+                const newPane = contents.querySelector(`.tab-pane[data-index='${newTplTab.dataset.index}']`);
+                if (newPane) {
+                  const newSelect = newPane.querySelector('select');
+                  if (newSelect) {
+                    if (newSelect.options.length) newSelect.selectedIndex = 0;
+                      newSelect.dispatchEvent(new Event('change'));
+                  }
+                    // re-query the pane after dispatch in case the DOM was rebuilt
+                    const freshPane = contents.querySelector(`.tab-pane[data-index='${newTplTab.dataset.index}']`);
+                    const targetPane = freshPane || newPane;
+                    // Do not append status here — the DOM may be rebuilt by subsequent
+                    // programmatic change events. Status will be appended after all
+                    // programmatic updates complete.
+                }
+              }
+            } catch (e) {}
+            // After reset, ensure form panes point to a valid template and trigger change
+            try {
+              suppressTabActivation = true;
+              for (let fi = 0; fi < formConfig.length; fi++) {
+                const formPane = contents.querySelector(`.tab-pane[data-index='${fi}']`);
+                if (!formPane) continue;
+                const formTpl = formPane.querySelector('select');
+                if (!formTpl) continue;
+                // if the currently selected option is no longer present, select first
+                if (!formTpl.querySelector(`option[value="${formTpl.value}"]`)) {
+                  if (formTpl.options.length) {
+                    formTpl.selectedIndex = 0;
+                    formTpl.dispatchEvent(new Event('change'));
+                  }
+                }
+              }
+            } catch (e) {}
+            finally { suppressTabActivation = false; }
+            // Ensure Templates tab remains active after programmatic changes
+            try {
+              const newTplTab = tabbar.querySelector('.tab.right');
+              if (newTplTab) {
+                activateTab(Number(newTplTab.dataset.index));
+                // append status after final activation so it isn't removed by rebuild
+                try {
+                  const finalPane = contents.querySelector(`.tab-pane[data-index='${newTplTab.dataset.index}']`);
+                  if (finalPane) {
+                    const status = document.createElement('div');
+                    status.className = 'meta';
+                    status.textContent = 'Reset to defaults';
+                    status.style.marginTop = '8px';
+                    const container = finalPane.querySelector('.tab-content');
+                    if (container) container.appendChild(status);
+                    setTimeout(() => status.remove(), 1800);
+                  }
+                } catch (e) {}
+              }
+            } catch (e) {}
           });
+
+          tplPane.appendChild(paneContent);
+          contents.appendChild(tplPane);
         })();
 
         activateTab(0);
@@ -895,9 +1559,48 @@
         if (!formatCfg) return JSON.stringify(values, null, 2);
         const tpl = formatCfg.template || '';
         if (formatCfg.type === 'template') {
-          return tpl.replace(/\{([^}]+)\}/g, (_, name) =>
-            values[name] !== undefined ? values[name] : ''
-          );
+          return tpl.replace(/\{([^}]+)\}/g, (_, name) => {
+            // prefer explicit value (even empty string) if provided; only
+            // fall back to combined input when the explicit key is absent
+            const hasExplicit = values && Object.prototype.hasOwnProperty.call(values, name);
+            let val = hasExplicit ? values[name] : undefined;
+            if (!hasExplicit && values && Object.prototype.hasOwnProperty.call(values, name + '_combined')) {
+              val = values[name + '_combined'];
+            }
+
+            // If an explicit value exists, return it without reformatting.
+            if (hasExplicit) {
+              if (Array.isArray(val)) {
+                // preserve array contents exactly (no numbering), join with newlines
+                return val.join('\n');
+              }
+              return val !== undefined && val !== null ? String(val) : '';
+            }
+
+            // If the value is an array, strip any existing numeric prefixes
+            // (e.g. "1. A") then format as a numbered list
+            if (Array.isArray(val)) {
+              if (val.length === 0) return '';
+              const cleaned = val.map((v) =>
+                String(v).replace(/^\s*(?:\d+[\.)]\s*)?(?:[-*•]\s*)?/, '').trim()
+              );
+              return '\n' + cleaned.map((v, i) => ` ${i + 1}. ${v}`).join('\n');
+            }
+
+            // If it's a string containing separators like '>', split and format
+            if (typeof val === 'string' && val.includes('>')) {
+              const parts = val
+                .split('>')
+                .map((s) => s.trim())
+                .filter(Boolean)
+                .map((p) => String(p).replace(/^\s*(?:\d+[\.)]\s*)?(?:[-*•]\s*)?/, '').trim());
+              if (parts.length === 0) return '';
+              return '\n' + parts.map((p, i) => ` ${i + 1}. ${p}`).join('\n');
+            }
+
+            // fallback: string/number or empty
+            return val !== undefined && val !== null ? String(val) : '';
+          });
         }
         if (formatCfg.type === 'sprintf') {
           // support Python-style named tokens: %(name)s

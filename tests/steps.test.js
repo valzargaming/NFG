@@ -10,6 +10,13 @@ describe('steps parse and generate', () => {
       runScripts: 'dangerously',
       resources: 'usable',
       url: 'http://localhost',
+      beforeParse(window) {
+        window.formConfig = [
+          { title: 'Profile', fields: [{ label: 'First name', name: 'firstName', type: 'text' }, { label: 'Email', name: 'email', type: 'text' }], format: null },
+          { title: 'Contact', fields: [{ label: 'First name', name: 'firstName', type: 'text' }, { label: 'Email', name: 'email', type: 'text' }], format: null },
+          { title: 'Survey', fields: [{ label: 'Steps', name: 'steps', type: 'steps' }, { label: 'First name', name: 'firstName', type: 'text' }, { label: 'Email', name: 'email', type: 'text' }], format: null },
+        ];
+      },
     });
 
     // wait for inline script to run

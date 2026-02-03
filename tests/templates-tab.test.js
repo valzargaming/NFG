@@ -10,6 +10,13 @@ describe('templates tab editing', () => {
       runScripts: 'dangerously',
       resources: 'usable',
       url: 'http://localhost',
+      beforeParse(window) {
+        window.formConfig = [
+          { title: 'Profile', fields: [{ label: 'First name', name: 'firstName', type: 'text' }, { label: 'Email', name: 'email', type: 'text' }], format: null },
+          { title: 'Contact', fields: [{ label: 'First name', name: 'firstName', type: 'text' }, { label: 'Email', name: 'email', type: 'text' }], format: null },
+          { title: 'Survey', fields: [{ label: 'Steps', name: 'steps', type: 'steps' }, { label: 'First name', name: 'firstName', type: 'text' }, { label: 'Email', name: 'email', type: 'text' }], format: null },
+        ];
+      },
     });
 
     // Wait for the inline script to run and build the DOM
@@ -50,13 +57,30 @@ describe('templates tab editing', () => {
     const pane = dom.window.document.querySelector(`.tab-pane[data-index="${tplIndex}"]`);
     expect(pane).toBeDefined();
 
-    const ta = pane.querySelector('textarea');
-    expect(ta).toBeDefined();
+    // create a new template via the + New button
+    const addBtn = Array.from(pane.querySelectorAll('button')).find((b) => b.textContent.trim() === '+ New');
+    expect(addBtn).toBeDefined();
+    addBtn.click();
+    await new Promise((r) => setTimeout(r, 20));
 
-    const newTemplates = [
-      { id: 't1', label: 'T1', cfg: { type: 'template', template: 'Hello {firstName}' } },
-    ];
-    ta.value = JSON.stringify(newTemplates, null, 2);
+    const tplSelect = pane.querySelector('select');
+    expect(tplSelect).toBeDefined();
+    const newId = tplSelect.value;
+
+    const lblInput = pane.querySelector('input[type="text"]');
+    const textareas = Array.from(pane.querySelectorAll('textarea'));
+    const cfgTa = textareas[0];
+    const fieldsTa = textareas[1];
+    expect(lblInput).toBeDefined();
+    expect(cfgTa).toBeDefined();
+    expect(fieldsTa).toBeDefined();
+
+    // prevent alerts from failing the test
+    dom.window.alert = jest.fn();
+
+    lblInput.value = 'T1';
+    cfgTa.value = JSON.stringify({ type: 'template', template: 'Hello {firstName}' });
+    fieldsTa.value = JSON.stringify([]);
 
     const saveBtn = Array.from(pane.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Save');
     expect(saveBtn).toBeDefined();
@@ -70,7 +94,7 @@ describe('templates tab editing', () => {
         if (pane0) {
           const select = pane0.querySelector('select');
           if (select) {
-            const opt = Array.from(select.options).find((o) => o.value === 't1');
+            const opt = Array.from(select.options).find((o) => o.value === newId);
             if (opt) return resolve(opt);
           }
         }
@@ -84,7 +108,8 @@ describe('templates tab editing', () => {
     // verify localStorage saved
     const saved = JSON.parse(dom.window.localStorage.getItem('nfg-templates'));
     expect(Array.isArray(saved)).toBe(true);
-    expect(saved[0].id).toBe('t1');
+    expect(saved.some((s) => s.label === 'T1')).toBe(true);
+    expect(dom.window.alert).not.toHaveBeenCalled();
 
     // cleanup
     dom.window.localStorage.removeItem('nfg-templates');
