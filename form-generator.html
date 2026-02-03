@@ -289,6 +289,7 @@
           // inner structure: checkbox + knob + label
           wrapper.innerHTML = `<input id="devToggle" type="checkbox" ${devMode ? 'checked' : ''}><span class="knob"></span><span class="label">${devMode ? 'Dev On' : 'Dev Off'}</span>`;
           const checkbox = wrapper.querySelector('input');
+          if (checkbox) checkbox.autocomplete = 'off';
           const textLabel = wrapper.querySelector('.label');
           function apply() {
             try { localStorage.setItem(devKey, devMode ? 'true' : 'false'); } catch (e) {}
@@ -546,6 +547,7 @@
         keyInp.name = baseName + '_key';
         keyInp.placeholder = 'key';
         keyInp.style.width = '80px';
+        keyInp.autocomplete = 'off';
 
         let defaultKey = kv.key || '';
         if (!defaultKey && container && container.dataset) {
@@ -563,6 +565,7 @@
         inp.name = baseName;
         inp.id = baseName + '-' + ++dynamicIdCounter;
         inp.placeholder = 'Step';
+        inp.autocomplete = 'off';
         if (kv.val) inp.value = kv.val;
 
         const remove = document.createElement('button');
@@ -618,6 +621,7 @@
           // build form
           const form = document.createElement('form');
           form.className = 'generated-form';
+          form.autocomplete = 'off';
           tab.fields.forEach((f) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'field';
@@ -629,6 +633,7 @@
             if (f.type === 'textarea') {
               input = document.createElement('textarea');
               input.rows = 4;
+              input.autocomplete = 'off';
             } else if (f.type === 'select') {
               input = document.createElement('select');
               (f.options || []).forEach((opt) => {
@@ -637,9 +642,11 @@
                 o.textContent = opt.label ?? opt;
                 input.appendChild(o);
               });
+              input.autocomplete = 'off';
             } else {
               input = document.createElement('input');
               input.type = f.type || 'text';
+              input.autocomplete = 'off';
             }
             input.name = f.name;
             input.placeholder = f.placeholder || '';
@@ -698,6 +705,7 @@
               modeSelect.appendChild(oNum);
               modeSelect.appendChild(oBullet);
               modeSelect.value = 'none';
+              modeSelect.autocomplete = 'off';
               modeSelect.addEventListener('change', () => {
                 container.dataset.keyMode = modeSelect.value;
               });
@@ -892,6 +900,7 @@
           tplLabel.className = 'meta';
           tplLabel.textContent = 'Template:';
           const tplSelect = document.createElement('select');
+          tplSelect.autocomplete = 'off';
           tplSelect.style.padding = '6px';
           tplSelect.style.borderRadius = '6px';
           tplSelect.style.border = '1px solid var(--border)';
@@ -973,6 +982,7 @@
           const out = document.createElement('textarea');
           out.readOnly = true;
           out.rows = 3;
+          out.autocomplete = 'off';
           out.style.width = '100%';
           out.style.marginTop = '8px';
           out.style.padding = '8px';
@@ -1144,6 +1154,7 @@
           tplSelectorRow.style.gap = '8px';
           tplSelectorRow.style.marginTop = '8px';
           const tplSelect = document.createElement('select');
+          tplSelect.autocomplete = 'off';
           tplSelect.style.flex = '1';
           const addBtn = document.createElement('button');
           addBtn.type = 'button';
@@ -1160,6 +1171,7 @@
           const lblInput = document.createElement('input');
           lblInput.type = 'text';
           lblInput.style.width = '100%';
+          lblInput.autocomplete = 'off';
           labelRow.appendChild(lblLabel);
           labelRow.appendChild(lblInput);
           paneContent.appendChild(labelRow);
@@ -1171,6 +1183,7 @@
           cfgTa.rows = 6;
           cfgTa.style.width = '100%';
           cfgTa.placeholder = '{ "type": "template", "template": "Hello {firstName}" }';
+          cfgTa.autocomplete = 'off';
           paneContent.appendChild(cfgLabel);
           paneContent.appendChild(cfgTa);
 
@@ -1181,6 +1194,7 @@
           fieldsTa.rows = 8;
           fieldsTa.style.width = '100%';
           fieldsTa.placeholder = '[ { "label": "Name", "name": "firstName", "type": "text" } ]';
+          fieldsTa.autocomplete = 'off';
           paneContent.appendChild(fieldsLabel);
           paneContent.appendChild(fieldsTa);
 
@@ -1755,6 +1769,7 @@
             keepOpt.style.padding = '2px 0';
             const keepRadio = document.createElement('input');
             keepRadio.type = 'radio';
+            keepRadio.autocomplete = 'off';
             keepRadio.name = `choose-${targetIndex}-${it.name}`;
             keepRadio.value = '__keep__';
             keepRadio.checked = true;
@@ -1793,6 +1808,7 @@
               opt.style.padding = '2px 0';
               const r = document.createElement('input');
               r.type = 'radio';
+              r.autocomplete = 'off';
               r.name = `choose-${targetIndex}-${it.name}`;
               r.value = String(ci);
               const txt = document.createElement('div');
