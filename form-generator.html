@@ -410,6 +410,68 @@
           localStorage.setItem(templateMapKey, JSON.stringify(map));
         } catch (e) {}
       }
+      // Capture all current form values across tabs. Returns an object
+      // mapping pane dataset.index -> { name: value | [values] }
+      function captureAllFormValues() {
+        const allPrev = {};
+        try {
+          Array.from(contents.querySelectorAll('.tab-pane')).forEach((pane) => {
+            const idx = pane.dataset.index;
+            const form = pane.querySelector('form.generated-form');
+            if (!form) return;
+            const map = {};
+            Array.from(form.elements).forEach((e) => {
+              if (!e.name) return;
+              const name = e.name;
+              const val = e.type === 'checkbox' ? (e.checked ? e.value || 'on' : '') : e.value;
+              if (Object.prototype.hasOwnProperty.call(map, name)) {
+                if (!Array.isArray(map[name])) map[name] = [map[name]];
+                map[name].push(val);
+              } else {
+                map[name] = val;
+              }
+            });
+            allPrev[idx] = map;
+          });
+        } catch (e) {}
+        return allPrev;
+      }
+
+      // Restore values captured by `captureAllFormValues` into the rebuilt DOM.
+      function restoreAllFormValues(allPrev) {
+        try {
+          Object.keys(allPrev || {}).forEach((nameIdx) => {
+            const pane = contents.querySelector(`.tab-pane[data-index='${nameIdx}']`);
+            if (!pane) return;
+            const form = pane.querySelector('form.generated-form');
+            if (!form) return;
+            const prev = allPrev[nameIdx] || {};
+            Object.keys(prev).forEach((nm) => {
+              try {
+                const els = Array.from(form.querySelectorAll(`[name="${CSS.escape(nm)}"]`));
+                if (!els || els.length === 0) return;
+                const pv = prev[nm];
+                if (els[0].type === 'radio') {
+                  els.forEach((r) => (r.checked = r.value == pv));
+                  return;
+                }
+                if (els[0].type === 'checkbox') {
+                  els.forEach((c) => {
+                    if (Array.isArray(pv)) c.checked = pv.includes(c.value);
+                    else c.checked = !!pv && String(pv) !== 'false' && String(pv) !== '0';
+                  });
+                  return;
+                }
+                if (Array.isArray(pv)) {
+                  for (let k = 0; k < els.length && k < pv.length; k++) els[k].value = pv[k];
+                } else {
+                  els[0].value = pv;
+                }
+              } catch (e) {}
+            });
+          });
+        } catch (e) {}
+      }
       // counter used to give generated dynamic inputs unique ids
       let dynamicIdCounter = 0;
       // when true, tpl select change handlers should not activate tabs (used during programmatic updates)
@@ -706,27 +768,29 @@
             const sel = tplSelect.value || '__json__';
             const tpl = templatesMap[sel];
             if (!tpl) return;
-            // capture current values to avoid losing user input on rebuild
-            const prevValues = {};
+            // capture values from all panes so changing a template doesn't
+            // clear user input in other tabs when we rebuild the DOM
+            const allPrev = captureAllFormValues();
             try {
-              Array.from(form.elements).forEach((e) => {
-                if (!e.name) return;
-                const name = e.name;
-                const val = e.type === 'checkbox' ? (e.checked ? e.value || 'on' : '') : e.value;
-                if (Object.prototype.hasOwnProperty.call(prevValues, name)) {
-                  if (!Array.isArray(prevValues[name])) prevValues[name] = [prevValues[name]];
-                  prevValues[name].push(val);
-                } else {
-                  prevValues[name] = val;
-                }
-              });
-            } catch (e) {}
-            try {
-              if (Array.isArray(tpl.fields) && tpl.fields.length) {
+              // Do NOT overwrite fields when selecting the special JSON
+              // fallback template. JSON output should not remove the
+              // existing form fields — it only controls output formatting.
+              // Do not overwrite existing form fields when the selected
+              // template has no fields defined or defines an empty array.
+              // This prevents choosing JSON (or an empty-fields template)
+              // from removing all fields from the current tab.
+              if (
+                tpl.id !== '__json__' &&
+                Array.isArray(tpl.fields) &&
+                tpl.fields.length > 0
+              ) {
                 formConfig[i].fields = JSON.parse(JSON.stringify(tpl.fields));
               }
-              if (tpl.cfg) {
-                formConfig[i].format = JSON.parse(JSON.stringify(tpl.cfg));
+              // If the template explicitly contains a `cfg` property, apply it.
+              // When `cfg` is null/blank we explicitly set format to null so
+              // prior formats are cleared (JSON fallback).
+              if (Object.prototype.hasOwnProperty.call(tpl, 'cfg')) {
+                formConfig[i].format = tpl.cfg ? JSON.parse(JSON.stringify(tpl.cfg)) : null;
               }
             } catch (e) {}
             try {
@@ -734,39 +798,10 @@
               persistTemplateMap();
             } catch (e) {}
             const preserveIndex = i;
-            build();
+            try { build(); } catch (e) {}
+            try { restoreAllFormValues(allPrev); } catch (e) {}
             try {
-              // restore preserved values into rebuilt pane
               if (!suppressTabActivation) activateTab(Number(preserveIndex));
-              const newPane = contents.querySelector(`.tab-pane[data-index='${preserveIndex}']`);
-              if (newPane) {
-                const newForm = newPane.querySelector('form.generated-form');
-                if (newForm) {
-                  Object.keys(prevValues).forEach((name) => {
-                    try {
-                      const els = Array.from(newForm.querySelectorAll(`[name="${CSS.escape(name)}"]`));
-                      if (!els || els.length === 0) return;
-                      const pv = prevValues[name];
-                      if (els[0].type === 'radio') {
-                        els.forEach((r) => (r.checked = r.value == pv));
-                        return;
-                      }
-                      if (els[0].type === 'checkbox') {
-                        els.forEach((c) => {
-                          if (Array.isArray(pv)) c.checked = pv.includes(c.value);
-                          else c.checked = !!pv && String(pv) !== 'false' && String(pv) !== '0';
-                        });
-                        return;
-                      }
-                      if (Array.isArray(pv)) {
-                        for (let k = 0; k < els.length && k < pv.length; k++) els[k].value = pv[k];
-                      } else {
-                        els[0].value = pv;
-                      }
-                    } catch (e) {}
-                  });
-                }
-              }
             } catch (e) {}
           });
           tplRow.appendChild(tplLabel);
@@ -786,9 +821,11 @@
                   return;
                 }
                 // remove this form tab
+                const allPrev = captureAllFormValues();
                 formConfig.splice(i, 1);
                 try { persistTemplateMap(); } catch (e) {}
-                build();
+                try { build(); } catch (e) {}
+                try { restoreAllFormValues(allPrev); } catch (e) {}
                 try { activateTab(Math.max(0, i - 1)); } catch (e) {}
               } catch (e) {}
             });
@@ -1112,14 +1149,40 @@
             refreshTplSelect();
             tplSelect.value = id;
             loadSelected();
-            // rebuild so the new form tab appears on the left
-            build();
+            // rebuild so the new form tab appears on the left and preserve values
+            const allPrev = captureAllFormValues();
+            try { build(); } catch (e) {}
+            try { restoreAllFormValues(allPrev); } catch (e) {}
           });
 
           // Load: create a form tab for the selected template if none exists
           loadBtn.addEventListener('click', () => {
             const id = tplSelect.value;
             if (!id) return;
+            // Preserve current form values across the DOM rebuild so loading
+            // a template doesn't clear data entered in other tabs.
+            const allPrev = {};
+            try {
+              Array.from(contents.querySelectorAll('.tab-pane')).forEach((pane) => {
+                const idx = pane.dataset.index;
+                const form = pane.querySelector('form.generated-form');
+                if (!form) return;
+                const map = {};
+                Array.from(form.elements).forEach((e) => {
+                  if (!e.name) return;
+                  const name = e.name;
+                  const val = e.type === 'checkbox' ? (e.checked ? e.value || 'on' : '') : e.value;
+                  if (Object.prototype.hasOwnProperty.call(map, name)) {
+                    if (!Array.isArray(map[name])) map[name] = [map[name]];
+                    map[name].push(val);
+                  } else {
+                    map[name] = val;
+                  }
+                });
+                allPrev[idx] = map;
+              });
+            } catch (e) {}
+
             try {
               // if a tab already exists for this template, do nothing
               let exists = false;
@@ -1142,6 +1205,39 @@
                 // persist mapping and templates
                 try { persistTemplateMap(); } catch (e) {}
                 build();
+                // restore preserved values into rebuilt panes
+                try {
+                  Object.keys(allPrev).forEach((nameIdx) => {
+                    const pane = contents.querySelector(`.tab-pane[data-index='${nameIdx}']`);
+                    if (!pane) return;
+                    const form = pane.querySelector('form.generated-form');
+                    if (!form) return;
+                    const prev = allPrev[nameIdx] || {};
+                    Object.keys(prev).forEach((nm) => {
+                      try {
+                        const els = Array.from(form.querySelectorAll(`[name="${CSS.escape(nm)}"]`));
+                        if (!els || els.length === 0) return;
+                        const pv = prev[nm];
+                        if (els[0].type === 'radio') {
+                          els.forEach((r) => (r.checked = r.value == pv));
+                          return;
+                        }
+                        if (els[0].type === 'checkbox') {
+                          els.forEach((c) => {
+                            if (Array.isArray(pv)) c.checked = pv.includes(c.value);
+                            else c.checked = !!pv && String(pv) !== 'false' && String(pv) !== '0';
+                          });
+                          return;
+                        }
+                        if (Array.isArray(pv)) {
+                          for (let k = 0; k < els.length && k < pv.length; k++) els[k].value = pv[k];
+                        } else {
+                          els[0].value = pv;
+                        }
+                      } catch (e) {}
+                    });
+                  });
+                } catch (e) {}
                 // activate the newly created tab (last index)
                 try { activateTab(formConfig.length - 1); } catch (e) {}
               }
@@ -1183,8 +1279,29 @@
               if (m) {
                 const idx = Number(m[1]);
                 if (formConfig[idx]) {
-                    // apply fields and cfg to the in-memory formConfig so the tab reflects changes
-                    formConfig[idx].fields = JSON.parse(JSON.stringify(t.fields || []));
+                    // If the existing tab already has user-filled values, do not
+                    // overwrite its fields list (avoids clearing user input).
+                    let hasValues = false;
+                    try {
+                      const pane = contents.querySelector(`.tab-pane[data-index='${idx}']`);
+                      if (pane) {
+                        const f = pane.querySelector('form.generated-form');
+                        if (f) {
+                          Array.from(f.elements).forEach((e) => {
+                            if (hasValues) return;
+                            if (!e.name) return;
+                            if (e.type === 'checkbox' || e.type === 'radio') {
+                              if (e.checked) hasValues = true;
+                            } else if (String(e.value || '').trim() !== '') {
+                              hasValues = true;
+                            }
+                          });
+                        }
+                      }
+                    } catch (e) {}
+                    if (!hasValues) {
+                      formConfig[idx].fields = JSON.parse(JSON.stringify(t.fields || []));
+                    }
                     // explicitly set format to null when template cfg is null/blank
                     formConfig[idx].format = t.cfg ? JSON.parse(JSON.stringify(t.cfg)) : null;
                     formConfig[idx]._templateId = t.id;
@@ -1194,7 +1311,29 @@
                 try {
                   for (let j = 0; j < formConfig.length; j++) {
                     if (formConfig[j] && formConfig[j]._templateId === t.id) {
-                      formConfig[j].fields = JSON.parse(JSON.stringify(t.fields || []));
+                      // If this tab already has values entered by the user, avoid
+                      // overwriting its `fields` to prevent clearing user input.
+                      let hasValues = false;
+                      try {
+                        const pane = contents.querySelector(`.tab-pane[data-index='${j}']`);
+                        if (pane) {
+                          const f = pane.querySelector('form.generated-form');
+                          if (f) {
+                            Array.from(f.elements).forEach((e) => {
+                              if (hasValues) return;
+                              if (!e.name) return;
+                              if (e.type === 'checkbox' || e.type === 'radio') {
+                                if (e.checked) hasValues = true;
+                              } else if (String(e.value || '').trim() !== '') {
+                                hasValues = true;
+                              }
+                            });
+                          }
+                        }
+                      } catch (e) {}
+                      if (!hasValues) {
+                        formConfig[j].fields = JSON.parse(JSON.stringify(t.fields || []));
+                      }
                       formConfig[j].format = t.cfg ? JSON.parse(JSON.stringify(t.cfg)) : null;
                       formConfig[j].title = t.label || formConfig[j].title;
                     }
@@ -1209,7 +1348,9 @@
             // preserve templates tab and selection after rebuild
             const preserveIndex = tplPane.dataset.index;
             const preserveId = t.id;
-            build();
+            const allPrev = captureAllFormValues();
+            try { build(); } catch (e) {}
+            try { restoreAllFormValues(allPrev); } catch (e) {}
             try {
               activateTab(Number(preserveIndex));
               const newPane = contents.querySelector(`.tab-pane[data-index='${preserveIndex}']`);
@@ -1269,7 +1410,9 @@
                 }
               }
             } catch (e) {}
-            build();
+            const allPrev = captureAllFormValues();
+            try { build(); } catch (e) {}
+            try { restoreAllFormValues(allPrev); } catch (e) {}
             // pick first available template in the templates pane (no status yet)
             try {
               activateTab(Number(preserveIndex));
@@ -1336,7 +1479,9 @@
                 }
               }
             } catch (e) {}
-            build();
+            const allPrev = captureAllFormValues();
+            try { build(); } catch (e) {}
+            try { restoreAllFormValues(allPrev); } catch (e) {}
             try {
               const newTplTab = tabbar.querySelector('.tab.right');
               if (newTplTab) {
