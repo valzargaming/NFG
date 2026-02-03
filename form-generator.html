@@ -270,9 +270,9 @@
       const contents = document.getElementById('contents');
 
       // Dev mode toggle: when true, Templates pane and per-form Unload buttons are visible.
-      // Persisted in localStorage key 'nfg-dev-mode'. Default is true to preserve current behavior.
+      // Persisted in localStorage key 'nfg-dev-mode'. Defaults to false.
       const devKey = 'nfg-dev-mode';
-      let devMode = true;
+      let devMode = false;
       try {
         const s = localStorage.getItem(devKey);
         if (s !== null) devMode = s === 'true';
