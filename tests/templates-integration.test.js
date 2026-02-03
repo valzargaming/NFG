@@ -69,10 +69,8 @@ describe('templates integration (save, update, delete, reset)', () => {
     const afterCount = dom.window.document.querySelectorAll('.tab:not(.right)').length;
     expect(afterCount).toBe(beforeCount + 1);
 
-    const inputs = tplPane.querySelectorAll('input, textarea');
     const lblInput = tplPane.querySelector('input[type="text"]');
     const textareas = tplPane.querySelectorAll('textarea');
-    const cfgTa = textareas[0];
     const fieldsTa = textareas[1];
 
     lblInput.value = 'CustomX';
