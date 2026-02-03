@@ -4,7 +4,7 @@ const { JSDOM } = require('jsdom');
 
 const { setup, openTemplatesPane, createAndSaveTemplate, pollForSelector } = require('./_helpers');
 
-describe('templates integration (save, update, delete, reset)', () => {
+describe('forms integration (save, update, delete, reset)', () => {
   test('saving a new template makes it available in each form select', async () => {
     const dom = await setup();
     const tplPane = await openTemplatesPane(dom);
@@ -40,9 +40,13 @@ describe('templates integration (save, update, delete, reset)', () => {
   test('updating tpl-<index> updates that form fields', async () => {
     const dom = await setup();
     const tplTabEl = dom.window.document.querySelector('.tab.right');
-    const tplIndex = Number(tplTabEl.dataset.index); // templates pane index
-    const tplPane = dom.window.document.querySelector(`.tab-pane[data-index='${tplIndex}']`);
-    const tplSelect = tplPane.querySelector('select');
+    const tplIndex = Number(tplTabEl.dataset.index); // forms pane index
+    const tplPane = await openTemplatesPane(dom);
+    // find the forms select adjacent to + New (robust against ordering)
+    const addBtnNow = Array.from(tplPane.querySelectorAll('button')).find((b) => b.textContent && b.textContent.trim() === '+ New');
+    let tplSelect;
+    if (addBtnNow && addBtnNow.parentElement) tplSelect = addBtnNow.parentElement.querySelector('select');
+    if (!tplSelect) tplSelect = tplPane.querySelector('select');
     const buttons = Array.from(tplPane.querySelectorAll('button'));
     const saveBtn = buttons.find((b) => b.textContent && b.textContent.trim() === 'Save');
     expect(saveBtn).toBeTruthy();
@@ -59,7 +63,8 @@ describe('templates integration (save, update, delete, reset)', () => {
 
     saveBtn.click();
 
-    // Survey tab index is 2 -- ensure new input present
+    // Survey tab index is 2 -- wait for the new input to appear
+    await pollForSelector(dom.window, `.tab-pane[data-index="2"] input[name=\"newfield\"]`, 2000, 20);
     const surveyPane = dom.window.document.querySelector(`.tab-pane[data-index='2']`);
     const input = surveyPane.querySelector('input[name="newfield"]');
     expect(input).toBeTruthy();
@@ -88,7 +93,7 @@ describe('templates integration (save, update, delete, reset)', () => {
     const tplTab = dom.window.document.querySelector('.tab.right');
     const currentTplIndex = tplTab.dataset.index;
     await pollForSelector(dom.window, `.tab-pane[data-index="${currentTplIndex}"] .meta`);
-    const savedAfter = JSON.parse(dom.window.localStorage.getItem('nfg-templates')) || [];
+    const savedAfter = JSON.parse(dom.window.localStorage.getItem('nfg-forms')) || [];
     expect(savedAfter.some((s) => s.id === newId)).toBe(false);
   });
 
@@ -96,7 +101,7 @@ describe('templates integration (save, update, delete, reset)', () => {
     const dom2 = await setup();
     const tplTabEl2 = dom2.window.document.querySelector('.tab.right');
     const tplIndex2 = Number(tplTabEl2.dataset.index);
-    const tplPane2 = dom2.window.document.querySelector(`.tab-pane[data-index='${tplIndex2}']`);
+    const tplPane2 = await openTemplatesPane(dom2);
     const tplSelect2 = tplPane2.querySelector('select');
     const buttons2 = Array.from(tplPane2.querySelectorAll('button'));
     const saveBtn2 = buttons2.find((b) => b.textContent && b.textContent.trim() === 'Save');

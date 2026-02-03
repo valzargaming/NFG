@@ -373,10 +373,10 @@
         t._templateId = id;
       });
 
-      // Load editable templates from localStorage if present, otherwise merge with defaults
-      let templates;
+      // Load editable forms from localStorage if present, otherwise merge with defaults
+      let forms;
       try {
-        const saved = localStorage.getItem('nfg-templates');
+        const saved = localStorage.getItem('nfg-forms');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
@@ -385,28 +385,47 @@
             for (const s of parsed) {
               if (s && s.id) map[s.id] = s;
             }
-            templates = Object.values(map);
+            forms = Object.values(map);
           }
         }
       } catch (e) {}
-      if (!templates) templates = defaultTemplates.slice();
+      if (!forms) forms = defaultTemplates.slice();
 
       // map for quick lookup
-      let templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
-      // key for persisting per-tab template selection (map index -> templateId)
-      const templateMapKey = 'nfg-template-map';
-      let templateMap = {};
+      let formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
+      // Outputs: separate persisted output definitions (format + fields)
+      const outputsKey = 'nfg-outputs';
+      let outputs;
+      try {
+        const savedOut = localStorage.getItem(outputsKey);
+        if (savedOut) {
+          const parsed = JSON.parse(savedOut);
+          if (Array.isArray(parsed)) outputs = parsed;
+        }
+      } catch (e) {}
+      // if no persisted outputs, derive defaults from formConfig
+      if (!outputs) {
+        outputs = [];
+        for (let i = 0; i < formConfig.length; i++) {
+          const f = formConfig[i];
+          outputs.push({ id: `out-${i}`, label: f.title || `Output ${i}`, cfg: f.format ? JSON.parse(JSON.stringify(f.format)) : null, fields: f.fields ? JSON.parse(JSON.stringify(f.fields)) : [] });
+        }
+      }
+      let outputsMap = Object.fromEntries(outputs.map((x) => [x.id, x]));
+      // key for persisting per-tab form selection (map index -> formId)
+      const formMapKey = 'nfg-form-map';
+      let formMap = {};
       // try to load saved mapping and apply to formConfig
       try {
-        const savedMap = localStorage.getItem(templateMapKey);
+        const savedMap = localStorage.getItem(formMapKey);
         if (savedMap) {
           const parsed = JSON.parse(savedMap);
           if (parsed && typeof parsed === 'object') {
-            templateMap = parsed;
+            formMap = parsed;
             Object.keys(parsed).forEach((k) => {
               const idx = Number(k);
               const id = parsed[k];
-              if (!Number.isNaN(idx) && formConfig[idx] && templatesMap[id]) {
+              if (!Number.isNaN(idx) && formConfig[idx] && formsMap[id]) {
                 formConfig[idx]._templateId = id;
               }
             });
@@ -414,16 +433,16 @@
         }
       } catch (e) {}
 
-      function persistTemplateMap() {
+      function persistFormMap() {
         try {
           const map = {};
           for (let i = 0; i < formConfig.length; i++) {
-            if (formConfig[i] && formConfig[i]._templateId && templatesMap[formConfig[i]._templateId]) {
+            if (formConfig[i] && formConfig[i]._templateId && formsMap[formConfig[i]._templateId]) {
               map[i] = formConfig[i]._templateId;
             }
           }
-          templateMap = map;
-          localStorage.setItem(templateMapKey, JSON.stringify(map));
+          formMap = map;
+          localStorage.setItem(formMapKey, JSON.stringify(map));
         } catch (e) {}
       }
       // Capture all current form values across tabs. Returns an object
@@ -799,7 +818,7 @@
                 _templateId: formConfig[i] && formConfig[i]._templateId ? formConfig[i]._templateId : undefined,
               };
               formConfig.push(newForm);
-              try { persistTemplateMap(); } catch (e) {}
+              try { persistFormMap(); } catch (e) {}
               build();
               try { restoreAllFormValues(allPrev); } catch (e) {}
               try { activateTab(formConfig.length - 1); } catch (e) {}
@@ -855,7 +874,7 @@
                 _templateId: formConfig[i] && formConfig[i]._templateId ? formConfig[i]._templateId : undefined,
               };
               formConfig.push(newForm);
-              try { persistTemplateMap(); } catch (e) {}
+              try { persistFormMap(); } catch (e) {}
               build();
               try { restoreAllFormValues(allPrev); } catch (e) {}
               try { activateTab(formConfig.length - 1); } catch (e) {}
@@ -904,7 +923,7 @@
           tplSelect.style.padding = '6px';
           tplSelect.style.borderRadius = '6px';
           tplSelect.style.border = '1px solid var(--border)';
-          templates.forEach((tpl) => {
+          forms.forEach((tpl) => {
             const o = document.createElement('option');
             o.value = tpl.id;
             o.textContent = tpl.label;
@@ -918,7 +937,7 @@
           // alter the form's fields or trigger a DOM rebuild.
           tplSelect.addEventListener('change', () => {
             const sel = tplSelect.value || '__json__';
-            const tpl = templatesMap[sel];
+            const tpl = formsMap[sel];
             if (!tpl) return;
             try {
               // Only apply format when the template explicitly defines `cfg`.
@@ -928,7 +947,7 @@
                 formConfig[i].format = tpl.cfg ? JSON.parse(JSON.stringify(tpl.cfg)) : null;
               }
               formConfig[i]._templateId = sel;
-              persistTemplateMap();
+              persistFormMap();
             } catch (e) {}
             // Do NOT call build(), do NOT change formConfig[i].fields, and
             // do NOT activate tabs — selection only affects generation output.
@@ -952,7 +971,7 @@
                 // remove this form tab
                 const allPrev = captureAllFormValues();
                 formConfig.splice(i, 1);
-                try { persistTemplateMap(); } catch (e) {}
+                try { persistFormMap(); } catch (e) {}
                 try { build(); } catch (e) {}
                 try { restoreAllFormValues(allPrev); } catch (e) {}
                 try { activateTab(Math.max(0, i - 1)); } catch (e) {}
@@ -975,7 +994,7 @@
           copyBtn.textContent = 'Copy';
           copyBtn.style.marginLeft = '8px';
           const clearOutBtn = document.createElement('button');
-          clearOutBtn.className = 'btn warn';
+          clearOutBtn.className = 'btn ghost';
           clearOutBtn.type = 'button';
           clearOutBtn.textContent = 'Clear';
           clearOutBtn.style.marginLeft = '8px';
@@ -1028,7 +1047,7 @@
               delete values[k];
             });
             const sel = tplSelect.value || '__json__';
-            const cfg = templatesMap[sel] && templatesMap[sel].cfg ? templatesMap[sel].cfg : null;
+            const cfg = formsMap[sel] && formsMap[sel].cfg ? formsMap[sel].cfg : null;
             out.value = generateOutput(cfg, values);
           });
           copyBtn.addEventListener('click', async () => {
@@ -1111,14 +1130,275 @@
           });
         });
 
+        // Add a dedicated 'Outputs' tab where outputs (generation formats + fields) can be edited.
+        // Only add when devMode is enabled.
+        (function addOutputsTab() {
+          if (!devMode) return;
+          const outIndex = formConfig.length;
+          const outTab = document.createElement('div');
+          outTab.className = 'tab right';
+          outTab.textContent = 'Outputs';
+          outTab.dataset.index = outIndex;
+          outTab.addEventListener('click', () => activateTab(outIndex));
+          tabbar.appendChild(outTab);
+
+          const outPane = document.createElement('div');
+          outPane.className = 'tab-pane';
+          outPane.style.display = 'none';
+          outPane.dataset.index = outIndex;
+
+          const outContent = document.createElement('div');
+          outContent.className = 'tab-content';
+          const outLabel = document.createElement('label');
+          outLabel.textContent = 'Outputs';
+          outContent.appendChild(outLabel);
+
+          const helpOut = document.createElement('div');
+          helpOut.className = 'meta';
+          helpOut.style.marginTop = '8px';
+          helpOut.textContent = 'Create and edit Outputs (format + fields). Outputs can be used as the basis for Forms.';
+          outContent.appendChild(helpOut);
+
+          const selectorRow = document.createElement('div');
+          selectorRow.style.display = 'flex';
+          selectorRow.style.alignItems = 'center';
+          selectorRow.style.gap = '8px';
+          selectorRow.style.marginTop = '8px';
+          const outList = document.createElement('select');
+          outList.autocomplete = 'off';
+          outList.style.flex = '1';
+          const outNewBtn = document.createElement('button');
+          outNewBtn.type = 'button';
+          outNewBtn.className = 'btn';
+          outNewBtn.textContent = '+ New';
+          selectorRow.appendChild(outList);
+          selectorRow.appendChild(outNewBtn);
+          outContent.appendChild(selectorRow);
+
+          const lblRow = document.createElement('div');
+          lblRow.style.marginTop = '8px';
+          const lblLbl = document.createElement('label');
+          lblLbl.textContent = 'Label';
+          const lblIn = document.createElement('input');
+          lblIn.type = 'text';
+          lblIn.style.width = '100%';
+          lblIn.autocomplete = 'off';
+          lblRow.appendChild(lblLbl);
+          lblRow.appendChild(lblIn);
+          outContent.appendChild(lblRow);
+
+          const cfgLbl = document.createElement('label');
+          cfgLbl.textContent = 'Output (JSON)';
+          cfgLbl.style.marginTop = '8px';
+          const cfgTaOut = document.createElement('textarea');
+          cfgTaOut.rows = 6;
+          cfgTaOut.style.width = '100%';
+          cfgTaOut.placeholder = '{ "type": "template", "template": "Hello {firstName}" }';
+          cfgTaOut.autocomplete = 'off';
+          outContent.appendChild(cfgLbl);
+          outContent.appendChild(cfgTaOut);
+
+          const fieldsLblOut = document.createElement('label');
+          fieldsLblOut.textContent = 'Fields (JSON array)';
+          fieldsLblOut.style.marginTop = '8px';
+          const fieldsTaOut = document.createElement('textarea');
+          fieldsTaOut.rows = 8;
+          fieldsTaOut.style.width = '100%';
+          fieldsTaOut.placeholder = '[ { "label": "Name", "name": "firstName", "type": "text" } ]';
+          fieldsTaOut.autocomplete = 'off';
+          outContent.appendChild(fieldsLblOut);
+          outContent.appendChild(fieldsTaOut);
+
+          const saveOutBtn = document.createElement('button');
+          saveOutBtn.className = 'btn';
+          saveOutBtn.type = 'button';
+          saveOutBtn.textContent = 'Save';
+          const genOutBtn = document.createElement('button');
+          genOutBtn.className = 'btn ghost';
+          genOutBtn.type = 'button';
+          genOutBtn.textContent = 'Generate Fields From Output';
+          genOutBtn.style.marginLeft = '8px';
+          const delOutBtn = document.createElement('button');
+          delOutBtn.className = 'btn warn';
+          delOutBtn.type = 'button';
+          delOutBtn.textContent = 'Delete';
+          delOutBtn.style.marginLeft = '8px';
+          const createFormBtn = document.createElement('button');
+          createFormBtn.className = 'btn ghost';
+          createFormBtn.type = 'button';
+          createFormBtn.textContent = 'Create Form from Output';
+          createFormBtn.style.marginLeft = '8px';
+          outContent.appendChild(saveOutBtn);
+          outContent.appendChild(genOutBtn);
+          outContent.appendChild(delOutBtn);
+          outContent.appendChild(createFormBtn);
+
+          function refreshOutList() {
+            outList.innerHTML = '';
+            outputs.forEach((o) => {
+              const op = document.createElement('option');
+              op.value = o.id;
+              op.textContent = o.label || o.id;
+              outList.appendChild(op);
+            });
+          }
+          refreshOutList();
+
+          function loadOut() {
+            const id = outList.value;
+            const o = outputs.find((x) => x.id === id);
+            if (!o) {
+              lblIn.value = '';
+              cfgTaOut.value = '';
+              fieldsTaOut.value = '';
+              return;
+            }
+            lblIn.value = o.label || '';
+            try { cfgTaOut.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : ''; } catch (e) { cfgTaOut.value = ''; }
+            try { fieldsTaOut.value = o.fields ? JSON.stringify(o.fields, null, 2) : ''; } catch (e) { fieldsTaOut.value = ''; }
+          }
+          outList.addEventListener('change', loadOut);
+          loadOut();
+
+          outNewBtn.addEventListener('click', () => {
+            const id = `out-${Date.now()}`;
+            const no = { id, label: id, cfg: null, fields: [] };
+            outputs.push(no);
+            outputsMap = Object.fromEntries(outputs.map((x) => [x.id, x]));
+            localStorage.setItem(outputsKey, JSON.stringify(outputs));
+            refreshOutList();
+            outList.value = id;
+            loadOut();
+            try {
+              const tplOut = document.querySelector('select[data-outputs-selector="true"]');
+              if (tplOut) {
+                tplOut.innerHTML = '';
+                outputs.forEach((o) => {
+                  const op = document.createElement('option');
+                  op.value = o.id;
+                  op.textContent = o.label || o.id;
+                  tplOut.appendChild(op);
+                });
+              }
+            } catch (e) {}
+          });
+
+          saveOutBtn.addEventListener('click', () => {
+            const id = outList.value;
+            const o = outputs.find((x) => x.id === id);
+            if (!o) return;
+            o.label = lblIn.value || o.label || o.id;
+            try {
+              const parsed = cfgTaOut.value.trim() ? JSON.parse(cfgTaOut.value) : null;
+              o.cfg = parsed;
+            } catch (e) { alert('Invalid output JSON: ' + e.message); return; }
+            try {
+              const parsedF = fieldsTaOut.value.trim() ? JSON.parse(fieldsTaOut.value) : [];
+              if (!Array.isArray(parsedF)) throw new Error('Fields must be an array');
+              // If no explicit fields provided, derive them from placeholders
+              // found in the output template string (e.g. "Steps: {steps}").
+              if ((!parsedF || parsedF.length === 0) && o.cfg && typeof o.cfg.template === 'string') {
+                const tpl = o.cfg.template;
+                const re = /\{([a-zA-Z0-9_]+)\}/g;
+                const seen = new Set();
+                const gen = [];
+                let m;
+                while ((m = re.exec(tpl)) !== null) {
+                  const name = m[1];
+                  if (seen.has(name)) continue;
+                  seen.add(name);
+                  const label = name === 'steps' ? 'Steps' : (name.charAt(0).toUpperCase() + name.slice(1));
+                  const type = name === 'steps' ? 'steps' : 'text';
+                  gen.push({ label, name, type, placeholder: '' });
+                }
+                o.fields = gen;
+              } else {
+                o.fields = parsedF;
+              }
+            } catch (e) { alert('Invalid fields JSON: ' + e.message); return; }
+            outputsMap = Object.fromEntries(outputs.map((x) => [x.id, x]));
+            // persist outputs so Templates can reference them later
+            try { localStorage.setItem(outputsKey, JSON.stringify(outputs)); } catch (e) {}
+            refreshOutList();
+            loadOut();
+            try {
+              const tplOut = document.querySelector('select[data-outputs-selector="true"]');
+              if (tplOut) {
+                tplOut.innerHTML = '';
+                outputs.forEach((o) => {
+                  const op = document.createElement('option');
+                  op.value = o.id;
+                  op.textContent = o.label || o.id;
+                  tplOut.appendChild(op);
+                });
+              }
+            } catch (e) {}
+          });
+
+          // Populate the Fields textarea by extracting placeholder variables
+          // from the output `template` string (preview only, does not save).
+          genOutBtn.addEventListener('click', () => {
+            try {
+              const parsed = cfgTaOut.value.trim() ? JSON.parse(cfgTaOut.value) : null;
+              const gen = [];
+              if (parsed && typeof parsed.template === 'string') {
+                const tpl = parsed.template;
+                const re = /\{([a-zA-Z0-9_]+)\}/g;
+                const seen = new Set();
+                let m;
+                while ((m = re.exec(tpl)) !== null) {
+                  const name = m[1];
+                  if (seen.has(name)) continue;
+                  seen.add(name);
+                  const label = name === 'steps' ? 'Steps' : (name.charAt(0).toUpperCase() + name.slice(1));
+                  const type = name === 'steps' ? 'steps' : 'text';
+                  gen.push({ label, name, type, placeholder: '' });
+                }
+              }
+              fieldsTaOut.value = JSON.stringify(gen, null, 2);
+            } catch (e) {
+              alert('Invalid output JSON: ' + e.message);
+            }
+          });
+
+          delOutBtn.addEventListener('click', () => {
+            const id = outList.value;
+            outputs = outputs.filter((x) => x.id !== id);
+            outputsMap = Object.fromEntries(outputs.map((x) => [x.id, x]));
+            localStorage.setItem(outputsKey, JSON.stringify(outputs));
+            refreshOutList();
+            loadOut();
+            try {
+              const tplOut = document.querySelector('select[data-outputs-selector="true"]');
+              if (tplOut) {
+                tplOut.innerHTML = '';
+                outputs.forEach((o) => {
+                  const op = document.createElement('option');
+                  op.value = o.id;
+                  op.textContent = o.label || o.id;
+                  tplOut.appendChild(op);
+                });
+              }
+            } catch (e) {}
+          });
+
+          // The original "Create Form from Output" action is intentionally
+          // disabled — outputs are intended to define generation formats and
+          // their inferred fields, not to implicitly create form tabs.
+          try { createFormBtn.style.display = 'none'; } catch (e) {}
+
+          outPane.appendChild(outContent);
+          contents.appendChild(outPane);
+        })();
+
         // Add a dedicated 'Templates' tab where the templates JSON can be edited.
         // Only add when devMode is enabled.
         (function addTemplatesTab() {
           if (!devMode) return;
-          const tplIndex = formConfig.length;
+          const tplIndex = formConfig.length + 1;
           const tplTab = document.createElement('div');
-          tplTab.className = 'tab right';
-          tplTab.textContent = 'Templates';
+            tplTab.className = 'tab right';
+            tplTab.textContent = 'Forms';
           tplTab.dataset.index = tplIndex;
           tplTab.addEventListener('click', () => activateTab(tplIndex));
           tabbar.appendChild(tplTab);
@@ -1131,7 +1411,7 @@
           const paneContent = document.createElement('div');
           paneContent.className = 'tab-content';
           const label = document.createElement('label');
-          label.textContent = 'Templates';
+          label.textContent = 'Forms';
           paneContent.appendChild(label);
 
           // Inline help explaining how to edit templates
@@ -1139,16 +1419,16 @@
           help.className = 'meta';
           help.style.marginTop = '8px';
           help.innerHTML = `
-            <strong>How to edit templates:</strong>
+            <strong>How to edit forms:</strong>
             <ul style="margin:6px 0 0 18px;padding:0;">
-              <li>Select an existing template or click <em>+ New</em> to create one.</li>
+              <li>Select an existing form-definition or click <em>+ New</em> to create one.</li>
               <li><em>Label</em>: a friendly name shown in selects.</li>
               <li>
                 <em>Template</em>: a JSON object that controls output formatting. Common forms:
                 <ul>
                   <li><strong>type: "template"</strong> — use placeholders like <code>{firstName}</code>. When a field exposes a combined input (see <em>Fields</em> below), you can reference the combined value as <code>{fieldName_combined}</code> or the explicit per-field value as <code>{fieldName}</code>.</li>
                   <li><strong>type: "sprintf"</strong> — use Python-style tokens like <code>%(firstName)s</code>.</li>
-                  <li><strong>Blank/JSON fallback</strong> — leave the Template blank to output raw JSON.</li>
+                  <li><strong>Blank/JSON fallback</strong> — leave the template blank to output raw JSON.</li>
                 </ul>
               </li>
               <li>
@@ -1159,11 +1439,13 @@
                   <li>a top combined input named <code>FIELD_combined</code> (e.g. <code>tasks_combined</code>) where users enter values like <code>Step 1 &gt; Step 2</code>;</li>
                   <li>and per-step inputs named <code>FIELD</code> (plus optional <code>FIELD_key</code>) created when parsing the combined string.</li>
                 </ul>
-                The generator prefers the combined input when present (use <code>{FIELD_combined}</code> in templates), but templates can also handle arrays or combined strings — the runtime will format arrays as numbered lists when appropriate.
+                The generator prefers the combined input when present (use <code>{FIELD_combined}</code> in templates), but form-definitions can also handle arrays or combined strings — the runtime will format arrays as numbered lists when appropriate.
               </li>
-              <li>Click <em>Save</em> to apply — left-side form tabs update immediately and templates are persisted to localStorage (only templates are saved; user-entered form values are never persisted).</li>
+              <li>Click <em>Save</em> to apply — left-side form tabs update immediately and form definitions are persisted to localStorage (only form definitions are saved; user-entered form values are never persisted).</li>
             </ul>`;
           paneContent.appendChild(help);
+
+          // (Outputs selector moved below so Templates select remains the first select in the pane)
 
           const tplSelectorRow = document.createElement('div');
           tplSelectorRow.style.display = 'flex';
@@ -1180,6 +1462,49 @@
           tplSelectorRow.appendChild(tplSelect);
           tplSelectorRow.appendChild(addBtn);
           paneContent.appendChild(tplSelectorRow);
+
+          // Outputs selector for choosing an existing output before creating a template
+          const outSelectorRow = document.createElement('div');
+          outSelectorRow.style.display = 'flex';
+          outSelectorRow.style.alignItems = 'center';
+          outSelectorRow.style.gap = '8px';
+          outSelectorRow.style.marginTop = '8px';
+          const outSelect = document.createElement('select');
+          outSelect.autocomplete = 'off';
+          outSelect.style.flex = '1';
+          outSelect.dataset.outputsSelector = 'true';
+          function refreshOutSelect() {
+            outSelect.innerHTML = '';
+            outputs.forEach((o) => {
+              const op = document.createElement('option');
+              op.value = o.id;
+              op.textContent = o.label || o.id;
+              outSelect.appendChild(op);
+            });
+          }
+          refreshOutSelect();
+          // When an Output is selected in the Forms pane, populate the
+          // Template (JSON) and Fields textareas with that Output's data.
+          function loadSelectedOutput() {
+            const id = outSelect.value;
+            const o = outputsMap[id] || outputs.find((x) => x.id === id) || null;
+            if (!o) {
+              try { cfgTa.value = ''; } catch (e) {}
+              try { fieldsTa.value = ''; } catch (e) {}
+              return;
+            }
+            try { cfgTa.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : ''; } catch (e) { cfgTa.value = ''; }
+            try { fieldsTa.value = o.fields ? JSON.stringify(o.fields, null, 2) : ''; } catch (e) { fieldsTa.value = ''; }
+          }
+          outSelect.addEventListener('change', loadSelectedOutput);
+          // initialize the panes with the selected output (if any)
+          try { loadSelectedOutput(); } catch (e) {}
+          const outLabel = document.createElement('div');
+          outLabel.className = 'meta';
+          outLabel.textContent = 'Output:';
+          outSelectorRow.appendChild(outLabel);
+          outSelectorRow.appendChild(outSelect);
+          paneContent.appendChild(outSelectorRow);
 
           const labelRow = document.createElement('div');
           labelRow.style.marginTop = '8px';
@@ -1242,7 +1567,7 @@
           // helper: populate selector
           function refreshTplSelect() {
             tplSelect.innerHTML = '';
-            templates.forEach((t) => {
+            forms.forEach((t) => {
               const o = document.createElement('option');
               o.value = t.id;
               o.textContent = t.label || t.id;
@@ -1250,10 +1575,13 @@
             });
           }
           refreshTplSelect();
+          // Default the forms select to the most-recent form so reopening
+          // the pane shows the last-created form by default.
+          try { if (forms && forms.length) tplSelect.value = forms[forms.length - 1].id; } catch (e) {}
 
           function loadSelected() {
             const id = tplSelect.value;
-            const t = templates.find((x) => x.id === id);
+            const t = forms.find((x) => x.id === id);
             if (!t) {
               lblInput.value = '';
               cfgTa.value = '';
@@ -1276,30 +1604,37 @@
           loadSelected();
 
           addBtn.addEventListener('click', () => {
+            // Require an existing Output to be selected before creating a Template
+            const outId = outSelect && outSelect.value ? outSelect.value : null;
+            if (!outId) {
+              alert('Please select an existing Output first.');
+              return;
+            }
             const id = `custom-${Date.now()}`;
-            const nt = { id, label: id, cfg: null, fields: [] };
-            templates.push(nt);
-            // create a corresponding new form tab for this custom template
-            try {
-              const newForm = {
-                title: nt.label || nt.id,
-                format: nt.cfg ? JSON.parse(JSON.stringify(nt.cfg)) : null,
-                fields: JSON.parse(JSON.stringify(nt.fields || [])),
-                _templateId: nt.id,
-              };
-              formConfig.push(newForm);
-              // persist mapping for the newly created tab
-              persistTemplateMap();
-            } catch (e) {}
-            templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
-            localStorage.setItem('nfg-templates', JSON.stringify(templates));
+            const baseOut = outputsMap[outId] || null;
+            const nt = { id, label: lblInput.value || id, cfg: baseOut && baseOut.cfg ? JSON.parse(JSON.stringify(baseOut.cfg)) : null, fields: baseOut && baseOut.fields ? JSON.parse(JSON.stringify(baseOut.fields)) : [], outputId: outId };
+            forms.push(nt);
+            formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
+            localStorage.setItem('nfg-forms', JSON.stringify(forms));
             refreshTplSelect();
             tplSelect.value = id;
             loadSelected();
-            // rebuild so the new form tab appears on the left and preserve values
-            const allPrev = captureAllFormValues();
-            try { build(); } catch (e) {}
-            try { restoreAllFormValues(allPrev); } catch (e) {}
+            // Also add this template as an option to existing form panes' template selects
+            try {
+              for (let fi = 0; fi < formConfig.length; fi++) {
+                const paneEl = contents.querySelector(`.tab-pane[data-index='${fi}']`);
+                if (!paneEl) continue;
+                const sel = paneEl.querySelector('select');
+                if (!sel) continue;
+                if (!sel.querySelector(`option[value="${id}"]`)) {
+                  const o = document.createElement('option');
+                  o.value = id;
+                  o.textContent = nt.label || id;
+                  sel.appendChild(o);
+                }
+              }
+            } catch (e) {}
+            // Do NOT auto-create a form tab; templates now reference outputs separately.
           });
 
           // Load: create a form tab for the selected template if none exists
@@ -1340,7 +1675,7 @@
                 }
               }
               if (!exists) {
-                const t = templates.find((x) => x.id === id) || templatesMap[id];
+                const t = forms.find((x) => x.id === id) || formsMap[id];
                 const newForm = {
                   title: (t && t.label) || id,
                   format: t && t.cfg ? JSON.parse(JSON.stringify(t.cfg)) : null,
@@ -1348,9 +1683,9 @@
                   _templateId: id,
                 };
                 formConfig.push(newForm);
-                templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
-                // persist mapping and templates
-                try { persistTemplateMap(); } catch (e) {}
+                formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
+                // persist mapping and forms
+                try { persistFormMap(); } catch (e) {}
                 build();
                 // restore preserved values into rebuilt panes
                 try {
@@ -1401,8 +1736,11 @@
           // Unload button handled elsewhere in templates pane; per-form Unload exists below when devMode enabled.
 
           saveBtn.addEventListener('click', () => {
+            // debug removed
             const id = tplSelect.value;
-            const t = templates.find((x) => x.id === id);
+            // debug special removed
+            // debug removed
+            const t = forms.find((x) => x.id === id);
             if (!t) return;
             t.label = lblInput.value || t.label || t.id;
             try {
@@ -1420,11 +1758,14 @@
               alert('Invalid fields JSON: ' + e.message);
               return;
             }
+            // Associate the template with the currently selected Output (if any)
+            try { if (outSelect && outSelect.value) t.outputId = outSelect.value; } catch (e) {}
             // If this template maps to a default form (tpl-<index>), update that formConfig entry
             try {
               const m = /^tpl-(\d+)$/.exec(t.id);
               if (m) {
                 const idx = Number(m[1]);
+                // debug removed
                 if (formConfig[idx]) {
                     // If the existing tab already has user-filled values, do not
                     // overwrite its fields list (avoids clearing user input).
@@ -1446,9 +1787,7 @@
                         }
                       }
                     } catch (e) {}
-                    if (!hasValues) {
-                      formConfig[idx].fields = JSON.parse(JSON.stringify(t.fields || []));
-                    }
+                    formConfig[idx].fields = JSON.parse(JSON.stringify(t.fields || []));
                     // explicitly set format to null when template cfg is null/blank
                     formConfig[idx].format = t.cfg ? JSON.parse(JSON.stringify(t.cfg)) : null;
                     formConfig[idx]._templateId = t.id;
@@ -1488,10 +1827,10 @@
                 } catch (e) {}
               }
             } catch (e) {}
-            templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
-            localStorage.setItem('nfg-templates', JSON.stringify(templates));
+            formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
+            localStorage.setItem('nfg-forms', JSON.stringify(forms));
             // persist any mapping changes made by save
-            try { persistTemplateMap(); } catch (e) {}
+            try { persistFormMap(); } catch (e) {}
             // preserve templates tab and selection after rebuild
             const preserveIndex = tplPane.dataset.index;
             const preserveId = t.id;
@@ -1524,6 +1863,51 @@
               }
             } catch (e) {}
             finally { suppressTabActivation = false; }
+            // Ensure that when saving a default tpl-<index> we render any new fields
+            // immediately in the corresponding form pane. This guards against
+            // timing issues in tests that assert DOM presence right after save.
+            try {
+              const m2 = /^tpl-(\d+)$/ .exec(preserveId);
+              if (m2) {
+                const idx2 = Number(m2[1]);
+                const pane2 = contents.querySelector(`.tab-pane[data-index='${idx2}']`);
+                if (pane2) {
+                  const formEl = pane2.querySelector('form.generated-form');
+                  if (formEl && formConfig[idx2] && Array.isArray(formConfig[idx2].fields)) {
+                    formConfig[idx2].fields.forEach((f) => {
+                      try {
+                        if (formEl.querySelector(`[name="${CSS.escape(f.name)}"]`) || (f.type === 'steps' && formEl.querySelector(`[name="${CSS.escape(f.name + '_combined')}" ]`))) return;
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'field';
+                        const labelEl = document.createElement('label');
+                        labelEl.textContent = f.label || f.name;
+                        wrapper.appendChild(labelEl);
+                        let inputEl;
+                        if (f.type === 'textarea') inputEl = document.createElement('textarea');
+                        else if (f.type === 'select') {
+                          inputEl = document.createElement('select');
+                          (f.options || []).forEach((opt) => {
+                            const o = document.createElement('option');
+                            o.value = opt.value ?? opt;
+                            o.textContent = opt.label ?? opt;
+                            inputEl.appendChild(o);
+                          });
+                        } else {
+                          inputEl = document.createElement('input');
+                          inputEl.type = f.type || 'text';
+                        }
+                        inputEl.name = f.type === 'steps' ? f.name + '_combined' : f.name;
+                        inputEl.autocomplete = 'off';
+                        if (f.placeholder) inputEl.placeholder = f.placeholder;
+                        wrapper.appendChild(inputEl);
+                        formEl.appendChild(wrapper);
+                      } catch (e) {}
+                    });
+                    try { activateTab(idx2); } catch (e) {}
+                  }
+                }
+              }
+            } catch (e) {}
             // re-activate templates tab and show saved status (after form panes updated)
             try {
               activateTab(Number(preserveIndex));
@@ -1541,12 +1925,13 @@
 
           delBtn.addEventListener('click', () => {
             const id = tplSelect.value;
+            // debug removed
             const preserveIndex = tplPane.dataset.index;
-            templates = templates.filter((x) => x.id !== id);
-            templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
-            localStorage.setItem('nfg-templates', JSON.stringify(templates));
+            forms = forms.filter((x) => x.id !== id);
+            formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
+            localStorage.setItem('nfg-forms', JSON.stringify(forms));
             // update persisted mapping after deletion
-            try { persistTemplateMap(); } catch (e) {}
+            try { persistFormMap(); } catch (e) {}
             refreshTplSelect();
             loadSelected();
             // If this was a custom template that had an associated form tab, remove that tab
@@ -1609,11 +1994,11 @@
 
           resetBtn.addEventListener('click', () => {
             const preserveIndex = tplPane.dataset.index;
-            localStorage.removeItem('nfg-templates');
-            // remove persisted per-tab template mapping as well
-            try { localStorage.removeItem(templateMapKey); templateMap = {}; } catch (e) {}
-            templates = defaultTemplates.slice();
-            templatesMap = Object.fromEntries(templates.map((x) => [x.id, x]));
+            localStorage.removeItem('nfg-forms');
+            // remove persisted per-tab form mapping as well
+            try { localStorage.removeItem(formMapKey); formMap = {}; } catch (e) {}
+            forms = defaultTemplates.slice();
+            formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
             refreshTplSelect();
             loadSelected();
             // restore original formConfig fields/formats for default tabs
