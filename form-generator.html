@@ -1859,12 +1859,11 @@
               .split('>')
               .map((s) => s.trim())
               .filter(Boolean);
+            // locate container/list up-front so it's available to the entire block
+            const container = targetForm.querySelector(`.steps-container[data-name="${sel.name}"]`);
+            const list = container && container.querySelector('.steps-list');
             // ensure we have enough inputs
             if (parts.length > els.length) {
-              const container = targetForm.querySelector(
-                `.steps-container[data-name="${sel.name}"]`
-              );
-              const list = container && container.querySelector('.steps-list');
               for (let i = els.length; i < parts.length; i++) {
                 if (list) createStepRow(sel.name, '', container, list);
               }
