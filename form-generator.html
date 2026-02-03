@@ -137,10 +137,25 @@
         border: 0;
         cursor: pointer;
       }
+      .btn.warn {
+        background: #e05252;
+        color: #fff;
+        border: 0;
+      }
       .btn.ghost {
         background: #f2f6ff;
         color: var(--accent);
         border: 1px solid #d7e7ff;
+      }
+      .btn-warn {
+        background: #e05252;
+        color: #fff;
+        border: 0;
+      }
+      .btn-warn.ghost {
+        background: #fff5f5;
+        color: #e05252;
+        border: 1px solid #ffd6d6;
       }
       .meta {
         color: var(--muted);
@@ -700,7 +715,7 @@
 
               const addBtn = document.createElement('button');
               addBtn.type = 'button';
-              addBtn.className = 'btn ghost';
+              addBtn.className = 'btn';
               addBtn.textContent = '+ Add';
               addBtn.style.marginLeft = '8px';
 
@@ -756,12 +771,95 @@
             }
           });
 
+          // New and Duplicate buttons: create new tab blank or copy of current values
+          const newBtn = document.createElement('button');
+          newBtn.className = 'btn';
+          newBtn.type = 'button';
+          newBtn.textContent = 'New';
+          newBtn.style.marginLeft = '8px';
+          newBtn.addEventListener('click', () => {
+            const allPrev = captureAllFormValues();
+            try {
+              const newForm = {
+                title: (tab && tab.title ? tab.title : 'New') + ' (new)',
+                format: tab && tab.format ? JSON.parse(JSON.stringify(tab.format)) : null,
+                fields: JSON.parse(JSON.stringify(tab.fields || [])).map((f) => {
+                  const nf = JSON.parse(JSON.stringify(f));
+                  if (nf.hasOwnProperty('default')) delete nf.default;
+                  return nf;
+                }),
+                _templateId: formConfig[i] && formConfig[i]._templateId ? formConfig[i]._templateId : undefined,
+              };
+              formConfig.push(newForm);
+              try { persistTemplateMap(); } catch (e) {}
+              build();
+              try { restoreAllFormValues(allPrev); } catch (e) {}
+              try { activateTab(formConfig.length - 1); } catch (e) {}
+            } catch (e) {}
+          });
+
+          const dupBtn = document.createElement('button');
+          dupBtn.className = 'btn';
+          dupBtn.type = 'button';
+          dupBtn.textContent = 'Duplicate';
+          dupBtn.style.marginLeft = '8px';
+          dupBtn.addEventListener('click', () => {
+            const allPrev = captureAllFormValues();
+            try {
+              // capture current form values
+              const vals = {};
+              Array.from(form.elements).forEach((e) => {
+                if (!e.name) return;
+                const name = e.name;
+                const v = e.type === 'checkbox' ? (e.checked ? e.value || 'on' : '') : e.value;
+                if (Object.prototype.hasOwnProperty.call(vals, name)) {
+                  if (!Array.isArray(vals[name])) vals[name] = [vals[name]];
+                  vals[name].push(v);
+                } else {
+                  vals[name] = v;
+                }
+              });
+
+              const newFields = (tab.fields || []).map((f) => {
+                const nf = JSON.parse(JSON.stringify(f));
+                if (f.type === 'steps') {
+                  // prefer combined input if present
+                  if (Object.prototype.hasOwnProperty.call(vals, f.name + '_combined') && vals[f.name + '_combined']) {
+                    nf.default = vals[f.name + '_combined'];
+                  } else if (Object.prototype.hasOwnProperty.call(vals, f.name)) {
+                    const v = vals[f.name];
+                    if (Array.isArray(v)) nf.default = v.join(' > ');
+                    else nf.default = v;
+                  } else {
+                    if (nf.hasOwnProperty('default')) delete nf.default;
+                  }
+                } else {
+                  if (Object.prototype.hasOwnProperty.call(vals, f.name)) nf.default = vals[f.name];
+                  else if (nf.hasOwnProperty('default')) delete nf.default;
+                }
+                return nf;
+              });
+
+              const newForm = {
+                title: (tab && tab.title ? tab.title : 'Copy') + ' (copy)',
+                format: tab && tab.format ? JSON.parse(JSON.stringify(tab.format)) : null,
+                fields: newFields,
+                _templateId: formConfig[i] && formConfig[i]._templateId ? formConfig[i]._templateId : undefined,
+              };
+              formConfig.push(newForm);
+              try { persistTemplateMap(); } catch (e) {}
+              build();
+              try { restoreAllFormValues(allPrev); } catch (e) {}
+              try { activateTab(formConfig.length - 1); } catch (e) {}
+            } catch (e) {}
+          });
+
           // top-of-page clear button for this tab's form
           const topClear = document.createElement('button');
-          topClear.className = 'btn ghost';
+          topClear.className = 'btn warn';
           topClear.type = 'button';
-          topClear.textContent = 'Clear Form';
-          topClear.style.marginBottom = '8px';
+          topClear.textContent = 'Clear';
+          topClear.style.marginLeft = '8px';
           topClear.addEventListener('click', () => {
             Array.from(form.elements).forEach((e) => {
               if (!e.name) return;
@@ -771,7 +869,17 @@
               } catch (err) {}
             });
           });
+          
+          formArea.appendChild(newBtn);
+          formArea.appendChild(dupBtn);
           formArea.appendChild(topClear);
+          
+          // give the last appended control spacing before the form
+          try {
+            const last = formArea.lastElementChild;
+            if (last && last.style) last.style.marginBottom = '8px';
+          } catch (e) {}
+
           formArea.appendChild(form);
 
           // template selector
@@ -822,7 +930,7 @@
           if (devMode) {
             const unloadBtn = document.createElement('button');
             unloadBtn.type = 'button';
-            unloadBtn.className = 'btn ghost';
+            unloadBtn.className = 'btn warn';
             unloadBtn.textContent = 'Unload';
             unloadBtn.style.marginLeft = '8px';
             unloadBtn.addEventListener('click', () => {
@@ -858,7 +966,7 @@
           copyBtn.textContent = 'Copy';
           copyBtn.style.marginLeft = '8px';
           const clearOutBtn = document.createElement('button');
-          clearOutBtn.className = 'btn ghost';
+          clearOutBtn.className = 'btn warn';
           clearOutBtn.type = 'button';
           clearOutBtn.textContent = 'Clear';
           clearOutBtn.style.marginLeft = '8px';
@@ -1039,7 +1147,7 @@
           tplSelect.style.flex = '1';
           const addBtn = document.createElement('button');
           addBtn.type = 'button';
-          addBtn.className = 'btn ghost';
+          addBtn.className = 'btn';
           addBtn.textContent = '+ New';
           tplSelectorRow.appendChild(tplSelect);
           tplSelectorRow.appendChild(addBtn);
@@ -1081,17 +1189,17 @@
           saveBtn.type = 'button';
           saveBtn.textContent = 'Save';
           const loadBtn = document.createElement('button');
-          loadBtn.className = 'btn ghost';
+          loadBtn.className = 'btn';
           loadBtn.type = 'button';
           loadBtn.textContent = 'Load';
           loadBtn.style.marginLeft = '8px';
           const delBtn = document.createElement('button');
-          delBtn.className = 'btn ghost';
+          delBtn.className = 'btn warn';
           delBtn.type = 'button';
           delBtn.textContent = 'Delete';
           delBtn.style.marginLeft = '8px';
           const resetBtn = document.createElement('button');
-          resetBtn.className = 'btn ghost';
+          resetBtn.className = 'btn warn';
           resetBtn.type = 'button';
           resetBtn.textContent = 'Reset to defaults';
           resetBtn.style.marginLeft = '8px';
