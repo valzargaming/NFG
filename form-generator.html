@@ -1146,8 +1146,13 @@
                 try { activateTab(formConfig.length - 1); } catch (e) {}
               }
             } catch (e) {}
-            // keep templates pane active
-            try { activateTab(Number(tplPane.dataset.index)); } catch (e) {}
+            // keep templates pane active: after `build()` the templates tab
+            // element was recreated and its dataset.index may have changed.
+            // Re-query the current templates tab (.tab.right) and activate it.
+            try {
+              const newTplTab = tabbar.querySelector('.tab.right');
+              if (newTplTab) activateTab(Number(newTplTab.dataset.index));
+            } catch (e) {}
           });
 
           // Unload button handled elsewhere in templates pane; per-form Unload exists below when devMode enabled.
