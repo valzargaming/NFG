@@ -300,12 +300,25 @@
           exportBtn.style.marginLeft = '8px';
           exportBtn.style.display = devMode ? '' : 'none';
           exportBtn.dataset.exportButton = 'true';
-          exportBtn.addEventListener('click', () => {
+          exportBtn.addEventListener('click', async () => {
             try {
               const seed = [];
-              try { seed.push("window.formConfig = " + JSON.stringify(formConfig) + ";"); } catch (e) {}
-              try { seed.push("localStorage.setItem('nfg-forms', " + JSON.stringify(forms) + ");"); } catch (e) {}
-              try { seed.push("localStorage.setItem('nfg-outputs', " + JSON.stringify(outputs) + ");"); } catch (e) {}
+              // Safely serialize JSON for embedding inside a <script> tag.
+              // Replace literal '<' and line terminators that could break
+              // the script or close the script tag early.
+              const safeJson = (obj) => {
+                try {
+                  return JSON.stringify(obj)
+                    .replace(/</g, '\\u003c')
+                    .replace(/\u2028/g, '\\u2028')
+                    .replace(/\u2029/g, '\\u2029');
+                } catch (e) {
+                  return 'null';
+                }
+              };
+              try { seed.push("window.formConfig = " + safeJson(formConfig) + ";"); } catch (e) {}
+              try { seed.push("localStorage.setItem('nfg-forms', " + safeJson(forms) + ");"); } catch (e) {}
+              try { seed.push("localStorage.setItem('nfg-outputs', " + safeJson(outputs) + ");"); } catch (e) {}
               try {
                 // Compute current mapping from formConfig -> template id so the
                 // exported HTML reflects the currently loaded form per-tab even
@@ -317,7 +330,7 @@
                     if (tid && formsMap && formsMap[tid]) exportMap[ei] = tid;
                   }
                 } catch (e) {}
-                seed.push("localStorage.setItem('nfg-form-map', " + JSON.stringify(exportMap) + ");");
+                seed.push("localStorage.setItem('nfg-form-map', " + safeJson(exportMap) + ");");
               } catch (e) {}
               try { seed.push("localStorage.setItem('nfg-dev-mode', 'false');"); } catch (e) {}
               const seedScript = `<script>try{${seed.join('')} }catch(e){}<\/script>`;
@@ -329,15 +342,42 @@
               } catch (e) {}
               let html = '<!doctype html>\n' + docClone.outerHTML;
               html = html.replace(/<body([^>]*)>/i, (m, attrs) => `<body${attrs}>${seedScript}`);
-              const blob = new Blob([html], { type: 'text/html' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = 'nfg-export.html';
-              document.body.appendChild(a);
-              a.click();
-              a.remove();
-              setTimeout(() => URL.revokeObjectURL(url), 5000);
+              // Ask user whether to copy to clipboard or save file. If clipboard
+              // isn't available, fall back to saving file.
+              let wantCopy = false;
+              try {
+                if (typeof window.confirm === 'function') {
+                  wantCopy = window.confirm('Copy exported HTML to clipboard? Press OK to copy, Cancel to save to a file.');
+                }
+              } catch (e) { wantCopy = false; }
+
+              if (wantCopy && navigator.clipboard && navigator.clipboard.writeText) {
+                try {
+                  await navigator.clipboard.writeText(html);
+                  alert('Exported HTML copied to clipboard');
+                } catch (e) {
+                  // fallback to saving file if clipboard fails
+                  const blob = new Blob([html], { type: 'text/html' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'nfg-export.html';
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  setTimeout(() => URL.revokeObjectURL(url), 5000);
+                }
+              } else {
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'nfg-export.html';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+              }
             } catch (err) { alert('Export failed: ' + (err && err.message)); }
           });
           function apply() {
@@ -984,6 +1024,7 @@
             const o = document.createElement('option');
             o.value = tpl.id;
             o.textContent = tpl.label;
+
             tplSelect.appendChild(o);
           });
           // default to this tab's configured template if present
@@ -1485,6 +1526,13 @@
               <li>Click <em>Save</em> to apply — left-side form tabs update immediately and form definitions are persisted to localStorage (only form definitions are saved; user-entered form values are never persisted).</li>
             </ul>`;
           paneContent.appendChild(help);
+          // Add brief export instructions to the Forms pane so users know how to
+          // generate an HTML export of the configuration.
+          const exportHelp = document.createElement('div');
+          exportHelp.className = 'meta';
+          exportHelp.style.marginTop = '8px';
+          exportHelp.textContent = 'To export the current forms and outputs, use the Export HTML button in the header — you can save to a file or copy the exported HTML to your clipboard.';
+          paneContent.appendChild(exportHelp);
 
           // (Outputs selector moved below so Templates select remains the first select in the pane)
 
