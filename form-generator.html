@@ -991,7 +991,7 @@
             '<strong>How to edit templates:</strong> <ul style="margin:6px 0 0 18px;padding:0;">' +
             '<li>Select an existing template or click <em>+ New</em> to create one.</li>' +
             '<li><em>Label</em>: a friendly name shown in selects.</li>' +
-            '<li><em>Template config</em>: JSON object (leave blank for full JSON output). Example: <code>{"type":"template","template":"Hello {firstName}"}</code> or <code>{"type":"sprintf","template":"%(firstName)s"}</code>.</li>' +
+            '<li><em>Template</em>: JSON object (leave blank for full JSON output). Example: <code>{"type":"template","template":"Hello {firstName}"}</code> or <code>{"type":"sprintf","template":"%(firstName)s"}</code>.</li>' +
             '<li><em>Fields</em>: a JSON array of field objects, e.g. <code>[{"label":"Respondent","name":"firstName","type":"text"}, ...]</code>.</li>' +
             '<li>Click <em>Save</em> to apply — left-side forms update immediately and the template is saved to localStorage.</li>' +
             '</ul>';
@@ -1024,11 +1024,12 @@
           paneContent.appendChild(labelRow);
 
           const cfgLabel = document.createElement('label');
-          cfgLabel.textContent = 'Template config (JSON)';
+          cfgLabel.textContent = 'Template (JSON)';
           cfgLabel.style.marginTop = '8px';
           const cfgTa = document.createElement('textarea');
           cfgTa.rows = 6;
           cfgTa.style.width = '100%';
+          cfgTa.placeholder = '{ "type": "template", "template": "Hello {firstName}" }';
           paneContent.appendChild(cfgLabel);
           paneContent.appendChild(cfgTa);
 
@@ -1038,6 +1039,7 @@
           const fieldsTa = document.createElement('textarea');
           fieldsTa.rows = 8;
           fieldsTa.style.width = '100%';
+          fieldsTa.placeholder = '[ { "label": "Name", "name": "firstName", "type": "text" } ]';
           paneContent.appendChild(fieldsLabel);
           paneContent.appendChild(fieldsTa);
 
