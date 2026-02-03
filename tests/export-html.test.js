@@ -27,10 +27,26 @@ describe('export HTML contains seeded forms and mapping', () => {
     };
     win.URL.createObjectURL = () => 'blob://fake';
 
+    // Prepare user prompts and clipboard for the export flow under jsdom
+    if (typeof win.confirm !== 'function') win.confirm = () => true;
+    if (typeof global.confirm !== 'function') global.confirm = win.confirm;
+    if (!win.navigator) win.navigator = {};
+    if (!win.navigator.clipboard) win.navigator.clipboard = { writeText: async () => true };
+
     // Click the export button
     const exportBtn = win.document.querySelector('button[data-export-button="true"]');
     expect(exportBtn).toBeTruthy();
+    // Suppress jsdom 'Not implemented: window.confirm' noise during this interaction
+    const __origConsoleError = console.error;
+    console.error = (...args) => {
+      try {
+        if (String(args[0] || '').includes('Not implemented: window.confirm')) return;
+      } catch (e) {}
+      __origConsoleError.apply(console, args);
+    };
     exportBtn.click();
+    // restore console.error
+    console.error = __origConsoleError;
 
     // Ensure we captured exported HTML
     expect(win._lastExport).toBeTruthy();
