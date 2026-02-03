@@ -4,39 +4,8 @@ const { JSDOM } = require('jsdom');
 
 describe('form-generator populate behavior', () => {
   test('survey firstName and email are populated from other tabs', async () => {
-    const html = fs.readFileSync(path.resolve(__dirname, '..', 'form-generator.html'), 'utf8');
-
-    const dom = new JSDOM(html, {
-      runScripts: 'dangerously',
-      resources: 'usable',
-      url: 'http://localhost',
-      beforeParse(window) {
-        window.formConfig = [
-          { title: 'Profile', fields: [{ label: 'First name', name: 'firstName', type: 'text' }, { label: 'Email', name: 'email', type: 'text' }], format: null },
-          { title: 'Contact', fields: [{ label: 'First name', name: 'firstName', type: 'text' }, { label: 'Email', name: 'email', type: 'text' }], format: null },
-          { title: 'Survey', fields: [{ label: 'Steps', name: 'steps', type: 'steps' }, { label: 'First name', name: 'firstName', type: 'text' }, { label: 'Email', name: 'email', type: 'text' }], format: null },
-        ];
-      },
-    });
-
-    // Wait for the inline script to run and build the DOM
-    await new Promise((resolve) => {
-      if (
-        dom.window.document.readyState === 'complete' ||
-        dom.window.document.readyState === 'interactive'
-      )
-        return resolve();
-      dom.window.addEventListener('load', () => resolve());
-      setTimeout(resolve, 200);
-    });
-
-    // polyfill CSS.escape if missing
-    if (!dom.window.CSS || typeof dom.window.CSS.escape !== 'function') {
-      dom.window.CSS = dom.window.CSS || {};
-      dom.window.CSS.escape = function (s) {
-        return String(s).replace(/(["'\\])/g, '\\$1');
-      };
-    }
+    const { setup } = require('./_helpers');
+    const dom = await setup();
 
     // fill values in other tabs (simulate user input)
     const paneA = dom.window.document.querySelector('.tab-pane[data-index="0"]');

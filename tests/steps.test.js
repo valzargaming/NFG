@@ -4,39 +4,8 @@ const { JSDOM } = require('jsdom');
 
 describe('steps parse and generate', () => {
   test('Parse creates inputs with unique ids and Generate outputs steps array', async () => {
-    const html = fs.readFileSync(path.resolve(__dirname, '..', 'form-generator.html'), 'utf8');
-
-    const dom = new JSDOM(html, {
-      runScripts: 'dangerously',
-      resources: 'usable',
-      url: 'http://localhost',
-      beforeParse(window) {
-        window.formConfig = [
-          { title: 'Profile', fields: [{ label: 'First name', name: 'firstName', type: 'text' }, { label: 'Email', name: 'email', type: 'text' }], format: null },
-          { title: 'Contact', fields: [{ label: 'First name', name: 'firstName', type: 'text' }, { label: 'Email', name: 'email', type: 'text' }], format: null },
-          { title: 'Survey', fields: [{ label: 'Steps', name: 'steps', type: 'steps' }, { label: 'First name', name: 'firstName', type: 'text' }, { label: 'Email', name: 'email', type: 'text' }], format: null },
-        ];
-      },
-    });
-
-    // wait for inline script to run
-    await new Promise((resolve) => {
-      if (
-        dom.window.document.readyState === 'complete' ||
-        dom.window.document.readyState === 'interactive'
-      )
-        return resolve();
-      dom.window.addEventListener('load', () => resolve());
-      setTimeout(resolve, 300);
-    });
-
-    // polyfill CSS.escape if missing
-    if (!dom.window.CSS || typeof dom.window.CSS.escape !== 'function') {
-      dom.window.CSS = dom.window.CSS || {};
-      dom.window.CSS.escape = function (s) {
-        return String(s).replace(/(["'\\])/g, '\\$1');
-      };
-    }
+    const { setup } = require('./_helpers');
+    const dom = await setup();
 
     const pane = dom.window.document.querySelector('.tab-pane[data-index="2"]');
     const form = pane.querySelector('form.generated-form');
