@@ -31,7 +31,7 @@ Example package.json fragment:
   "repository": "https://github.com/youruser/your-repo",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
-  "files": ["dist/", "form-generator.html"]
+  "files": ["dist/", "src/form-generator.html"]
 }
 ```
 
@@ -48,10 +48,10 @@ artifacts:
 
 - `npm run build` — creates `dist/index.esm.js` and `dist/index.cjs.js`.
 - `npm run build:browser` — creates `dist/form-generator.js` (IIFE global `NFG`).
-- `npm run build:html` — copies `form-generator.html` into `dist/` (the
+-- `npm run build:html` — copies `src/form-generator.html` into `dist/` (the
   generated HTML will auto-mount the IIFE bundle if present).
 
-The `files` field in `package.json` includes `dist/` and `form-generator.html`, so these
+The `files` field in `package.json` includes `dist/` and `src/form-generator.html`, so these
 artifacts will be included when publishing.
 
 3. Publish to npm. If you use a scoped package name (starts with `@scope/`) and
@@ -123,13 +123,13 @@ npm install ../note-form-generator-0.1.0.tgz
 
 ## 4) Include runtime assets directly in a browser (no npm required)
 
-If the consumer only needs the runtime HTML/JS, they can copy `form-generator.html`
+If the consumer only needs the runtime HTML/JS, they can copy `src/form-generator.html`
 or the generated JS into their site and include it with a script tag.
 
 Example:
 
 ```html
-<!-- copy/paste the minimal runtime bundle or form-generator.html contents -->
+<!-- copy/paste the minimal runtime bundle or src/form-generator.html contents -->
 <script src="/path/to/form-generator.js"></script>
 ```
 

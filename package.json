@@ -19,7 +19,7 @@
   "module": "dist/index.esm.js",
   "files": [
     "dist/",
-    "form-generator.html"
+    "src/form-generator.html"
   ],
   "jest": {
     "testEnvironment": "jsdom",

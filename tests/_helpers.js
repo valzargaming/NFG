@@ -101,7 +101,7 @@ function pollForCondition(window, fn, timeout = 2000, interval = 20) {
  * @returns {Promise<JSDOM>} A ready JSDOM instance with `window` and `document`.
  */
 async function setup(providedFormConfig) {
-  const html = fs.readFileSync(path.resolve(__dirname, '..', 'form-generator.html'), 'utf8');
+  const html = fs.readFileSync(path.resolve(__dirname, '..', 'src', 'form-generator.html'), 'utf8');
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
     resources: 'usable',
@@ -112,6 +112,9 @@ async function setup(providedFormConfig) {
         { title: 'Contact', fields: [{ label: 'First name', name: 'firstName', type: 'text' }, { label: 'Email', name: 'email', type: 'text' }], format: null },
         { title: 'Survey', fields: [{ label: 'Steps', name: 'steps', type: 'steps' }, { label: 'First name', name: 'firstName', type: 'text' }, { label: 'Email', name: 'email', type: 'text' }], format: null },
       ];
+      try {
+        window.localStorage.setItem('nfg-dev-mode', 'true');
+      } catch (e) {}
     },
   });
   await waitForLoad(dom.window);

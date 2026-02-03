@@ -4,9 +4,9 @@ const path = require('path');
 const outDir = path.resolve(__dirname, '..', 'dist');
 if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
-// Copy the existing root `form-generator.html` into `dist/` so the original
+// Copy the existing `src/form-generator.html` into `dist/` so the original
 // inline script runs when opened in the browser.
-const srcHtmlPath = path.resolve(__dirname, '..', 'form-generator.html');
+const srcHtmlPath = path.resolve(__dirname, '..', 'src', 'form-generator.html');
 if (!fs.existsSync(srcHtmlPath)) {
   console.error('Source form-generator.html not found at', srcHtmlPath);
   process.exit(1);
