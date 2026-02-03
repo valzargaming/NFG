@@ -226,7 +226,7 @@
   <body>
     <div class="container">
       <div class="top">
-        <h1>Inline JSON Form Generator</h1>
+        <h1>Note Form Generator</h1>
         <div class="top-controls">
           <button id="themeToggle" class="btn ghost" type="button" aria-label="Toggle dark mode">
             Dark
@@ -278,7 +278,7 @@
           function apply() {
             try { localStorage.setItem(devKey, devMode ? 'true' : 'false'); } catch (e) {}
             if (checkbox) checkbox.checked = devMode;
-            if (textLabel) textLabel.textContent = devMode ? 'Dev On' : 'Dev Off';
+            if (textLabel) textLabel.textContent = 'Dev';
             // Preserve all current form values across the rebuild so toggling
             // dev mode doesn't clear user input.
             const allPrev = {};
