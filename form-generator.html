@@ -346,7 +346,7 @@
       })();
 
       // Build list of available templates (include JSON fallback)
-      const defaultTemplates = [{ id: '__json__', label: 'JSON (full)', cfg: null }];
+      const defaultTemplates = [{ id: '__json__', label: '__json__', cfg: null }];
       // Create a default template entry for every tab so each tab has a template option
       formConfig.forEach((t, idx) => {
         const id = `tpl-${idx}`;
@@ -763,46 +763,25 @@
           // default to this tab's configured template if present
           if (formConfig[i] && formConfig[i]._templateId)
             tplSelect.value = formConfig[i]._templateId;
-          // when a template is selected, apply its fields and cfg to this tab and rebuild
+          // when a template is selected, only update this tab's output format
+          // and mapping. Changing the generate-template dropdown must never
+          // alter the form's fields or trigger a DOM rebuild.
           tplSelect.addEventListener('change', () => {
             const sel = tplSelect.value || '__json__';
             const tpl = templatesMap[sel];
             if (!tpl) return;
-            // capture values from all panes so changing a template doesn't
-            // clear user input in other tabs when we rebuild the DOM
-            const allPrev = captureAllFormValues();
             try {
-              // Do NOT overwrite fields when selecting the special JSON
-              // fallback template. JSON output should not remove the
-              // existing form fields — it only controls output formatting.
-              // Do not overwrite existing form fields when the selected
-              // template has no fields defined or defines an empty array.
-              // This prevents choosing JSON (or an empty-fields template)
-              // from removing all fields from the current tab.
-              if (
-                tpl.id !== '__json__' &&
-                Array.isArray(tpl.fields) &&
-                tpl.fields.length > 0
-              ) {
-                formConfig[i].fields = JSON.parse(JSON.stringify(tpl.fields));
-              }
-              // If the template explicitly contains a `cfg` property, apply it.
-              // When `cfg` is null/blank we explicitly set format to null so
-              // prior formats are cleared (JSON fallback).
+              // Only apply format when the template explicitly defines `cfg`.
+              // A null/blank cfg clears prior formats; absence of `cfg` means
+              // the template should not change the output formatting.
               if (Object.prototype.hasOwnProperty.call(tpl, 'cfg')) {
                 formConfig[i].format = tpl.cfg ? JSON.parse(JSON.stringify(tpl.cfg)) : null;
               }
-            } catch (e) {}
-            try {
               formConfig[i]._templateId = sel;
               persistTemplateMap();
             } catch (e) {}
-            const preserveIndex = i;
-            try { build(); } catch (e) {}
-            try { restoreAllFormValues(allPrev); } catch (e) {}
-            try {
-              if (!suppressTabActivation) activateTab(Number(preserveIndex));
-            } catch (e) {}
+            // Do NOT call build(), do NOT change formConfig[i].fields, and
+            // do NOT activate tabs — selection only affects generation output.
           });
           tplRow.appendChild(tplLabel);
           tplRow.appendChild(tplSelect);
