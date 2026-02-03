@@ -466,6 +466,39 @@
                   for (let k = 0; k < els.length && k < pv.length; k++) els[k].value = pv[k];
                 } else {
                   els[0].value = pv;
+                  // If this is the combined steps input (name ends with '_combined'),
+                  // parse it into individual step rows so programmatic population
+                  // restores the per-step UI as well.
+                  try {
+                    if (typeof nm === 'string' && nm.endsWith('_combined') && typeof pv === 'string' && pv.trim()) {
+                      const base = nm.slice(0, -9); // remove trailing '_combined'
+                      const parseBtn = els[0].nextElementSibling;
+                      // If a Parse button exists adjacent to the combined input, click it.
+                      if (parseBtn && parseBtn.textContent && /Parse/.test(parseBtn.textContent)) {
+                        parseBtn.click();
+                      } else {
+                        // Fallback: manually populate the steps list using same logic
+                        const container = form.querySelector(`.steps-container[data-name="${base}"]`);
+                        const list = container && container.querySelector('.steps-list');
+                        if (list) {
+                          const parts = pv
+                            .split('>')
+                            .map((s) => s.trim())
+                            .filter(Boolean);
+                          list.innerHTML = '';
+                          parts.forEach((p) => {
+                            if (p.includes('=>')) {
+                              const [k, ...rest] = p.split('=>');
+                              const val = rest.join('=>').trim();
+                              createStepRow(base, { key: k.trim(), val }, container, list);
+                            } else {
+                              createStepRow(base, p, container, list);
+                            }
+                          });
+                        }
+                      }
+                    }
+                  } catch (e) {}
                 }
               } catch (e) {}
             });
@@ -1551,26 +1584,32 @@
           const form = pane.querySelector('form.generated-form');
           if (!form) return;
           targetNames.forEach((name, idx) => {
-            const els = Array.from(form.querySelectorAll(`[name="${CSS.escape(name)}"]`));
+            // consider both normal inputs and a possible combined input from other tabs
+            const combinedName = name + '_combined';
+            const els = Array.from(
+              form.querySelectorAll(
+                `[name="${CSS.escape(name)}"], [name="${CSS.escape(combinedName)}"]`
+              )
+            );
             if (!els || els.length === 0) return;
-            // collect candidate(s) from this tab
+            // Prefer a combined input if present in the source form; this
+            // ensures pre-parsed values (e.g. "steps_combined") are offered
+            // as candidates instead of individual per-step inputs.
+            const combinedEl = els.find((e) => e.name === combinedName);
+            if (combinedEl) {
+              const v = combinedEl.value !== undefined ? combinedEl.value : '';
+              if (String(v).trim() !== '') items[idx].candidates.push({ value: v, fromTab: ti, fromTitle: tab.title });
+              return;
+            }
+            // collect candidate(s) from this tab for normal inputs
             if (els[0].type === 'radio') {
               const checked = els.find((e) => e.checked);
-              if (checked)
-                items[idx].candidates.push({
-                  value: checked.value || '',
-                  fromTab: ti,
-                  fromTitle: tab.title,
-                });
+              if (checked) items[idx].candidates.push({ value: checked.value || '', fromTab: ti, fromTitle: tab.title });
             } else if (els[0].type === 'checkbox') {
               const checked = els.find((e) => e.checked);
-              if (checked)
-                items[idx].candidates.push({
-                  value: checked.value || 'on',
-                  fromTab: ti,
-                  fromTitle: tab.title,
-                });
+              if (checked) items[idx].candidates.push({ value: checked.value || 'on', fromTab: ti, fromTitle: tab.title });
             } else {
+              // prefer first non-empty value among matching elements
               for (const e of els) {
                 if (e.value !== undefined && String(e.value).trim() !== '') {
                   items[idx].candidates.push({ value: e.value, fromTab: ti, fromTitle: tab.title });
@@ -1761,6 +1800,11 @@
             formConfig[targetIndex] && formConfig[targetIndex].fields
               ? formConfig[targetIndex].fields.find((f) => f.name === sel.name)
               : null;
+          // find the combined input for steps fields (if any) so we can
+          // mirror combined values into the top input when applying selections
+          const combinedInput = targetForm.querySelector(
+            `[name="${CSS.escape(sel.name + '_combined')}"]`
+          );
           // If this field's type is 'steps' and there are no inputs yet, create items
           if (fieldCfg && fieldCfg.type === 'steps') {
             const parts = String(sel.value || '')
@@ -1787,6 +1831,9 @@
                   }
                 }
               });
+              // Also update the combined input so the combined representation
+              // is visible to the user after applying the selection.
+              try { if (combinedInput) combinedInput.value = sel.value; } catch (e) {}
             }
           }
 
@@ -1812,12 +1859,11 @@
               .split('>')
               .map((s) => s.trim())
               .filter(Boolean);
+            // locate container/list up-front so it's available to the entire block
+            const container = targetForm.querySelector(`.steps-container[data-name="${sel.name}"]`);
+            const list = container && container.querySelector('.steps-list');
             // ensure we have enough inputs
             if (parts.length > els.length) {
-              const container = targetForm.querySelector(
-                `.steps-container[data-name="${sel.name}"]`
-              );
-              const list = container && container.querySelector('.steps-list');
               for (let i = els.length; i < parts.length; i++) {
                 if (list) createStepRow(sel.name, '', container, list);
               }
@@ -1846,6 +1892,8 @@
                 }
               }
             });
+            // mirror the combined string into the top combined input if present
+            try { if (combinedInput) combinedInput.value = sel.value; } catch (e) {}
             return;
           }
 
@@ -1853,6 +1901,8 @@
           const e = els[0];
           try {
             e.value = sel.value;
+            // if this is a steps field, also update the combined input
+            try { if (fieldCfg && fieldCfg.type === 'steps' && combinedInput) combinedInput.value = sel.value; } catch (e) {}
           } catch (e) {}
         });
       }
