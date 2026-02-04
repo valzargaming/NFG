@@ -1288,6 +1288,20 @@
           const cfgLbl = document.createElement('label');
           cfgLbl.textContent = 'Template';
           cfgLbl.style.marginTop = '8px';
+          // advanced toggle for Outputs: hide/show resolved JSON + resolve button
+          const advRowOut = document.createElement('div');
+          advRowOut.style.display = 'flex';
+          advRowOut.style.alignItems = 'center';
+          advRowOut.style.gap = '8px';
+          advRowOut.style.marginTop = '6px';
+          const advChkOut = document.createElement('input');
+          advChkOut.type = 'checkbox';
+          advChkOut.autocomplete = 'off';
+          const advLblOut = document.createElement('div');
+          advLblOut.className = 'meta';
+          advLblOut.textContent = 'Advanced (raw JSON)';
+          advRowOut.appendChild(advChkOut);
+          advRowOut.appendChild(advLblOut);
           // simple template input where user can type a template string
           const cfgSimpleOut = document.createElement('textarea');
           cfgSimpleOut.rows = 2;
@@ -1307,9 +1321,21 @@
           cfgTaOut.placeholder = '{ "type": "template", "template": "Hello {firstName}" }';
           cfgTaOut.autocomplete = 'off';
           outContent.appendChild(cfgLbl);
+          outContent.appendChild(advRowOut);
           outContent.appendChild(cfgSimpleOut);
           outContent.appendChild(resolveBtn);
           outContent.appendChild(cfgTaOut);
+          // default to simple view: hide resolved JSON textarea and resolve button
+          try { cfgTaOut.style.display = 'none'; resolveBtn.style.display = 'none'; } catch (e) {}
+          advChkOut.addEventListener('change', () => {
+            if (advChkOut.checked) {
+              cfgTaOut.style.display = '';
+              resolveBtn.style.display = '';
+            } else {
+              cfgTaOut.style.display = 'none';
+              resolveBtn.style.display = 'none';
+            }
+          });
           resolveBtn.addEventListener('click', () => {
             try {
               const raw = String(cfgSimpleOut.value || '').trim();
@@ -1384,6 +1410,7 @@
               lblIn.value = '';
               try { cfgSimpleOut.value = ''; } catch (e) {}
               try { cfgTaOut.value = ''; } catch (e) {}
+              try { advChkOut.checked = false; cfgTaOut.style.display = 'none'; resolveBtn.style.display = 'none'; } catch (e) {}
               fieldsTaOut.value = '';
               return;
             }
@@ -1392,9 +1419,11 @@
               if (o.cfg && typeof o.cfg === 'object' && o.cfg.type === 'template' && typeof o.cfg.template === 'string') {
                 cfgSimpleOut.value = o.cfg.template;
                 cfgTaOut.value = JSON.stringify(o.cfg, null, 2);
+                try { advChkOut.checked = false; cfgTaOut.style.display = 'none'; resolveBtn.style.display = 'none'; } catch (e) {}
               } else {
                 cfgSimpleOut.value = '';
                 cfgTaOut.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';
+                try { advChkOut.checked = true; cfgTaOut.style.display = ''; resolveBtn.style.display = ''; } catch (e) {}
               }
             } catch (e) { cfgTaOut.value = ''; }
             try { fieldsTaOut.value = o.fields ? JSON.stringify(o.fields, null, 2) : ''; } catch (e) { fieldsTaOut.value = ''; }
