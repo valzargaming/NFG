@@ -5,7 +5,7 @@
   "scripts": {
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
-    "lint": "echo \"No linter configured\"",
+    "lint": "eslint \"**/*.js\"",
     "cs-fixer": "prettier --write \"**/*.{js,html,json,css,md}\" && node -e \"require('child_process').spawnSync('eslint',['--fix','**/*.js'],{stdio:'inherit',shell:true})\"",
     "cs-fixer:prettier": "prettier --write \"**/*.{js,html,json,css,md}\"",
     "cs-fixer:eslint": "node -e \"require('child_process').spawnSync('eslint',['--fix','**/*.js'],{stdio:'inherit',shell:true})\"",
