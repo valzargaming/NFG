@@ -1286,12 +1286,12 @@
           outContent.appendChild(lblRow);
 
           const cfgLbl = document.createElement('label');
-          cfgLbl.textContent = 'Output (JSON)';
+          cfgLbl.textContent = 'Template';
           cfgLbl.style.marginTop = '8px';
           const cfgTaOut = document.createElement('textarea');
           cfgTaOut.rows = 6;
           cfgTaOut.style.width = '100%';
-          cfgTaOut.placeholder = '{ "type": "template", "template": "Hello {firstName}" }';
+          cfgTaOut.placeholder = 'Hello {firstName}';
           cfgTaOut.autocomplete = 'off';
           outContent.appendChild(cfgLbl);
           outContent.appendChild(cfgTaOut);
@@ -1352,7 +1352,13 @@
               return;
             }
             lblIn.value = o.label || '';
-            try { cfgTaOut.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : ''; } catch (e) { cfgTaOut.value = ''; }
+            try {
+              if (o.cfg && typeof o.cfg === 'object' && o.cfg.type === 'template' && typeof o.cfg.template === 'string') {
+                cfgTaOut.value = o.cfg.template;
+              } else {
+                cfgTaOut.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';
+              }
+            } catch (e) { cfgTaOut.value = ''; }
             try { fieldsTaOut.value = o.fields ? JSON.stringify(o.fields, null, 2) : ''; } catch (e) { fieldsTaOut.value = ''; }
           }
           outList.addEventListener('change', loadOut);
@@ -1387,8 +1393,16 @@
             if (!o) return;
             o.label = lblIn.value || o.label || o.id;
             try {
-              const parsed = cfgTaOut.value.trim() ? JSON.parse(cfgTaOut.value) : null;
-              o.cfg = parsed;
+              const raw = String(cfgTaOut.value || '').trim();
+              if (!raw) {
+                o.cfg = null;
+              } else {
+                if (raw[0] === '{' || raw[0] === '[') {
+                  o.cfg = JSON.parse(raw);
+                } else {
+                  o.cfg = { type: 'template', template: raw };
+                }
+              }
             } catch (e) { alert('Invalid output JSON: ' + e.message); return; }
             try {
               const parsedF = fieldsTaOut.value.trim() ? JSON.parse(fieldsTaOut.value) : [];
@@ -1421,7 +1435,15 @@
           // from the output `template` string (preview only, does not save).
           genOutBtn.addEventListener('click', () => {
             try {
-              const parsed = cfgTaOut.value.trim() ? JSON.parse(cfgTaOut.value) : null;
+              let parsed = null;
+              const raw = String(cfgTaOut.value || '').trim();
+              if (raw) {
+                try {
+                  parsed = raw[0] === '{' ? JSON.parse(raw) : { type: 'template', template: raw };
+                } catch (e) {
+                  parsed = { type: 'template', template: raw };
+                }
+              }
               const gen = [];
               if (parsed && typeof parsed.template === 'string') {
                 const tpl = parsed.template;
@@ -1582,7 +1604,33 @@
               try { fieldsTa.value = ''; } catch (e) {}
               return;
             }
-            try { cfgTa.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : ''; } catch (e) { cfgTa.value = ''; }
+            try {
+              if (o.cfg && typeof o.cfg === 'object' && o.cfg.type === 'template' && typeof o.cfg.template === 'string') {
+                try {
+                  if (typeof cfgSimple !== 'undefined' && typeof advChk !== 'undefined') {
+                    cfgSimple.value = o.cfg.template;
+                    cfgTa.value = JSON.stringify(o.cfg, null, 2);
+                    advChk.checked = false;
+                    cfgTa.style.display = 'none';
+                    cfgSimple.style.display = '';
+                  } else {
+                    cfgTa.value = o.cfg.template;
+                  }
+                } catch (e) { cfgTa.value = o.cfg.template; }
+              } else {
+                try {
+                  if (typeof cfgSimple !== 'undefined' && typeof advChk !== 'undefined') {
+                    cfgTa.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';
+                    cfgSimple.value = '';
+                    advChk.checked = true;
+                    cfgTa.style.display = '';
+                    cfgSimple.style.display = 'none';
+                  } else {
+                    cfgTa.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';
+                  }
+                } catch (e) { cfgTa.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : ''; }
+              }
+            } catch (e) { cfgTa.value = ''; }
             try { fieldsTa.value = o.fields ? JSON.stringify(o.fields, null, 2) : ''; } catch (e) { fieldsTa.value = ''; }
           }
           outSelect.addEventListener('change', loadSelectedOutput);
@@ -1610,13 +1658,47 @@
           const cfgLabel = document.createElement('label');
           cfgLabel.textContent = 'Template (JSON)';
           cfgLabel.style.marginTop = '8px';
+          // raw JSON textarea (advanced)
           const cfgTa = document.createElement('textarea');
           cfgTa.rows = 6;
           cfgTa.style.width = '100%';
           cfgTa.placeholder = '{ "type": "template", "template": "Hello {firstName}" }';
           cfgTa.autocomplete = 'off';
+          // simple template input for non-advanced users
+          const cfgSimple = document.createElement('textarea');
+          cfgSimple.rows = 2;
+          cfgSimple.style.width = '100%';
+          cfgSimple.placeholder = 'Hello {firstName}';
+          cfgSimple.autocomplete = 'off';
+          // advanced toggle
+          const advRow = document.createElement('div');
+          advRow.style.display = 'flex';
+          advRow.style.alignItems = 'center';
+          advRow.style.gap = '8px';
+          advRow.style.marginTop = '6px';
+          const advChk = document.createElement('input');
+          advChk.type = 'checkbox';
+          advChk.autocomplete = 'off';
+          const advLbl = document.createElement('div');
+          advLbl.className = 'meta';
+          advLbl.textContent = 'Advanced (raw JSON)';
+          advRow.appendChild(advChk);
+          advRow.appendChild(advLbl);
           paneContent.appendChild(cfgLabel);
+          paneContent.appendChild(advRow);
+          paneContent.appendChild(cfgSimple);
           paneContent.appendChild(cfgTa);
+          // default to simple view
+          cfgTa.style.display = 'none';
+          advChk.addEventListener('change', () => {
+            if (advChk.checked) {
+              cfgTa.style.display = '';
+              cfgSimple.style.display = 'none';
+            } else {
+              cfgTa.style.display = 'none';
+              cfgSimple.style.display = '';
+            }
+          });
 
           const fieldsLabel = document.createElement('label');
           fieldsLabel.textContent = 'Fields (JSON array)';
@@ -1679,7 +1761,26 @@
             }
             lblInput.value = t.label || '';
             try {
-              cfgTa.value = t.cfg ? JSON.stringify(t.cfg, null, 2) : '';
+              const json = t.cfg ? JSON.stringify(t.cfg, null, 2) : '';
+              if (typeof cfgSimple !== 'undefined' && typeof advChk !== 'undefined') {
+                // If this template is a simple template object, prefer showing
+                // the simple textarea; otherwise show the raw JSON in advanced.
+                if (t.cfg && typeof t.cfg === 'object' && t.cfg.type === 'template' && typeof t.cfg.template === 'string') {
+                  cfgSimple.value = t.cfg.template;
+                  cfgTa.value = json;
+                  advChk.checked = false;
+                  cfgTa.style.display = 'none';
+                  cfgSimple.style.display = '';
+                } else {
+                  cfgTa.value = json;
+                  cfgSimple.value = '';
+                  advChk.checked = true;
+                  cfgTa.style.display = '';
+                  cfgSimple.style.display = 'none';
+                }
+              } else {
+                cfgTa.value = json;
+              }
             } catch (e) {
               cfgTa.value = '';
             }
@@ -1714,7 +1815,14 @@
               }
             } catch (e) {}
             const id = `custom-${Date.now()}`;
-            const nt = { id, label: lblInput.value || (baseOut && baseOut.label) || id, cfg: baseOut && baseOut.cfg ? JSON.parse(JSON.stringify(baseOut.cfg)) : null, fields: baseOut && baseOut.fields ? JSON.parse(JSON.stringify(baseOut.fields)) : [], outputId: outId };
+            let baseCfg = null;
+            try {
+              if (baseOut && baseOut.cfg) {
+                if (typeof baseOut.cfg === 'string') baseCfg = { type: 'template', template: baseOut.cfg };
+                else baseCfg = JSON.parse(JSON.stringify(baseOut.cfg));
+              }
+            } catch (e) { baseCfg = null; }
+            const nt = { id, label: lblInput.value || (baseOut && baseOut.label) || id, cfg: baseCfg, fields: baseOut && baseOut.fields ? JSON.parse(JSON.stringify(baseOut.fields)) : [], outputId: outId };
             forms.push(nt);
             formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
             localStorage.setItem('nfg-forms', JSON.stringify(forms));
@@ -1778,9 +1886,10 @@
               }
               if (!exists) {
                 const t = forms.find((x) => x.id === id) || formsMap[id];
+                const cfgCopy = (t && t.cfg) ? (typeof t.cfg === 'string' ? { type: 'template', template: t.cfg } : JSON.parse(JSON.stringify(t.cfg))) : null;
                 const newForm = {
                   title: (t && t.label) || id,
-                  format: t && t.cfg ? JSON.parse(JSON.stringify(t.cfg)) : null,
+                  format: cfgCopy,
                   fields: t && t.fields ? JSON.parse(JSON.stringify(t.fields)) : [],
                   _templateId: id,
                 };
@@ -1846,8 +1955,19 @@
             if (!t) return;
             t.label = lblInput.value || t.label || t.id;
             try {
-              const parsedCfg = cfgTa.value.trim() ? JSON.parse(cfgTa.value) : null;
-              t.cfg = parsedCfg;
+              const raw = String((typeof advChk !== 'undefined' && advChk.checked)
+                ? (cfgTa.value || '')
+                : (typeof cfgSimple !== 'undefined' ? cfgSimple.value : (cfgTa.value || ''))
+              ).trim();
+              if (!raw) {
+                t.cfg = null;
+              } else {
+                if (raw[0] === '{' || raw[0] === '[') {
+                  t.cfg = JSON.parse(raw);
+                } else {
+                  t.cfg = { type: 'template', template: raw };
+                }
+              }
             } catch (e) {
               alert('Invalid template config JSON: ' + e.message);
               return;
@@ -1891,7 +2011,7 @@
                     } catch (e) {}
                     formConfig[idx].fields = JSON.parse(JSON.stringify(t.fields || []));
                     // explicitly set format to null when template cfg is null/blank
-                    formConfig[idx].format = t.cfg ? JSON.parse(JSON.stringify(t.cfg)) : null;
+                    formConfig[idx].format = t.cfg ? (typeof t.cfg === 'string' ? { type: 'template', template: t.cfg } : JSON.parse(JSON.stringify(t.cfg))) : null;
                     formConfig[idx]._templateId = t.id;
                   }
               } else {
@@ -1922,7 +2042,7 @@
                       if (!hasValues) {
                         formConfig[j].fields = JSON.parse(JSON.stringify(t.fields || []));
                       }
-                      formConfig[j].format = t.cfg ? JSON.parse(JSON.stringify(t.cfg)) : null;
+                      formConfig[j].format = t.cfg ? (typeof t.cfg === 'string' ? { type: 'template', template: t.cfg } : JSON.parse(JSON.stringify(t.cfg))) : null;
                       formConfig[j].title = t.label || formConfig[j].title;
                     }
                   }
