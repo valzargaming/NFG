@@ -182,6 +182,13 @@
       .preview-item:last-child {
         border-bottom: none;
       }
+      .field-inline {
+        display: inline-block;
+        vertical-align: top;
+        margin-right: 4%;
+        box-sizing: border-box;
+        max-width: 100%;
+      }
       .small {
         font-size: 13px;
         color: #333;
@@ -746,6 +753,14 @@
           tab.fields.forEach((f) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'field';
+            // inline/side-by-side support: if field specifies `inline: true`,
+            // render it as an inline-block and respect optional `width`.
+            if (f && f.inline) {
+              wrapper.className += ' field-inline';
+              try {
+                wrapper.style.width = f.width ? String(f.width) : '45%';
+              } catch (e) {}
+            }
             const label = document.createElement('label');
             if (f.type !== 'header') {
               label.textContent = f.label || f.name;
@@ -1649,6 +1664,8 @@
                 </ul>
                 The generator prefers the combined input when present (use <code>{FIELD_combined}</code> in templates), but form-definitions can also handle arrays or combined strings — the runtime will format arrays as numbered lists when appropriate.
                 <p>To include headings inside the form, add a field with <code>"type":"header"</code>. Use <code>label</code> for the heading text and optionally <code>level</code> (1-6) or <code>size</code> (<code>h1</code>.. <code>h6</code>) to control the heading element.</p>
+                <p>To layout fields side-by-side, set a field's <code>inline</code> property to <code>true</code> and optionally provide <code>width</code> (e.g. <code>"45%"</code> or <code>"200px"</code>); default width is <code>45%</code>.</p>
+                <p>Fields support an optional <code>placeholder</code> property. When generating fields from a template, placeholders default to an empty string.</p>
               </li>
               <li>Click <em>Save</em> to apply — left-side form tabs update immediately and form definitions are persisted to localStorage (only form definitions are saved; user-entered form values are never persisted).</li>
             </ul>`;
