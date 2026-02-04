@@ -10,7 +10,9 @@ describe('export HTML contains seeded forms and mapping', () => {
 
     // Load the saved template into a form tab so formMap is updated
     let pane = await openTemplatesPane(dom);
-    const loadBtn = Array.from(pane.querySelectorAll('button')).find((b) => b.textContent && b.textContent.trim() === 'Load');
+    const loadBtn = Array.from(pane.querySelectorAll('button')).find(
+      (b) => b.textContent && b.textContent.trim() === 'Load'
+    );
     expect(loadBtn).toBeTruthy();
     loadBtn.click();
 
@@ -22,7 +24,11 @@ describe('export HTML contains seeded forms and mapping', () => {
     // Mock Blob to capture exported HTML content and URL.createObjectURL
     win._lastExport = null;
     win.Blob = function (parts) {
-      try { win._lastExport = parts.join(''); } catch (e) { win._lastExport = String(parts); }
+      try {
+        win._lastExport = parts.join('');
+      } catch (e) {
+        win._lastExport = String(parts);
+      }
       return { size: win._lastExport.length };
     };
     win.URL.createObjectURL = () => 'blob://fake';

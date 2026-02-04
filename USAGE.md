@@ -48,7 +48,7 @@ artifacts:
 
 - `npm run build` — creates `dist/index.esm.js` and `dist/index.cjs.js`.
 - `npm run build:browser` — creates `dist/form-generator.js` (IIFE global `NFG`).
--- `npm run build:html` — copies `src/form-generator.html` into `dist/` (the
+  -- `npm run build:html` — copies `src/form-generator.html` into `dist/` (the
   generated HTML will auto-mount the IIFE bundle if present).
 
 The `files` field in `package.json` includes `dist/` and `src/form-generator.html`, so these

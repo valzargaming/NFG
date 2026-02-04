@@ -17,7 +17,9 @@ describe('forms delete and reset', () => {
     expect(savedBefore.some((s) => s.id === newId)).toBe(true);
 
     // delete
-    const delBtn = Array.from(pane.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Delete');
+    const delBtn = Array.from(pane.querySelectorAll('button')).find(
+      (b) => b.textContent.trim() === 'Delete'
+    );
     delBtn.click();
     // wait for forms pane to show Deleted status
     const tplTab = dom.window.document.querySelector('.tab.right');
@@ -25,13 +27,20 @@ describe('forms delete and reset', () => {
     await pollForSelector(dom.window, `.tab-pane[data-index="${tplIndex}"] .meta`);
     // wait until localStorage no longer contains the deleted template id
     const { pollForCondition } = require('./_helpers');
-    const removed = await pollForCondition(dom.window, () => {
-      const saved = JSON.parse(dom.window.localStorage.getItem('nfg-forms')) || [];
-      return !saved.some((s) => s.id === newId);
-    }, 2000, 20);
+    const removed = await pollForCondition(
+      dom.window,
+      () => {
+        const saved = JSON.parse(dom.window.localStorage.getItem('nfg-forms')) || [];
+        return !saved.some((s) => s.id === newId);
+      },
+      2000,
+      20
+    );
     expect(removed).toBe(true);
     const newPane = dom.window.document.querySelector(`.tab-pane[data-index="${tplIndex}"]`);
-    const status = Array.from(newPane.querySelectorAll('.meta')).find((n) => /Deleted/.test(n.textContent));
+    const status = Array.from(newPane.querySelectorAll('.meta')).find((n) =>
+      /Deleted/.test(n.textContent)
+    );
     expect(status).toBeDefined();
   });
 
@@ -43,7 +52,9 @@ describe('forms delete and reset', () => {
     const savedBefore = JSON.parse(dom.window.localStorage.getItem('nfg-forms')) || [];
     expect(savedBefore.some((s) => s.id === newId)).toBe(true);
 
-    const resetBtn = Array.from(pane.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Reset to defaults');
+    const resetBtn = Array.from(pane.querySelectorAll('button')).find(
+      (b) => b.textContent.trim() === 'Reset to defaults'
+    );
     resetBtn.click();
     const tplTabAfter = dom.window.document.querySelector('.tab.right');
     const tplIndexAfter = tplTabAfter.dataset.index;
@@ -52,7 +63,9 @@ describe('forms delete and reset', () => {
     // custom template should be gone
     expect(savedAfter.some((s) => s.id === newId)).toBe(false);
     const newPane = dom.window.document.querySelector(`.tab-pane[data-index="${tplIndexAfter}"]`);
-    const status = Array.from(newPane.querySelectorAll('.meta')).find((n) => /Reset to defaults/.test(n.textContent));
+    const status = Array.from(newPane.querySelectorAll('.meta')).find((n) =>
+      /Reset to defaults/.test(n.textContent)
+    );
     expect(status).toBeDefined();
   });
 });

@@ -43,9 +43,12 @@ describe('forms integration (save, update, delete, reset)', () => {
     const tplIndex = Number(tplTabEl.dataset.index); // forms pane index
     const tplPane = await openTemplatesPane(dom);
     // find the forms select adjacent to + New (robust against ordering)
-    const addBtnNow = Array.from(tplPane.querySelectorAll('button')).find((b) => b.textContent && b.textContent.trim() === '+ New');
+    const addBtnNow = Array.from(tplPane.querySelectorAll('button')).find(
+      (b) => b.textContent && b.textContent.trim() === '+ New'
+    );
     let tplSelect;
-    if (addBtnNow && addBtnNow.parentElement) tplSelect = addBtnNow.parentElement.querySelector('select');
+    if (addBtnNow && addBtnNow.parentElement)
+      tplSelect = addBtnNow.parentElement.querySelector('select');
     if (!tplSelect) tplSelect = tplPane.querySelector('select');
     const buttons = Array.from(tplPane.querySelectorAll('button'));
     const saveBtn = buttons.find((b) => b.textContent && b.textContent.trim() === 'Save');
@@ -64,7 +67,12 @@ describe('forms integration (save, update, delete, reset)', () => {
     saveBtn.click();
 
     // Survey tab index is 2 -- wait for the new input to appear
-    await pollForSelector(dom.window, `.tab-pane[data-index="2"] input[name=\"newfield\"]`, 2000, 20);
+    await pollForSelector(
+      dom.window,
+      `.tab-pane[data-index="2"] input[name=\"newfield\"]`,
+      2000,
+      20
+    );
     const surveyPane = dom.window.document.querySelector(`.tab-pane[data-index='2']`);
     const input = surveyPane.querySelector('input[name="newfield"]');
     expect(input).toBeTruthy();
@@ -87,7 +95,9 @@ describe('forms integration (save, update, delete, reset)', () => {
 
     // now delete it
     const paneNow = await openTemplatesPane(dom);
-    const del = Array.from(paneNow.querySelectorAll('button')).find((b) => b.textContent && b.textContent.trim() === 'Delete');
+    const del = Array.from(paneNow.querySelectorAll('button')).find(
+      (b) => b.textContent && b.textContent.trim() === 'Delete'
+    );
     del.click();
 
     const tplTab = dom.window.document.querySelector('.tab.right');
@@ -105,7 +115,9 @@ describe('forms integration (save, update, delete, reset)', () => {
     const tplSelect2 = tplPane2.querySelector('select');
     const buttons2 = Array.from(tplPane2.querySelectorAll('button'));
     const saveBtn2 = buttons2.find((b) => b.textContent && b.textContent.trim() === 'Save');
-    const resetBtn2 = buttons2.find((b) => b.textContent && b.textContent.trim() === 'Reset to defaults');
+    const resetBtn2 = buttons2.find(
+      (b) => b.textContent && b.textContent.trim() === 'Reset to defaults'
+    );
     expect(saveBtn2).toBeTruthy();
     expect(resetBtn2).toBeTruthy();
 

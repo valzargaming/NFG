@@ -35,7 +35,9 @@ describe('populate applies combined steps to top input', () => {
     choice.checked = true;
 
     // click Apply Selected
-    const applyBtn = Array.from(preview.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Apply Selected');
+    const applyBtn = Array.from(preview.querySelectorAll('button')).find(
+      (b) => b.textContent.trim() === 'Apply Selected'
+    );
     expect(applyBtn).toBeDefined();
     applyBtn.click();
 
