@@ -1288,13 +1288,48 @@
           const cfgLbl = document.createElement('label');
           cfgLbl.textContent = 'Template';
           cfgLbl.style.marginTop = '8px';
+          // simple template input where user can type a template string
+          const cfgSimpleOut = document.createElement('textarea');
+          cfgSimpleOut.rows = 2;
+          cfgSimpleOut.style.width = '100%';
+          cfgSimpleOut.placeholder = 'Hello {firstName}';
+          cfgSimpleOut.autocomplete = 'off';
+          // button to resolve the simple template into editable JSON
+          const resolveBtn = document.createElement('button');
+          resolveBtn.type = 'button';
+          resolveBtn.className = 'btn ghost';
+          resolveBtn.textContent = 'Resolve to JSON';
+          resolveBtn.style.marginTop = '6px';
+          // raw JSON textarea (editable resolved JSON)
           const cfgTaOut = document.createElement('textarea');
           cfgTaOut.rows = 6;
           cfgTaOut.style.width = '100%';
-          cfgTaOut.placeholder = 'Hello {firstName}';
+          cfgTaOut.placeholder = '{ "type": "template", "template": "Hello {firstName}" }';
           cfgTaOut.autocomplete = 'off';
           outContent.appendChild(cfgLbl);
+          outContent.appendChild(cfgSimpleOut);
+          outContent.appendChild(resolveBtn);
           outContent.appendChild(cfgTaOut);
+          resolveBtn.addEventListener('click', () => {
+            try {
+              const raw = String(cfgSimpleOut.value || '').trim();
+              if (!raw) {
+                cfgTaOut.value = '';
+                return;
+              }
+              if (raw[0] === '{' || raw[0] === '[') {
+                try {
+                  const parsed = JSON.parse(raw);
+                  cfgTaOut.value = JSON.stringify(parsed, null, 2);
+                } catch (e) {
+                  // not valid JSON, treat as template string
+                  cfgTaOut.value = JSON.stringify({ type: 'template', template: raw }, null, 2);
+                }
+              } else {
+                cfgTaOut.value = JSON.stringify({ type: 'template', template: raw }, null, 2);
+              }
+            } catch (e) {}
+          });
 
           const fieldsLblOut = document.createElement('label');
           fieldsLblOut.textContent = 'Fields (JSON array)';
@@ -1347,15 +1382,18 @@
             const o = outputs.find((x) => x.id === id);
             if (!o) {
               lblIn.value = '';
-              cfgTaOut.value = '';
+              try { cfgSimpleOut.value = ''; } catch (e) {}
+              try { cfgTaOut.value = ''; } catch (e) {}
               fieldsTaOut.value = '';
               return;
             }
             lblIn.value = o.label || '';
             try {
               if (o.cfg && typeof o.cfg === 'object' && o.cfg.type === 'template' && typeof o.cfg.template === 'string') {
-                cfgTaOut.value = o.cfg.template;
+                cfgSimpleOut.value = o.cfg.template;
+                cfgTaOut.value = JSON.stringify(o.cfg, null, 2);
               } else {
+                cfgSimpleOut.value = '';
                 cfgTaOut.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';
               }
             } catch (e) { cfgTaOut.value = ''; }
@@ -1393,15 +1431,22 @@
             if (!o) return;
             o.label = lblIn.value || o.label || o.id;
             try {
-              const raw = String(cfgTaOut.value || '').trim();
-              if (!raw) {
-                o.cfg = null;
-              } else {
-                if (raw[0] === '{' || raw[0] === '[') {
-                  o.cfg = JSON.parse(raw);
-                } else {
-                  o.cfg = { type: 'template', template: raw };
+              const jsonRaw = String(cfgTaOut.value || '').trim();
+              const simpleRaw = String(cfgSimpleOut.value || '').trim();
+              if (jsonRaw) {
+                try {
+                  o.cfg = JSON.parse(jsonRaw);
+                } catch (e) {
+                  // If the user edited the resolved JSON but it's not valid JSON
+                  // and it doesn't look like JSON, treat it as a plain template
+                  // string to preserve backwards compatibility.
+                  if (jsonRaw[0] === '{' || jsonRaw[0] === '[') throw e;
+                  o.cfg = { type: 'template', template: jsonRaw };
                 }
+              } else if (simpleRaw) {
+                o.cfg = { type: 'template', template: simpleRaw };
+              } else {
+                o.cfg = null;
               }
             } catch (e) { alert('Invalid output JSON: ' + e.message); return; }
             try {
@@ -1436,13 +1481,17 @@
           genOutBtn.addEventListener('click', () => {
             try {
               let parsed = null;
-              const raw = String(cfgTaOut.value || '').trim();
-              if (raw) {
+              const jsonRaw = String(cfgTaOut.value || '').trim();
+              const simpleRaw = String(cfgSimpleOut.value || '').trim();
+              if (jsonRaw) {
                 try {
-                  parsed = raw[0] === '{' ? JSON.parse(raw) : { type: 'template', template: raw };
+                  parsed = JSON.parse(jsonRaw);
                 } catch (e) {
-                  parsed = { type: 'template', template: raw };
+                  // fallback to treating as template string
+                  parsed = { type: 'template', template: jsonRaw };
                 }
+              } else if (simpleRaw) {
+                parsed = { type: 'template', template: simpleRaw };
               }
               const gen = [];
               if (parsed && typeof parsed.template === 'string') {
@@ -1686,7 +1735,6 @@
           advRow.appendChild(advLbl);
           paneContent.appendChild(cfgLabel);
           paneContent.appendChild(advRow);
-          paneContent.appendChild(cfgSimple);
           paneContent.appendChild(cfgTa);
           // default to simple view
           cfgTa.style.display = 'none';
@@ -1710,6 +1758,10 @@
           fieldsTa.autocomplete = 'off';
           paneContent.appendChild(fieldsLabel);
           paneContent.appendChild(fieldsTa);
+          // append the simple template textarea after the fields textarea so
+          // existing tests that index textareas continue to work (fields textarea
+          // remains the second textarea)
+          paneContent.appendChild(cfgSimple);
 
           const saveBtn = document.createElement('button');
           saveBtn.className = 'btn';
