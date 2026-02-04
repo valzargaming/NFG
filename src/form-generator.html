@@ -167,6 +167,11 @@
         border-radius: 6px;
         background: var(--panel);
       }
+      .field-header {
+        margin: 8px 0;
+        font-weight: 700;
+        color: var(--text);
+      }
       .preview-item {
         display: flex;
         align-items: center;
@@ -742,9 +747,30 @@
             const wrapper = document.createElement('div');
             wrapper.className = 'field';
             const label = document.createElement('label');
-            label.textContent = f.label || f.name;
-            wrapper.appendChild(label);
+            if (f.type !== 'header') {
+              label.textContent = f.label || f.name;
+              wrapper.appendChild(label);
+            }
 
+            // Support header type: render headings instead of inputs. Accept
+            // optional `level` (1-6) or `size` like 'h1'..'h6'. Default to h2.
+            if (f.type === 'header') {
+              try {
+                let tag = 'h2';
+                if (f && f.level && !Number.isNaN(Number(f.level))) {
+                  const lv = Math.max(1, Math.min(6, Number(f.level)));
+                  tag = 'h' + lv;
+                } else if (f && f.size && /^h[1-6]$/.test(String(f.size))) {
+                  tag = String(f.size);
+                }
+                const h = document.createElement(tag);
+                h.className = 'field-header';
+                h.textContent = f.label || f.name || '';
+                wrapper.appendChild(h);
+                form.appendChild(wrapper);
+                return; // skip input creation
+              } catch (e) {}
+            }
             let input;
             if (f.type === 'textarea') {
               input = document.createElement('textarea');
@@ -1622,6 +1648,7 @@
                   <li>and per-step inputs named <code>FIELD</code> (plus optional <code>FIELD_key</code>) created when parsing the combined string.</li>
                 </ul>
                 The generator prefers the combined input when present (use <code>{FIELD_combined}</code> in templates), but form-definitions can also handle arrays or combined strings — the runtime will format arrays as numbered lists when appropriate.
+                <p>To include headings inside the form, add a field with <code>"type":"header"</code>. Use <code>label</code> for the heading text and optionally <code>level</code> (1-6) or <code>size</code> (<code>h1</code>.. <code>h6</code>) to control the heading element.</p>
               </li>
               <li>Click <em>Save</em> to apply — left-side form tabs update immediately and form definitions are persisted to localStorage (only form definitions are saved; user-entered form values are never persisted).</li>
             </ul>`;
