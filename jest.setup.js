@@ -6,7 +6,7 @@ if (typeof global.TextDecoder === 'undefined') global.TextDecoder = util.TextDec
 // minimal CSS.escape polyfill if missing
 if (!global.CSS) global.CSS = {};
 if (typeof global.CSS.escape !== 'function') {
-  global.CSS.escape = function (str) {
-    return String(str).replace(/(["'\\])/g, '\\$1');
-  };
+global.CSS.escape = function (str) {
+return String(str).replace(/(["'\\])/g, '\\$1');
+};
 }

@@ -8,8 +8,8 @@ if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 // inline script runs when opened in the browser.
 const srcHtmlPath = path.resolve(__dirname, '..', 'src', 'form-generator.html');
 if (!fs.existsSync(srcHtmlPath)) {
-  console.error('Source form-generator.html not found at', srcHtmlPath);
-  process.exit(1);
+console.error('Source form-generator.html not found at', srcHtmlPath);
+process.exit(1);
 }
 const srcHtml = fs.readFileSync(srcHtmlPath, 'utf8');
 fs.writeFileSync(path.join(outDir, 'form-generator.html'), srcHtml, 'utf8');

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Note Form Generator</title>
-    <style>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Note Form Generator</title>
+        <style>
       :root {
         --bg: #f7f9fc;
         --card: #ffffff;
@@ -248,29 +248,34 @@
         margin: 0 auto;
         padding: 0 18px;
       }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="top">
-        <h1>Note Form Generator</h1>
-        <div class="top-controls">
-          <button id="themeToggle" class="btn ghost" type="button" aria-label="Toggle dark mode">
-            Dark
-          </button>
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="top">
+                <h1>Note Form Generator</h1>
+                <div class="top-controls">
+                    <button
+                        id="themeToggle"
+                        class="btn ghost"
+                        type="button"
+                        aria-label="Toggle dark mode"
+                    >
+                        Dark
+                    </button>
+                </div>
+            </div>
+
+            <div id="tabbar" class="tabs"></div>
+            <div id="contents"></div>
         </div>
-      </div>
+        <footer class="footer">
+            <div class="footer-inner">
+                <div class="meta">Copyright ©️ 2026 Valithor Obsidion &lt;valithor@discordphp.org&gt;</div>
+            </div>
+        </footer>
 
-      <div id="tabbar" class="tabs"></div>
-      <div id="contents"></div>
-    </div>
-    <footer class="footer">
-      <div class="footer-inner">
-        <div class="meta">Copyright ©️ 2026 Valithor Obsidion &lt;valithor@discordphp.org&gt;</div>
-      </div>
-    </footer>
-
-    <script>
+        <script>
       const formConfig =
         window.formConfig && Array.isArray(window.formConfig) ? window.formConfig : [];
 
@@ -3049,6 +3054,6 @@
             if (btn) btn.textContent = isDark ? 'Light' : 'Dark';
           });
       })();
-    </script>
-  </body>
+        </script>
+    </body>
 </html>

@@ -1,0 +1,17 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
+  "extends": ["eslint:recommended"],
+  "plugins": ["html", "@html-eslint"],
+  "overrides": [
+    {
+      "files": ["src/**/*.html","**/*.html"],
+      "processor": "@html-eslint/html",
+      "rules": {}
+    }
+  ],
+  "rules": {}
+}

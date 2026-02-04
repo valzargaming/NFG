@@ -1,10 +1,11 @@
-export const html = `<!DOCTYPE html>
+export const html = `
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Inline JSON Form Generator</title>
-    <style>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Inline JSON Form Generator</title>
+        <style>
       :root {
         --bg: #f7f9fc;
         --card: #ffffff;
@@ -142,40 +143,46 @@ export const html = `<!DOCTYPE html>
         font-size: 13px;
         color: #333;
       }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="top">
-        <h1>Inline JSON Form Generator</h1>
-        <div style="display: flex; align-items: center; gap: 10px">
-          <div class="meta">
-            Copyright ©️ 2026 Valithor Obsidion &lt;valithor@discordphp.org&gt;
-          </div>
-          <button id="themeToggle" class="btn ghost" type="button" aria-label="Toggle dark mode">
-            Dark
-          </button>
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="top">
+                <h1>Inline JSON Form Generator</h1>
+                <div style="display: flex; align-items: center; gap: 10px">
+                    <div class="meta">
+                        Copyright ©️ 2026 Valithor Obsidion &lt;valithor@discordphp.org&gt;
+                    </div>
+                    <button
+                        id="themeToggle"
+                        class="btn ghost"
+                        type="button"
+                        aria-label="Toggle dark mode"
+                    >
+                        Dark
+                    </button>
+                </div>
+            </div>
+
+            <div id="tabbar" class="tabs"></div>
+            <div id="contents"></div>
         </div>
-      </div>
 
-      <div id="tabbar" class="tabs"></div>
-      <div id="contents"></div>
-    </div>
-
-    <script>
+        <script>
       // The full runtime script is embedded in the HTML file in the repo.
       // For consumers who wish to mount the full UI, use \`mount(container)\`.
-    </script>
-  </body>
-</html>`;
+        </script>
+    </body>
+</html>
+`;
 
 export function mount(container) {
-  if (typeof container === 'string') container = document.querySelector(container);
-  if (!container || container.innerHTML === undefined) {
-    throw new Error('Invalid container element');
-  }
-  container.innerHTML = html;
-  return container;
+if (typeof container === 'string') container = document.querySelector(container);
+if (!container || container.innerHTML === undefined) {
+throw new Error('Invalid container element');
+}
+container.innerHTML = html;
+return container;
 }
 
 export default { html, mount };
