@@ -707,6 +707,36 @@
         } catch (e) {}
       }
 
+      // Highlight the character position reported by a JSON parse error inside a textarea
+      function highlightJsonError(ta, err) {
+        if (!ta || !err) return;
+        try {
+          const msg = String(err && err.message ? err.message : '');
+          // Look for common position indicators from JSON.parse errors
+          const m = msg.match(/at position\s*(\d+)/i) || msg.match(/position\s*(\d+)/i) || msg.match(/column\s*(\d+)/i);
+          if (!m) return;
+          const pos = Number(m[1]);
+          if (Number.isNaN(pos)) return;
+          // Focus and select the offending character
+          try {
+            ta.focus();
+            if (typeof ta.setSelectionRange === 'function') {
+              // clamp pos to bounds
+              const idx = Math.max(0, Math.min(pos, (ta.value || '').length - 1));
+              ta.setSelectionRange(idx, idx + 1);
+            }
+            // Try to scroll the line into view roughly using line-height
+            try {
+              const cs = window.getComputedStyle(ta);
+              const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) || 16;
+              const before = (ta.value || '').slice(0, pos);
+              const lineNo = (before.match(/\n/g) || []).length;
+              ta.scrollTop = Math.max(0, lineNo * lh - lh * 2);
+            } catch (e) {}
+          } catch (e) {}
+        } catch (e) {}
+      }
+
       // Create a step row (key input + value input + remove button) and append to `list`.
       // `baseName` is the field name, `keyVal` can be a string value or {key,val}.
       function createStepRow(baseName, keyVal, container, list) {
@@ -1655,6 +1685,9 @@
                 o.cfg = null;
               }
             } catch (e) {
+              try {
+                highlightJsonError(cfgTaOut, e);
+              } catch (ex) {}
               alert('Invalid output JSON: ' + e.message);
               return;
             }
@@ -1666,6 +1699,9 @@
               // that it's a JSON array and then save it.
               o.fields = parsedF;
             } catch (e) {
+              try {
+                highlightJsonError(fieldsTaOut, e);
+              } catch (ex) {}
               alert('Invalid fields JSON: ' + e.message);
               return;
             }
@@ -1726,6 +1762,9 @@
               fieldsTaOut.value = JSON.stringify(gen, null, 2);
               autosizeTextarea(fieldsTaOut);
             } catch (e) {
+              try {
+                highlightJsonError(cfgTaOut, e);
+              } catch (ex) {}
               alert('Invalid output JSON: ' + e.message);
             }
           });
@@ -2320,6 +2359,13 @@
                 }
               }
             } catch (e) {
+              try {
+                // If advanced view is enabled, highlight cfgTa, otherwise cfgSimple
+                try {
+                  if (typeof advChk !== 'undefined' && advChk.checked) highlightJsonError(cfgTa, e);
+                  else highlightJsonError(cfgSimple, e);
+                } catch (ex) {}
+              } catch (ex) {}
               alert('Invalid template config JSON: ' + e.message);
               return;
             }
@@ -2328,6 +2374,9 @@
               if (!Array.isArray(parsedFields)) throw new Error('Fields must be an array');
               t.fields = parsedFields;
             } catch (e) {
+              try {
+                highlightJsonError(fieldsTa, e);
+              } catch (ex) {}
               alert('Invalid fields JSON: ' + e.message);
               return;
             }
