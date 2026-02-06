@@ -900,7 +900,7 @@
               // Rename the top input to be the combined input so it does not
               // conflict with the per-step inputs below (which share the base name).
               input.name = f.name + '_combined';
-              input.placeholder = 'Step 1 > Step 2 > Step 3';
+              input.placeholder = f.placeholder && String(f.placeholder).trim() ? String(f.placeholder) : 'Step 1 > Step 2 > Step 3';
               input.style.width = '70%';
               input.style.display = 'inline-block';
 
