@@ -944,7 +944,13 @@
               modeSelect.appendChild(oNone);
               modeSelect.appendChild(oNum);
               modeSelect.appendChild(oBullet);
-              modeSelect.value = 'none';
+              // Allow step fields to declare a default key mode via `keyMode` in the field definition
+              // Supported values: 'none' | 'numbered' | 'bullet'
+              try {
+                modeSelect.value = f && f.keyMode ? String(f.keyMode) : 'none';
+              } catch (e) {
+                modeSelect.value = 'none';
+              }
               modeSelect.autocomplete = 'off';
               modeSelect.addEventListener('change', () => {
                 container.dataset.keyMode = modeSelect.value;
@@ -1756,7 +1762,9 @@
                   const label =
                     name === 'steps' ? 'Steps' : name.charAt(0).toUpperCase() + name.slice(1);
                   const type = name === 'steps' ? 'steps' : 'text';
-                  gen.push({ label, name, type, placeholder: '' });
+                  const fld = { label, name, type, placeholder: '' };
+                  if (type === 'steps') fld.keyMode = '';
+                  gen.push(fld);
                 }
               }
               fieldsTaOut.value = JSON.stringify(gen, null, 2);
@@ -1866,6 +1874,10 @@
                 <p>To include headings inside the form, add a field with <code>"type":"header"</code>. Use <code>label</code> for the heading text and optionally <code>level</code> (1-6) or <code>size</code> (<code>h1</code>.. <code>h6</code>) to control the heading element.</p>
                 <p>To layout fields side-by-side, set a field's <code>inline</code> property to <code>true</code> and optionally provide <code>width</code> (e.g. <code>"45%"</code> or <code>"200px"</code>); default width is <code>45%</code>.</p>
                 <p>Fields support an optional <code>placeholder</code> property. When generating fields from a template, placeholders default to an empty string.</p>
+                <p><strong>Steps fields:</strong> step-like fields (<code>"type":"steps"</code>) now support a <code>keyMode</code> property to control the default per-step key style. Supported values:
+                <code>"none"</code> (no key), <code>"numbered"</code> (1., 2., ...), or <code>"bullet"</code> (-). Example field definition:
+                <pre style="background:#f4f7fb;padding:8px;border-radius:6px;margin:6px 0;">{ "label": "Tasks", "name": "tasks", "type": "steps", "keyMode": "numbered" }</pre>
+                When a form defines <code>keyMode</code> the steps UI will initialize the Default key selector accordingly so parsed or added step rows inherit that style.</p>
               </li>
               <li>Click <em>Save</em> to apply — left-side form tabs update immediately and form definitions are persisted to localStorage (only form definitions are saved; user-entered form values are never persisted).</li>
             </ul>`;
