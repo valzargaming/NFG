@@ -713,7 +713,10 @@
         try {
           const msg = String(err && err.message ? err.message : '');
           // Look for common position indicators from JSON.parse errors
-          const m = msg.match(/at position\s*(\d+)/i) || msg.match(/position\s*(\d+)/i) || msg.match(/column\s*(\d+)/i);
+          const m =
+            msg.match(/at position\s*(\d+)/i) ||
+            msg.match(/position\s*(\d+)/i) ||
+            msg.match(/column\s*(\d+)/i);
           if (!m) return;
           const pos = Number(m[1]);
           if (Number.isNaN(pos)) return;
@@ -2589,7 +2592,9 @@
                 if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) {
                   _proceed2 = true; // auto-accept in test/jsdom environment
                 } else if (typeof window.confirm === 'function') {
-                  _proceed2 = !!window.confirm('Delete this form/template? This action cannot be undone.');
+                  _proceed2 = !!window.confirm(
+                    'Delete this form/template? This action cannot be undone.'
+                  );
                 }
               } catch (e) {
                 _proceed2 = true;
