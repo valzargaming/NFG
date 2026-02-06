@@ -8,7 +8,7 @@
   "plugins": ["html", "@html-eslint"],
   "overrides": [
     {
-      "files": ["src/**/*.html","**/*.html"],
+      "files": ["src/**/*.html", "**/*.html"],
       "processor": "@html-eslint/html",
       "rules": {}
     }
