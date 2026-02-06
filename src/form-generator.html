@@ -692,6 +692,26 @@
       // when true, tpl select change handlers should not activate tabs (used during programmatic updates)
       let suppressTabActivation = false;
 
+      // Auto-resize a textarea to fit its content
+      function autosizeTextarea(ta) {
+        if (!ta) return;
+        try {
+          ta.style.height = 'auto';
+          ta.style.overflow = 'hidden';
+          var newH = ta.scrollHeight;
+          // Ensure at least one line of height (use computed line-height or font-size as fallback)
+          try {
+            var cs = window.getComputedStyle(ta);
+            var lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) || 16;
+            var padTop = parseFloat(cs.paddingTop) || 0;
+            var padBottom = parseFloat(cs.paddingBottom) || 0;
+            var minH = Math.ceil(lh + padTop + padBottom);
+            if (!newH || newH < minH) newH = minH;
+          } catch (e) {}
+          ta.style.height = newH + 'px';
+        } catch (e) {}
+      }
+
       // Create a step row (key input + value input + remove button) and append to `list`.
       // `baseName` is the field name, `keyVal` can be a string value or {key,val}.
       function createStepRow(baseName, keyVal, container, list) {
@@ -1206,7 +1226,7 @@
           clearOutBtn.style.marginLeft = '8px';
           const out = document.createElement('textarea');
           out.readOnly = true;
-          out.rows = 3;
+          out.rows = 10;
           out.autocomplete = 'off';
           out.style.width = '100%';
           out.style.marginTop = '8px';
@@ -1255,6 +1275,12 @@
             const sel = tplSelect.value || '__json__';
             const cfg = formsMap[sel] && formsMap[sel].cfg ? formsMap[sel].cfg : null;
             out.value = generateOutput(cfg, values);
+            // Auto-resize the output textarea to fit the generated content
+            try {
+              out.style.height = 'auto';
+              out.style.overflow = 'hidden';
+              out.style.height = out.scrollHeight + 'px';
+            } catch (e) {}
           });
           copyBtn.addEventListener('click', async () => {
             const text = out.value || '';
@@ -1278,6 +1304,9 @@
           });
           clearOutBtn.addEventListener('click', () => {
             out.value = '';
+            try {
+              autosizeTextarea(out);
+            } catch (e) {}
           });
 
           // populate area UI
@@ -1453,18 +1482,22 @@
               const raw = String(cfgSimpleOut.value || '').trim();
               if (!raw) {
                 cfgTaOut.value = '';
+                autosizeTextarea(cfgTaOut);
                 return;
               }
               if (raw[0] === '{' || raw[0] === '[') {
                 try {
                   const parsed = JSON.parse(raw);
                   cfgTaOut.value = JSON.stringify(parsed, null, 2);
+                  autosizeTextarea(cfgTaOut);
                 } catch (e) {
                   // not valid JSON, treat as template string
                   cfgTaOut.value = JSON.stringify({ type: 'template', template: raw }, null, 2);
+                  autosizeTextarea(cfgTaOut);
                 }
               } else {
                 cfgTaOut.value = JSON.stringify({ type: 'template', template: raw }, null, 2);
+                autosizeTextarea(cfgTaOut);
               }
             } catch (e) {}
           });
@@ -1522,9 +1555,11 @@
               lblIn.value = '';
               try {
                 cfgSimpleOut.value = '';
+                autosizeTextarea(cfgSimpleOut);
               } catch (e) {}
               try {
                 cfgTaOut.value = '';
+                autosizeTextarea(cfgTaOut);
               } catch (e) {}
               try {
                 advChkOut.checked = false;
@@ -1532,6 +1567,7 @@
                 resolveBtn.style.display = 'none';
               } catch (e) {}
               fieldsTaOut.value = '';
+              autosizeTextarea(fieldsTaOut);
               return;
             }
             lblIn.value = o.label || '';
@@ -1543,7 +1579,9 @@
                 typeof o.cfg.template === 'string'
               ) {
                 cfgSimpleOut.value = o.cfg.template;
+                autosizeTextarea(cfgSimpleOut);
                 cfgTaOut.value = JSON.stringify(o.cfg, null, 2);
+                autosizeTextarea(cfgTaOut);
                 try {
                   advChkOut.checked = false;
                   cfgTaOut.style.display = 'none';
@@ -1551,7 +1589,9 @@
                 } catch (e) {}
               } else {
                 cfgSimpleOut.value = '';
+                autosizeTextarea(cfgSimpleOut);
                 cfgTaOut.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';
+                autosizeTextarea(cfgTaOut);
                 try {
                   advChkOut.checked = true;
                   cfgTaOut.style.display = '';
@@ -1560,11 +1600,14 @@
               }
             } catch (e) {
               cfgTaOut.value = '';
+              autosizeTextarea(cfgTaOut);
             }
             try {
               fieldsTaOut.value = o.fields ? JSON.stringify(o.fields, null, 2) : '';
+              autosizeTextarea(fieldsTaOut);
             } catch (e) {
               fieldsTaOut.value = '';
+              autosizeTextarea(fieldsTaOut);
             }
           }
           outList.addEventListener('change', loadOut);
@@ -1686,6 +1729,7 @@
                 }
               }
               fieldsTaOut.value = JSON.stringify(gen, null, 2);
+              autosizeTextarea(fieldsTaOut);
             } catch (e) {
               alert('Invalid output JSON: ' + e.message);
             }
@@ -1851,6 +1895,8 @@
                   if (typeof cfgSimple !== 'undefined' && typeof advChk !== 'undefined') {
                     cfgSimple.value = o.cfg.template;
                     cfgTa.value = JSON.stringify(o.cfg, null, 2);
+                    autosizeTextarea(cfgSimple);
+                    autosizeTextarea(cfgTa);
                     advChk.checked = false;
                     cfgTa.style.display = 'none';
                     cfgSimple.style.display = '';
@@ -1865,23 +1911,30 @@
                   if (typeof cfgSimple !== 'undefined' && typeof advChk !== 'undefined') {
                     cfgTa.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';
                     cfgSimple.value = '';
+                    autosizeTextarea(cfgSimple);
+                    autosizeTextarea(cfgTa);
                     advChk.checked = true;
                     cfgTa.style.display = '';
                     cfgSimple.style.display = 'none';
                   } else {
                     cfgTa.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';
+                    autosizeTextarea(cfgTa);
                   }
                 } catch (e) {
                   cfgTa.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';
+                  autosizeTextarea(cfgTa);
                 }
               }
             } catch (e) {
               cfgTa.value = '';
+              autosizeTextarea(cfgTa);
             }
             try {
               fieldsTa.value = o.fields ? JSON.stringify(o.fields, null, 2) : '';
+              autosizeTextarea(fieldsTa);
             } catch (e) {
               fieldsTa.value = '';
+              autosizeTextarea(fieldsTa);
             }
           }
           outSelect.addEventListener('change', loadSelectedOutput);
