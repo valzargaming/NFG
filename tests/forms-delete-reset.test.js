@@ -22,7 +22,7 @@ describe('forms delete and reset', () => {
     );
     delBtn.click();
     // wait for forms pane to show Deleted status
-    const tplTab = dom.window.document.querySelector('.tab.right');
+    const tplTab = dom.window.document.querySelector('.tab.right[data-templates="true"]');
     const tplIndex = tplTab.dataset.index;
     await pollForSelector(dom.window, `.tab-pane[data-index="${tplIndex}"] .meta`);
     // wait until localStorage no longer contains the deleted template id
@@ -56,7 +56,7 @@ describe('forms delete and reset', () => {
       (b) => b.textContent.trim() === 'Reset to defaults'
     );
     resetBtn.click();
-    const tplTabAfter = dom.window.document.querySelector('.tab.right');
+    const tplTabAfter = dom.window.document.querySelector('.tab.right[data-templates="true"]');
     const tplIndexAfter = tplTabAfter.dataset.index;
     await pollForSelector(dom.window, `.tab-pane[data-index="${tplIndexAfter}"] .meta`);
     const savedAfter = JSON.parse(dom.window.localStorage.getItem('nfg-forms')) || [];

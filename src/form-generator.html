@@ -900,7 +900,10 @@
               // Rename the top input to be the combined input so it does not
               // conflict with the per-step inputs below (which share the base name).
               input.name = f.name + '_combined';
-              input.placeholder = f.placeholder && String(f.placeholder).trim() ? String(f.placeholder) : 'Step 1 > Step 2 > Step 3';
+              input.placeholder =
+                f.placeholder && String(f.placeholder).trim()
+                  ? String(f.placeholder)
+                  : 'Step 1 > Step 2 > Step 3';
               input.style.width = '70%';
               input.style.display = 'inline-block';
 
@@ -1834,6 +1837,7 @@
           tplTab.className = 'tab right';
           tplTab.textContent = 'Forms';
           tplTab.dataset.index = tplIndex;
+          tplTab.dataset.templates = 'true';
           tplTab.addEventListener('click', () => activateTab(tplIndex));
           tabbar.appendChild(tplTab);
 
@@ -1841,6 +1845,7 @@
           tplPane.className = 'tab-pane';
           tplPane.style.display = 'none';
           tplPane.dataset.index = tplIndex;
+          tplPane.dataset.templates = 'true';
 
           const paneContent = document.createElement('div');
           paneContent.className = 'tab-content';
@@ -2341,7 +2346,7 @@
             // element was recreated and its dataset.index may have changed.
             // Re-query the current templates tab (.tab.right) and activate it.
             try {
-              const newTplTab = tabbar.querySelector('.tab.right');
+              const newTplTab = tabbar.querySelector('.tab.right[data-templates="true"]');
               if (newTplTab) activateTab(Number(newTplTab.dataset.index));
             } catch (e) {}
           });
@@ -2661,7 +2666,7 @@
 
             // finally re-activate templates tab and show Deleted status
             try {
-              const newTplTab = tabbar.querySelector('.tab.right');
+              const newTplTab = tabbar.querySelector('.tab.right[data-templates="true"]');
               if (newTplTab) {
                 activateTab(Number(newTplTab.dataset.index));
                 const finalPane = contents.querySelector(
@@ -2714,7 +2719,7 @@
               restoreAllFormValues(allPrev);
             } catch (e) {}
             try {
-              const newTplTab = tabbar.querySelector('.tab.right');
+              const newTplTab = tabbar.querySelector('.tab.right[data-templates="true"]');
               if (newTplTab) {
                 activateTab(Number(newTplTab.dataset.index));
                 const newPane = contents.querySelector(
@@ -2759,7 +2764,7 @@
             }
             // Ensure Templates tab remains active after programmatic changes
             try {
-              const newTplTab = tabbar.querySelector('.tab.right');
+              const newTplTab = tabbar.querySelector('.tab.right[data-templates="true"]');
               if (newTplTab) {
                 activateTab(Number(newTplTab.dataset.index));
                 // append status after final activation so it isn't removed by rebuild
