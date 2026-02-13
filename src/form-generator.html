@@ -319,10 +319,8 @@
       // Persisted in localStorage key 'nfg-dev-mode'. Default is false to preserve current behavior.
       const devKey = 'nfg-dev-mode';
       let devMode = false;
-      safe(() => {
-        const s = storageGet(devKey);
-        if (s !== null) devMode = s === 'true' || s === true;
-      });
+      const s = storageGet(devKey);
+      if (s !== null) devMode = s === 'true' || s === true;
 
       // create a small Dev toggle switch next to theme toggle
       (function addDevToggleBtn() {
@@ -1759,7 +1757,7 @@
               }
               outputsMap = Object.fromEntries(outputs.map((x) => [x.id, x]));
               // persist outputs so Templates can reference them later
-              safe(() => storageSet(outputsKey, outputs));
+              storageSet(outputsKey, outputs);
               refreshOutList();
               loadOut();
               try {
