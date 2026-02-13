@@ -315,6 +315,21 @@
           'null'
         );
 
+      // Helper to download a string as a file (used by export flow)
+      function downloadFile(content, filename = 'nfg-export.html', type = 'text/html') {
+        safe(() => {
+          const blob = new Blob([content], { type });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+        });
+      }
+
       // Dev mode toggle: when true, Templates pane and per-form Unload buttons are visible.
       // Persisted in localStorage key 'nfg-dev-mode'. Default is false to preserve current behavior.
       const devKey = 'nfg-dev-mode';
@@ -398,26 +413,10 @@
                     alert('Exported HTML copied to clipboard');
                   } catch (e) {
                     // fallback to saving file if clipboard fails
-                    const blob = new Blob([html], { type: 'text/html' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'nfg-export.html';
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    setTimeout(() => URL.revokeObjectURL(url), 5000);
+                    downloadFile(html);
                   }
                 } else {
-                  const blob = new Blob([html], { type: 'text/html' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = 'nfg-export.html';
-                  document.body.appendChild(a);
-                  a.click();
-                  a.remove();
-                  setTimeout(() => URL.revokeObjectURL(url), 5000);
+                  downloadFile(html);
                 }
               } catch (err) {
                 alert('Export failed: ' + (err && err.message));
