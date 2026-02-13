@@ -321,7 +321,7 @@
       let devMode = false;
       safe(() => {
         const s = storageGet(devKey);
-        if (s !== null) devMode = s === 'true';
+        if (s !== null) devMode = s === 'true' || s === true;
       });
 
       // create a small Dev toggle switch next to theme toggle
@@ -1696,7 +1696,7 @@
               outputs.push(no);
               outputsMap = Object.fromEntries(outputs.map((x) => [x.id, x]));
               storageSet(outputsKey, outputs);
-              
+
               refreshOutList();
               outList.value = id;
               loadOut();
