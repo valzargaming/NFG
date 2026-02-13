@@ -280,14 +280,40 @@
       const tabbar = document.getElementById('tabbar');
       const contents = document.getElementById('contents');
 
+      // Small safety helpers to reduce repetitive try/catch boilerplate
+      const DEBUG = false;
+      const safe = (fn, fallback = undefined, onError) => {
+        try {
+          return fn();
+        } catch (e) {
+          try {
+            if (onError) onError(e);
+            else if (DEBUG && console && console.error) console.error(e);
+          } catch (ex) {}
+          return fallback;
+        }
+      };
+      const safeParse = (s, fallback = null) => {
+        if (s === undefined || s === null) return fallback;
+        return safe(() => JSON.parse(s), fallback);
+      };
+      const q = (root, sel) => safe(() => (root || document).querySelector(sel), null);
+      const qAll = (root, sel) =>
+        safe(() => Array.from((root || document).querySelectorAll(sel)), []);
+      const storageGet = (k, fallback = null) =>
+        safe(() => safeParse(localStorage.getItem(k), fallback), fallback);
+      const storageSet = (k, v) =>
+        safe(() => localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)));
+      const wrapHandler = (fn) => (ev) => safe(() => fn(ev));
+
       // Dev mode toggle: when true, Templates pane and per-form Unload buttons are visible.
       // Persisted in localStorage key 'nfg-dev-mode'. Default is false to preserve current behavior.
       const devKey = 'nfg-dev-mode';
       let devMode = false;
-      try {
+      safe(() => {
         const s = localStorage.getItem(devKey);
         if (s !== null) devMode = s === 'true';
-      } catch (e) {}
+      });
 
       // create a small Dev toggle switch next to theme toggle
       (function addDevToggleBtn() {
@@ -329,54 +355,46 @@
                   return 'null';
                 }
               };
-              try {
-                seed.push('window.formConfig = ' + safeJson(formConfig) + ';');
-              } catch (e) {}
-              try {
-                seed.push("localStorage.setItem('nfg-forms', " + safeJson(forms) + ');');
-              } catch (e) {}
-              try {
-                seed.push("localStorage.setItem('nfg-outputs', " + safeJson(outputs) + ');');
-              } catch (e) {}
+              safe(() => seed.push('window.formConfig = ' + safeJson(formConfig) + ';'));
+              safe(() => seed.push("localStorage.setItem('nfg-forms', " + safeJson(forms) + ');'));
+              safe(() =>
+                seed.push("localStorage.setItem('nfg-outputs', " + safeJson(outputs) + ');')
+              );
               try {
                 // Compute current mapping from formConfig -> template id so the
                 // exported HTML reflects the currently loaded form per-tab even
                 // if the mapping wasn't previously persisted.
                 const exportMap = {};
-                try {
+                safe(() => {
                   for (let ei = 0; ei < formConfig.length; ei++) {
                     const tid = formConfig[ei] && formConfig[ei]._templateId;
                     if (tid && formsMap && formsMap[tid]) exportMap[ei] = tid;
                   }
-                } catch (e) {}
+                });
                 seed.push("localStorage.setItem('nfg-form-map', " + safeJson(exportMap) + ');');
               } catch (e) {}
-              try {
-                seed.push("localStorage.setItem('nfg-dev-mode', 'false');");
-              } catch (e) {}
+              safe(() => seed.push("localStorage.setItem('nfg-dev-mode', 'false');"));
               const seedScript = `<script>try{${seed.join('')} }catch(e){}<\/script>`;
               // create a cleaned clone of the document and remove dev UI elements
               const docClone = document.documentElement.cloneNode(true);
-              try {
+              safe(() => {
                 const toRemove = docClone.querySelectorAll(
                   '[data-dev-toggle], [data-export-button]'
                 );
                 toRemove.forEach((n) => n.remove());
-              } catch (e) {}
+              });
               let html = '<!doctype html>\n' + docClone.outerHTML;
               html = html.replace(/<body([^>]*)>/i, (m, attrs) => `<body${attrs}>${seedScript}`);
               // Ask user whether to copy to clipboard or save file. If clipboard
               // isn't available, fall back to saving file.
               let wantCopy = false;
-              try {
+              safe(() => {
                 if (typeof window.confirm === 'function') {
                   wantCopy = window.confirm(
                     'Copy exported HTML to clipboard? Press OK to copy, Cancel to save to a file.'
                   );
                 }
-              } catch (e) {
-                wantCopy = false;
-              }
+              });
 
               if (wantCopy && navigator.clipboard && navigator.clipboard.writeText) {
                 try {
