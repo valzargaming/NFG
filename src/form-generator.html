@@ -305,6 +305,14 @@
       const storageSet = (k, v) =>
         safe(() => localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)));
       const wrapHandler = (fn) => (ev) => safe(() => fn(ev));
+      const safeJson = (obj) =>
+        safe(() =>
+          JSON.stringify(obj)
+            .replace(/</g, '\\u003c')
+            .replace(/\u2028/g, '\\u2028')
+            .replace(/\u2029/g, '\\u2029'),
+          'null'
+        );
 
       // Dev mode toggle: when true, Templates pane and per-form Unload buttons are visible.
       // Persisted in localStorage key 'nfg-dev-mode'. Default is false to preserve current behavior.
@@ -343,18 +351,7 @@
             try {
               const seed = [];
               // Safely serialize JSON for embedding inside a <script> tag.
-              // Replace literal '<' and line terminators that could break
-              // the script or close the script tag early.
-              const safeJson = (obj) => {
-                try {
-                  return JSON.stringify(obj)
-                    .replace(/</g, '\\u003c')
-                    .replace(/\u2028/g, '\\u2028')
-                    .replace(/\u2029/g, '\\u2029');
-                } catch (e) {
-                  return 'null';
-                }
-              };
+              // Uses top-level `safeJson` helper.
               safe(() => seed.push('window.formConfig = ' + safeJson(formConfig) + ';'));
               safe(() => seed.push("localStorage.setItem('nfg-forms', " + safeJson(forms) + ');'));
               safe(() =>
@@ -1072,16 +1069,10 @@
                     : undefined,
               };
               formConfig.push(newForm);
-              try {
-                persistFormMap();
-              } catch (e) {}
-              build();
-              try {
-                restoreAllFormValues(allPrev);
-              } catch (e) {}
-              try {
-                activateTab(formConfig.length - 1);
-              } catch (e) {}
+              safe(() => persistFormMap());
+              safe(() => build());
+              safe(() => restoreAllFormValues(allPrev));
+              safe(() => activateTab(formConfig.length - 1));
             } catch (e) {}
           });
 
@@ -1140,16 +1131,10 @@
                     : undefined,
               };
               formConfig.push(newForm);
-              try {
-                persistFormMap();
-              } catch (e) {}
-              build();
-              try {
-                restoreAllFormValues(allPrev);
-              } catch (e) {}
-              try {
-                activateTab(formConfig.length - 1);
-              } catch (e) {}
+              safe(() => persistFormMap());
+              safe(() => build());
+              safe(() => restoreAllFormValues(allPrev));
+              safe(() => activateTab(formConfig.length - 1));
             } catch (e) {}
           });
 
@@ -1174,10 +1159,10 @@
           formArea.appendChild(topClear);
 
           // give the last appended control spacing before the form
-          try {
+          safe(() => {
             const last = formArea.lastElementChild;
             if (last && last.style) last.style.marginBottom = '8px';
-          } catch (e) {}
+          });
 
           formArea.appendChild(form);
 
