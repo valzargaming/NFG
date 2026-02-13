@@ -330,6 +330,72 @@
         });
       }
 
+      // Small DOM helpers for option population and select syncing
+      function createOption(value, text) {
+        return safe(() => {
+          const o = document.createElement('option');
+          o.value = value;
+          o.textContent = text;
+          return o;
+        });
+      }
+
+      function refreshOutputsSelectors() {
+        safe(() => {
+          const sels = qAll(document, 'select[data-outputs-selector="true"]');
+          sels.forEach((sel) => {
+            sel.innerHTML = '';
+            outputs.forEach((o) => sel.appendChild(createOption(o.id, o.label || o.id)));
+          });
+        });
+      }
+
+      function addTemplateOptionToFormPanes(id, label) {
+        safe(() => {
+          for (let fi = 0; fi < formConfig.length; fi++) {
+            const paneEl = q(contents, `.tab-pane[data-index='${fi}']`);
+            if (!paneEl) continue;
+            const sel = q(paneEl, 'select');
+            if (!sel) continue;
+            if (!q(sel, `option[value="${id}"]`)) sel.appendChild(createOption(id, label || id));
+          }
+        });
+      }
+
+      // Remove a template option from all per-form template selects.
+      // If a select had the removed option selected, pick the first option
+      // and dispatch a change event so the pane updates. Suppress tab
+      // activation while making programmatic changes to avoid side-effects.
+      function removeTemplateOptionFromFormPanes(id) {
+        safe(() => {
+          try {
+            suppressTabActivation = true;
+            for (let fi = 0; fi < formConfig.length; fi++) {
+              const paneEl = q(contents, `.tab-pane[data-index='${fi}']`);
+              if (!paneEl) continue;
+              const sel = q(paneEl, 'select');
+              if (!sel) continue;
+              const opt = q(sel, `option[value="${id}"]`);
+              if (!opt) continue;
+              const wasSelected = String(sel.value) === String(id);
+              try {
+                opt.remove();
+              } catch (e) {}
+              if (wasSelected) {
+                try {
+                  if (sel.options.length) {
+                    sel.selectedIndex = 0;
+                    sel.dispatchEvent(new Event('change'));
+                  }
+                } catch (e) {}
+              }
+            }
+          } finally {
+            suppressTabActivation = false;
+          }
+        });
+      }
+
       // Dev mode toggle: when true, Templates pane and per-form Unload buttons are visible.
       // Persisted in localStorage key 'nfg-dev-mode'. Default is false to preserve current behavior.
       const devKey = 'nfg-dev-mode';
@@ -1697,18 +1763,7 @@
               refreshOutList();
               outList.value = id;
               loadOut();
-              try {
-                const tplOut = q(document, 'select[data-outputs-selector="true"]');
-                if (tplOut) {
-                  tplOut.innerHTML = '';
-                  outputs.forEach((o) => {
-                    const op = document.createElement('option');
-                    op.value = o.id;
-                    op.textContent = o.label || o.id;
-                    tplOut.appendChild(op);
-                  });
-                }
-              } catch (e) {}
+              refreshOutputsSelectors();
             })
           );
 
@@ -1759,18 +1814,7 @@
               storageSet(outputsKey, outputs);
               refreshOutList();
               loadOut();
-              try {
-                const tplOut = q(document, 'select[data-outputs-selector="true"]');
-                if (tplOut) {
-                  tplOut.innerHTML = '';
-                  outputs.forEach((o) => {
-                    const op = document.createElement('option');
-                    op.value = o.id;
-                    op.textContent = o.label || o.id;
-                    tplOut.appendChild(op);
-                  });
-                }
-              } catch (e) {}
+              refreshOutputsSelectors();
             })
           );
 
@@ -1844,18 +1888,7 @@
               storageSet(outputsKey, outputs);
               refreshOutList();
               loadOut();
-              try {
-                const tplOut = q(document, 'select[data-outputs-selector="true"]');
-                if (tplOut) {
-                  tplOut.innerHTML = '';
-                  outputs.forEach((o) => {
-                    const op = document.createElement('option');
-                    op.value = o.id;
-                    op.textContent = o.label || o.id;
-                    tplOut.appendChild(op);
-                  });
-                }
-              } catch (e) {}
+              refreshOutputsSelectors();
             })
           );
 
@@ -2275,20 +2308,7 @@
               tplSelect.value = id;
               loadSelected();
               // Also add this template as an option to existing form panes' template selects
-              try {
-                for (let fi = 0; fi < formConfig.length; fi++) {
-                  const paneEl = q(contents, `.tab-pane[data-index='${fi}']`);
-                  if (!paneEl) continue;
-                  const sel = q(paneEl, 'select');
-                  if (!sel) continue;
-                  if (!q(sel, `option[value="${id}"]`)) {
-                    const o = document.createElement('option');
-                    o.value = id;
-                    o.textContent = nt.label || id;
-                    sel.appendChild(o);
-                  }
-                }
-              } catch (e) {}
+              addTemplateOptionToFormPanes(id, nt.label || id);
               // Do NOT auto-create a form tab; templates now reference outputs separately.
             })
           );
@@ -2682,26 +2702,9 @@
                 }
               } catch (e) {}
 
-              // If any form panes used the deleted template, reset them to first option
-              try {
-                suppressTabActivation = true;
-                for (let fi = 0; fi < formConfig.length; fi++) {
-                  const formPane = q(contents, `.tab-pane[data-index='${fi}']`);
-                  if (!formPane) continue;
-                  const formTpl = q(formPane, 'select');
-                  if (!formTpl) continue;
-                  // if the select no longer has the previously selected value, pick first and trigger change
-                  if (!q(formTpl, `option[value="${id}"]`)) {
-                    if (formTpl.options.length) {
-                      formTpl.selectedIndex = 0;
-                      formTpl.dispatchEvent(new Event('change'));
-                    }
-                  }
-                }
-              } catch (e) {
-              } finally {
-                suppressTabActivation = false;
-              }
+              // If any form panes used the deleted template, remove the option
+              // and ensure panes update via the centralized helper.
+              removeTemplateOptionFromFormPanes(id);
 
               // finally re-activate templates tab and show Deleted status
               try {
