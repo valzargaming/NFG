@@ -458,9 +458,7 @@
                 allPrev[idx] = map;
               });
             } catch (e) {}
-            try {
-              build();
-            } catch (e) {}
+            safe(() => build());
             try {
               Object.keys(allPrev).forEach((idx) => {
                 const pane = q(contents, `.tab-pane[data-index='${idx}']`);
@@ -2370,9 +2368,7 @@
                   formConfig.push(newForm);
                   formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
                   // persist mapping and forms
-                  try {
-                    persistFormMap();
-                  } catch (e) {}
+                  safe(() => persistFormMap());
                   build();
                   // restore preserved values into rebuilt panes
                   try {
@@ -2559,16 +2555,12 @@
               formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
               storageSet('nfg-forms', forms);
               // persist any mapping changes made by save
-              try {
-                persistFormMap();
-              } catch (e) {}
+              safe(() => persistFormMap());
               // preserve templates tab and selection after rebuild
               const preserveIndex = tplPane.dataset.index;
               const preserveId = t.id;
               const allPrev = captureAllFormValues();
-              try {
-                build();
-              } catch (e) {}
+              safe(() => build());
               try {
                 restoreAllFormValues(allPrev);
               } catch (e) {}
@@ -2694,9 +2686,7 @@
               formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
               storageSet('nfg-forms', forms);
               // update persisted mapping after deletion
-              try {
-                persistFormMap();
-              } catch (e) {}
+              safe(() => persistFormMap());
               refreshTplSelect();
               loadSelected();
               // If this was a custom template that had an associated form tab, remove that tab
@@ -2708,9 +2698,7 @@
                 }
               } catch (e) {}
               const allPrev = captureAllFormValues();
-              try {
-                build();
-              } catch (e) {}
+              safe(() => build());
               try {
                 restoreAllFormValues(allPrev);
               } catch (e) {}
@@ -2798,9 +2786,7 @@
                 }
               } catch (e) {}
               const allPrev = captureAllFormValues();
-              try {
-                build();
-              } catch (e) {}
+              safe(() => build());
               try {
                 restoreAllFormValues(allPrev);
               } catch (e) {}
