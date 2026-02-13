@@ -306,11 +306,12 @@
         safe(() => localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)));
       const wrapHandler = (fn) => (ev) => safe(() => fn(ev));
       const safeJson = (obj) =>
-        safe(() =>
-          JSON.stringify(obj)
-            .replace(/</g, '\\u003c')
-            .replace(/\u2028/g, '\\u2028')
-            .replace(/\u2029/g, '\\u2029'),
+        safe(
+          () =>
+            JSON.stringify(obj)
+              .replace(/</g, '\\u003c')
+              .replace(/\u2028/g, '\\u2028')
+              .replace(/\u2029/g, '\\u2029'),
           'null'
         );
 
@@ -520,20 +521,15 @@
 
       // Load editable forms from localStorage if present, otherwise merge with defaults
       let forms;
-      try {
-        const saved = localStorage.getItem('nfg-forms');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            // Start from defaults and overlay saved entries (saved entries override defaults)
-            const map = Object.fromEntries(defaultTemplates.map((t) => [t.id, t]));
-            for (const s of parsed) {
-              if (s && s.id) map[s.id] = s;
-            }
-            forms = Object.values(map);
-          }
+      // Load persisted forms (parsed) via storageGet which handles safety
+      const parsedForms = storageGet('nfg-forms', null);
+      if (Array.isArray(parsedForms)) {
+        const map = Object.fromEntries(defaultTemplates.map((t) => [t.id, t]));
+        for (const s of parsedForms) {
+          if (s && s.id) map[s.id] = s;
         }
-      } catch (e) {}
+        forms = Object.values(map);
+      }
       if (!forms) forms = defaultTemplates.slice();
 
       // map for quick lookup
@@ -541,13 +537,9 @@
       // Outputs: separate persisted output definitions (format + fields)
       const outputsKey = 'nfg-outputs';
       let outputs;
-      try {
-        const savedOut = localStorage.getItem(outputsKey);
-        if (savedOut) {
-          const parsed = JSON.parse(savedOut);
-          if (Array.isArray(parsed)) outputs = parsed;
-        }
-      } catch (e) {}
+      // Load persisted outputs via storageGet (returns parsed value)
+      const parsedOut = storageGet(outputsKey, null);
+      if (Array.isArray(parsedOut)) outputs = parsedOut;
       // if no persisted outputs, derive defaults from formConfig
       if (!outputs) {
         outputs = [];
@@ -566,34 +558,29 @@
       const formMapKey = 'nfg-form-map';
       let formMap = {};
       // try to load saved mapping and apply to formConfig
-      try {
-        const savedMap = localStorage.getItem(formMapKey);
-        if (savedMap) {
-          const parsed = JSON.parse(savedMap);
-          if (parsed && typeof parsed === 'object') {
-            formMap = parsed;
-            Object.keys(parsed).forEach((k) => {
-              const idx = Number(k);
-              const id = parsed[k];
-              if (!Number.isNaN(idx) && formConfig[idx] && formsMap[id]) {
-                formConfig[idx]._templateId = id;
-              }
-            });
+      // Load persisted per-tab form mapping using storageGet
+      const parsedMap = storageGet(formMapKey, null);
+      if (parsedMap && typeof parsedMap === 'object') {
+        formMap = parsedMap;
+        Object.keys(parsedMap).forEach((k) => {
+          const idx = Number(k);
+          const id = parsedMap[k];
+          if (!Number.isNaN(idx) && formConfig[idx] && formsMap[id]) {
+            formConfig[idx]._templateId = id;
           }
-        }
-      } catch (e) {}
+        });
+      }
 
       function persistFormMap() {
-        try {
-          const map = {};
-          for (let i = 0; i < formConfig.length; i++) {
-            if (formConfig[i] && formConfig[i]._templateId && formsMap[formConfig[i]._templateId]) {
-              map[i] = formConfig[i]._templateId;
-            }
+        const map = {};
+        for (let i = 0; i < formConfig.length; i++) {
+          if (formConfig[i] && formConfig[i]._templateId && formsMap[formConfig[i]._templateId]) {
+            map[i] = formConfig[i]._templateId;
           }
-          formMap = map;
-          localStorage.setItem(formMapKey, JSON.stringify(map));
-        } catch (e) {}
+        }
+        formMap = map;
+        // use storageSet which handles JSON serialization and safety
+        storageSet(formMapKey, map);
       }
       // Capture all current form values across tabs. Returns an object
       // mapping pane dataset.index -> { name: value | [values] }
@@ -1057,7 +1044,6 @@
             try {
               const newForm = {
                 title: (tab && tab.title ? tab.title : 'New') + ' (new)',
-                format: tab && tab.format ? JSON.parse(JSON.stringify(tab.format)) : null,
                 fields: JSON.parse(JSON.stringify(tab.fields || [])).map((f) => {
                   const nf = JSON.parse(JSON.stringify(f));
                   if (nf.hasOwnProperty('default')) delete nf.default;
@@ -1715,7 +1701,7 @@
             outputsMap = Object.fromEntries(outputs.map((x) => [x.id, x]));
             // persist outputs so Templates can reference them later
             try {
-              localStorage.setItem(outputsKey, JSON.stringify(outputs));
+              storageSet(outputsKey, outputs);
             } catch (e) {}
             refreshOutList();
             loadOut();
@@ -2217,7 +2203,7 @@
             };
             forms.push(nt);
             formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
-            localStorage.setItem('nfg-forms', JSON.stringify(forms));
+            storageSet('nfg-forms', forms);
             refreshTplSelect();
             tplSelect.value = id;
             loadSelected();
@@ -2475,7 +2461,7 @@
               }
             } catch (e) {}
             formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
-            localStorage.setItem('nfg-forms', JSON.stringify(forms));
+            storageSet('nfg-forms', forms);
             // persist any mapping changes made by save
             try {
               persistFormMap();
@@ -2606,7 +2592,7 @@
             const preserveIndex = tplPane.dataset.index;
             forms = forms.filter((x) => x.id !== id);
             formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
-            localStorage.setItem('nfg-forms', JSON.stringify(forms));
+            storageSet('nfg-forms', forms);
             // update persisted mapping after deletion
             try {
               persistFormMap();
