@@ -320,7 +320,7 @@
       const devKey = 'nfg-dev-mode';
       let devMode = false;
       safe(() => {
-        const s = localStorage.getItem(devKey);
+        const s = storageGet(devKey);
         if (s !== null) devMode = s === 'true';
       });
 
@@ -362,19 +362,17 @@
                 safe(() =>
                   seed.push("localStorage.setItem('nfg-outputs', " + safeJson(outputs) + ');')
                 );
-                try {
+                safe(() => {
                   // Compute current mapping from formConfig -> template id so the
                   // exported HTML reflects the currently loaded form per-tab even
                   // if the mapping wasn't previously persisted.
                   const exportMap = {};
-                  safe(() => {
-                    for (let ei = 0; ei < formConfig.length; ei++) {
-                      const tid = formConfig[ei] && formConfig[ei]._templateId;
-                      if (tid && formsMap && formsMap[tid]) exportMap[ei] = tid;
-                    }
-                  });
+                  for (let ei = 0; ei < formConfig.length; ei++) {
+                    const tid = formConfig[ei] && formConfig[ei]._templateId;
+                    if (tid && formsMap && formsMap[tid]) exportMap[ei] = tid;
+                  }
                   seed.push("localStorage.setItem('nfg-form-map', " + safeJson(exportMap) + ');');
-                } catch (e) {}
+                });
                 safe(() => seed.push("localStorage.setItem('nfg-dev-mode', 'false');"));
                 const seedScript = `<script>try{${seed.join('')} }catch(e){}<\/script>`;
                 // create a cleaned clone of the document and remove dev UI elements
@@ -429,16 +427,14 @@
             })
           );
           function apply() {
-            try {
-              localStorage.setItem(devKey, devMode ? 'true' : 'false');
-            } catch (e) {}
+            storageSet(devKey, devMode ? 'true' : 'false');
             if (checkbox) checkbox.checked = devMode;
             if (textLabel) textLabel.textContent = 'Dev';
             if (exportBtn) exportBtn.style.display = devMode ? '' : 'none';
             // Preserve all current form values across the rebuild so toggling
             // dev mode doesn't clear user input.
             const allPrev = {};
-            try {
+            safe(() => {
               qAll(contents, '.tab-pane').forEach((pane) => {
                 const idx = pane.dataset.index;
                 const form = q(pane, 'form.generated-form');
@@ -457,9 +453,9 @@
                 });
                 allPrev[idx] = map;
               });
-            } catch (e) {}
+            });
             safe(() => build());
-            try {
+            safe(() => {
               Object.keys(allPrev).forEach((idx) => {
                 const pane = q(contents, `.tab-pane[data-index='${idx}']`);
                 if (!pane) return;
@@ -491,7 +487,7 @@
                   } catch (e) {}
                 });
               });
-            } catch (e) {}
+            });
           }
           checkbox.addEventListener(
             'change',
@@ -696,27 +692,27 @@
       // Auto-resize a textarea to fit its content
       function autosizeTextarea(ta) {
         if (!ta) return;
-        try {
+        safe(() => {
           ta.style.height = 'auto';
           ta.style.overflow = 'hidden';
           var newH = ta.scrollHeight;
           // Ensure at least one line of height (use computed line-height or font-size as fallback)
-          try {
+          safe(() => {
             var cs = window.getComputedStyle(ta);
             var lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) || 16;
             var padTop = parseFloat(cs.paddingTop) || 0;
             var padBottom = parseFloat(cs.paddingBottom) || 0;
             var minH = Math.ceil(lh + padTop + padBottom);
             if (!newH || newH < minH) newH = minH;
-          } catch (e) {}
+          });
           ta.style.height = newH + 'px';
-        } catch (e) {}
+        });
       }
 
       // Highlight the character position reported by a JSON parse error inside a textarea
       function highlightJsonError(ta, err) {
         if (!ta || !err) return;
-        try {
+        safe(() => {
           const msg = String(err && err.message ? err.message : '');
           // Look for common position indicators from JSON.parse errors
           const m =
@@ -727,7 +723,7 @@
           const pos = Number(m[1]);
           if (Number.isNaN(pos)) return;
           // Focus and select the offending character
-          try {
+          safe(() => {
             ta.focus();
             if (typeof ta.setSelectionRange === 'function') {
               // clamp pos to bounds
@@ -735,15 +731,15 @@
               ta.setSelectionRange(idx, idx + 1);
             }
             // Try to scroll the line into view roughly using line-height
-            try {
+            safe(() => {
               const cs = window.getComputedStyle(ta);
               const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) || 16;
               const before = (ta.value || '').slice(0, pos);
               const lineNo = (before.match(/\n/g) || []).length;
               ta.scrollTop = Math.max(0, lineNo * lh - lh * 2);
-            } catch (e) {}
-          } catch (e) {}
-        } catch (e) {}
+            });
+          });
+        });
       }
 
       // Create a step row (key input + value input + remove button) and append to `list`.
@@ -855,9 +851,9 @@
             // render it as an inline-block and respect optional `width`.
             if (f && f.inline) {
               wrapper.className += ' field-inline';
-              try {
+              safe(() => {
                 wrapper.style.width = f.width ? String(f.width) : '45%';
-              } catch (e) {}
+              });
             }
             const label = document.createElement('label');
             if (f.type !== 'header') {
@@ -1329,11 +1325,11 @@
               const cfg = formsMap[sel] && formsMap[sel].cfg ? formsMap[sel].cfg : null;
               out.value = generateOutput(cfg, values);
               // Auto-resize the output textarea to fit the generated content
-              try {
+              safe(() => {
                 out.style.height = 'auto';
                 out.style.overflow = 'hidden';
                 out.style.height = out.scrollHeight + 'px';
-              } catch (e) {}
+              });
             })
           );
           copyBtn.addEventListener(
@@ -1363,9 +1359,7 @@
             'click',
             wrapHandler(() => {
               out.value = '';
-              try {
-                autosizeTextarea(out);
-              } catch (e) {}
+              safe(() => autosizeTextarea(out));
             })
           );
 
@@ -1701,7 +1695,8 @@
               const no = { id, label: id, cfg: null, fields: [] };
               outputs.push(no);
               outputsMap = Object.fromEntries(outputs.map((x) => [x.id, x]));
-              localStorage.setItem(outputsKey, JSON.stringify(outputs));
+              storageSet(outputsKey, outputs);
+              
               refreshOutList();
               outList.value = id;
               loadOut();
@@ -1746,9 +1741,7 @@
                   o.cfg = null;
                 }
               } catch (e) {
-                try {
-                  highlightJsonError(cfgTaOut, e);
-                } catch (ex) {}
+                safe(() => highlightJsonError(cfgTaOut, e));
                 alert('Invalid output JSON: ' + e.message);
                 return;
               }
@@ -1760,17 +1753,13 @@
                 // that it's a JSON array and then save it.
                 o.fields = parsedF;
               } catch (e) {
-                try {
-                  highlightJsonError(fieldsTaOut, e);
-                } catch (ex) {}
+                safe(() => highlightJsonError(fieldsTaOut, e));
                 alert('Invalid fields JSON: ' + e.message);
                 return;
               }
               outputsMap = Object.fromEntries(outputs.map((x) => [x.id, x]));
               // persist outputs so Templates can reference them later
-              try {
-                storageSet(outputsKey, outputs);
-              } catch (e) {}
+              safe(() => storageSet(outputsKey, outputs));
               refreshOutList();
               loadOut();
               try {
@@ -1828,9 +1817,7 @@
                 fieldsTaOut.value = JSON.stringify(gen, null, 2);
                 autosizeTextarea(fieldsTaOut);
               } catch (e) {
-                try {
-                  highlightJsonError(cfgTaOut, e);
-                } catch (ex) {}
+                safe(() => highlightJsonError(cfgTaOut, e));
                 alert('Invalid output JSON: ' + e.message);
               }
             })
@@ -1857,7 +1844,7 @@
               const id = outList.value;
               outputs = outputs.filter((x) => x.id !== id);
               outputsMap = Object.fromEntries(outputs.map((x) => [x.id, x]));
-              localStorage.setItem(outputsKey, JSON.stringify(outputs));
+              storageSet(outputsKey, outputs);
               refreshOutList();
               loadOut();
               try {
@@ -1878,9 +1865,9 @@
           // The original "Create Form from Output" action is intentionally
           // disabled — outputs are intended to define generation formats and
           // their inferred fields, not to implicitly create form tabs.
-          try {
-            createFormBtn.style.display = 'none';
-          } catch (e) {}
+          safe(() => {
+            if (createFormBtn) createFormBtn.style.display = 'none';
+          });
 
           outPane.appendChild(outContent);
           contents.appendChild(outPane);
@@ -2004,12 +1991,12 @@
             const id = outSelect.value;
             const o = outputsMap[id] || outputs.find((x) => x.id === id) || null;
             if (!o) {
-              try {
-                cfgTa.value = '';
-              } catch (e) {}
-              try {
-                fieldsTa.value = '';
-              } catch (e) {}
+              safe(() => {
+                if (cfgTa) cfgTa.value = '';
+              });
+              safe(() => {
+                if (fieldsTa) fieldsTa.value = '';
+              });
               return;
             }
             try {
@@ -2067,9 +2054,7 @@
           }
           outSelect.addEventListener('change', wrapHandler(loadSelectedOutput));
           // initialize the panes with the selected output (if any)
-          try {
-            loadSelectedOutput();
-          } catch (e) {}
+          safe(() => loadSelectedOutput());
           const outLabel = document.createElement('div');
           outLabel.className = 'meta';
           outLabel.textContent = 'Output:';
@@ -2188,9 +2173,9 @@
           refreshTplSelect();
           // Default the forms select to the most-recent form so reopening
           // the pane shows the last-created form by default.
-          try {
+          safe(() => {
             if (forms && forms.length) tplSelect.value = forms[forms.length - 1].id;
-          } catch (e) {}
+          });
 
           function loadSelected() {
             const id = tplSelect.value;
@@ -2406,9 +2391,7 @@
                     });
                   } catch (e) {}
                   // activate the newly created tab (last index)
-                  try {
-                    activateTab(formConfig.length - 1);
-                  } catch (e) {}
+                  safe(() => activateTab(formConfig.length - 1));
                 }
               } catch (e) {}
               // keep templates pane active: after `build()` the templates tab
@@ -2467,16 +2450,12 @@
                 if (!Array.isArray(parsedFields)) throw new Error('Fields must be an array');
                 t.fields = parsedFields;
               } catch (e) {
-                try {
-                  highlightJsonError(fieldsTa, e);
-                } catch (ex) {}
+                safe(() => highlightJsonError(fieldsTa, e));
                 alert('Invalid fields JSON: ' + e.message);
                 return;
               }
               // Associate the template with the currently selected Output (if any)
-              try {
-                if (outSelect && outSelect.value) t.outputId = outSelect.value;
-              } catch (e) {}
+              if (outSelect && outSelect.value) t.outputId = outSelect.value;
               // If this template maps to a default form (tpl-<index>), update that formConfig entry
               try {
                 const m = /^tpl-(\d+)$/.exec(t.id);
@@ -2561,9 +2540,7 @@
               const preserveId = t.id;
               const allPrev = captureAllFormValues();
               safe(() => build());
-              try {
-                restoreAllFormValues(allPrev);
-              } catch (e) {}
+              safe(() => restoreAllFormValues(allPrev));
               try {
                 activateTab(Number(preserveIndex));
                 const newPane = q(contents, `.tab-pane[data-index='${preserveIndex}']`);
@@ -2637,9 +2614,7 @@
                           formEl.appendChild(wrapper);
                         } catch (e) {}
                       });
-                      try {
-                        activateTab(idx2);
-                      } catch (e) {}
+                      safe(() => activateTab(idx2));
                     }
                   }
                 }
@@ -2699,9 +2674,7 @@
               } catch (e) {}
               const allPrev = captureAllFormValues();
               safe(() => build());
-              try {
-                restoreAllFormValues(allPrev);
-              } catch (e) {}
+              safe(() => restoreAllFormValues(allPrev));
               // pick first available template in the templates pane (no status yet)
               try {
                 activateTab(Number(preserveIndex));
@@ -2787,9 +2760,7 @@
               } catch (e) {}
               const allPrev = captureAllFormValues();
               safe(() => build());
-              try {
-                restoreAllFormValues(allPrev);
-              } catch (e) {}
+              safe(() => restoreAllFormValues(allPrev));
               try {
                 const newTplTab = q(tabbar, '.tab.right[data-templates="true"]');
                 if (newTplTab) {
@@ -3162,9 +3133,9 @@
               });
               // Also update the combined input so the combined representation
               // is visible to the user after applying the selection.
-              try {
+              safe(() => {
                 if (combinedInput) combinedInput.value = sel.value;
-              } catch (e) {}
+              });
             }
           }
 
@@ -3223,9 +3194,9 @@
               }
             });
             // mirror the combined string into the top combined input if present
-            try {
+            safe(() => {
               if (combinedInput) combinedInput.value = sel.value;
-            } catch (e) {}
+            });
             return;
           }
 
@@ -3255,7 +3226,7 @@
           if (btn) btn.textContent = t === 'dark' ? 'Light' : 'Dark';
         }
         const saved =
-          localStorage.getItem(key) ||
+          storageGet(key) ||
           (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
             ? 'dark'
             : 'light');
@@ -3266,7 +3237,7 @@
             wrapHandler(() => {
               const isDark = document.documentElement.classList.toggle('dark');
               const next = isDark ? 'dark' : 'light';
-              localStorage.setItem(key, next);
+              storageSet(key, next);
               if (btn) btn.textContent = isDark ? 'Light' : 'Dark';
             })
           );
