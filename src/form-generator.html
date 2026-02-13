@@ -1197,7 +1197,7 @@
             const sel = tplSelect.value || '__json__';
             const tpl = formsMap[sel];
             if (!tpl) return;
-            try {
+            safe(() => {
               // Only apply format when the template explicitly defines `cfg`.
               // A null/blank cfg clears prior formats; absence of `cfg` means
               // the template should not change the output formatting.
@@ -1206,7 +1206,7 @@
               }
               formConfig[i]._templateId = sel;
               persistFormMap();
-            } catch (e) {}
+            });
             // Do NOT call build(), do NOT change formConfig[i].fields, and
             // do NOT activate tabs — selection only affects generation output.
           });
@@ -1229,18 +1229,10 @@
                 // remove this form tab
                 const allPrev = captureAllFormValues();
                 formConfig.splice(i, 1);
-                try {
-                  persistFormMap();
-                } catch (e) {}
-                try {
-                  build();
-                } catch (e) {}
-                try {
-                  restoreAllFormValues(allPrev);
-                } catch (e) {}
-                try {
-                  activateTab(Math.max(0, i - 1));
-                } catch (e) {}
+                safe(() => persistFormMap());
+                safe(() => build());
+                safe(() => restoreAllFormValues(allPrev));
+                safe(() => activateTab(Math.max(0, i - 1)));
               } catch (e) {}
             });
             tplRow.appendChild(unloadBtn);
