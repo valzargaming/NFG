@@ -378,16 +378,14 @@
               const opt = q(sel, `option[value="${id}"]`);
               if (!opt) continue;
               const wasSelected = String(sel.value) === String(id);
-              try {
-                opt.remove();
-              } catch (e) {}
+              safe(() => opt.remove());
               if (wasSelected) {
-                try {
+                safe(() => {
                   if (sel.options.length) {
                     sel.selectedIndex = 0;
                     sel.dispatchEvent(new Event('change'));
                   }
-                } catch (e) {}
+                });
               }
             }
           } finally {
@@ -405,7 +403,7 @@
 
       // create a small Dev toggle switch next to theme toggle
       (function addDevToggleBtn() {
-        try {
+        safe(() => {
           const header = q(document, '.top > div');
           if (!header) return;
           const wrapper = document.createElement('label');
@@ -526,7 +524,7 @@
                 if (!form) return;
                 const prev = allPrev[idx] || {};
                 Object.keys(prev).forEach((name) => {
-                  try {
+                  safe(() => {
                     const els = qAll(form, `[name="${CSS.escape(name)}"]`);
                     if (!els || els.length === 0) return;
                     const pv = prev[name];
@@ -547,7 +545,7 @@
                     } else {
                       els[0].value = pv;
                     }
-                  } catch (e) {}
+                  });
                 });
               });
             });
@@ -568,7 +566,7 @@
           // Keep the dev toggle after the theme button (end of controls)
           header.appendChild(wrapper);
           apply();
-        } catch (e) {}
+        });
       })();
 
       // Build list of available templates (include JSON fallback)
@@ -650,7 +648,7 @@
       // mapping pane dataset.index -> { name: value | [values] }
       function captureAllFormValues() {
         const allPrev = {};
-        try {
+        safe(() => {
           qAll(contents, '.tab-pane').forEach((pane) => {
             const idx = pane.dataset.index;
             const form = q(pane, 'form.generated-form');
@@ -669,13 +667,13 @@
             });
             allPrev[idx] = map;
           });
-        } catch (e) {}
+        });
         return allPrev;
       }
 
       // Restore values captured by `captureAllFormValues` into the rebuilt DOM.
       function restoreAllFormValues(allPrev) {
-        try {
+        safe(() => {
           Object.keys(allPrev || {}).forEach((nameIdx) => {
             const pane = q(contents, `.tab-pane[data-index='${nameIdx}']`);
             if (!pane) return;
@@ -683,7 +681,7 @@
             if (!form) return;
             const prev = allPrev[nameIdx] || {};
             Object.keys(prev).forEach((nm) => {
-              try {
+              safe(() => {
                 const els = qAll(form, `[name="${CSS.escape(nm)}"]`);
                 if (!els || els.length === 0) return;
                 const pv = prev[nm];
@@ -706,7 +704,7 @@
                   // If this is the combined steps input (name ends with '_combined'),
                   // parse it into individual step rows so programmatic population
                   // restores the per-step UI as well.
-                  try {
+                  safe(() => {
                     if (
                       typeof nm === 'string' &&
                       nm.endsWith('_combined') &&
@@ -740,12 +738,12 @@
                         }
                       }
                     }
-                  } catch (e) {}
+                  });
                 }
-              } catch (e) {}
+              });
             });
           });
-        } catch (e) {}
+        });
       }
       // counter used to give generated dynamic inputs unique ids
       let dynamicIdCounter = 0;
@@ -1121,7 +1119,7 @@
             'click',
             wrapHandler(() => {
               const allPrev = captureAllFormValues();
-              try {
+              safe(() => {
                 const newForm = {
                   title: (tab && tab.title ? tab.title : 'New') + ' (new)',
                   fields: JSON.parse(JSON.stringify(tab.fields || [])).map((f) => {
@@ -1139,7 +1137,7 @@
                 safe(() => build());
                 safe(() => restoreAllFormValues(allPrev));
                 safe(() => activateTab(formConfig.length - 1));
-              } catch (e) {}
+              });
             })
           );
 
@@ -1152,7 +1150,7 @@
             'click',
             wrapHandler(() => {
               const allPrev = captureAllFormValues();
-              try {
+              safe(() => {
                 // capture current form values
                 const vals = {};
                 Array.from(form.elements).forEach((e) => {
@@ -1204,7 +1202,7 @@
                 safe(() => build());
                 safe(() => restoreAllFormValues(allPrev));
                 safe(() => activateTab(formConfig.length - 1));
-              } catch (e) {}
+              });
             })
           );
 
@@ -1687,10 +1685,10 @@
             const o = outputs.find((x) => x.id === id);
             if (!o) {
               lblIn.value = '';
-              try {
+              safe(() => {
                 cfgSimpleOut.value = '';
                 autosizeTextarea(cfgSimpleOut);
-              } catch (e) {}
+              });
                 cfgTaOut.value = '';
                 autosizeTextarea(cfgTaOut);
                 advChkOut.checked = false;
@@ -2306,7 +2304,7 @@
               // Preserve current form values across the DOM rebuild so loading
               // a template doesn't clear data entered in other tabs.
               const allPrev = {};
-              try {
+              safe(() => {
                 qAll(contents, '.tab-pane').forEach((pane) => {
                   const idx = pane.dataset.index;
                   const form = q(pane, 'form.generated-form');
@@ -2326,9 +2324,9 @@
                   });
                   allPrev[idx] = map;
                 });
-              } catch (e) {}
+              });
 
-              try {
+              safe(() => {
                 // if a tab already exists for this template, do nothing
                 let exists = false;
                 for (let j = 0; j < formConfig.length; j++) {
@@ -2394,7 +2392,7 @@
                   // activate the newly created tab (last index)
                   safe(() => activateTab(formConfig.length - 1));
                 }
-              } catch (e) {}
+              });
               // keep templates pane active: after `build()` the templates tab
               // element was recreated and its dataset.index may have changed.
               // Re-query the current templates tab (.tab.right) and activate it.
