@@ -2363,7 +2363,7 @@
                       if (!form) return;
                       const prev = allPrev[nameIdx] || {};
                       Object.keys(prev).forEach((nm) => {
-                        try {
+                        safe(() => {
                           const els = qAll(form, `[name="${CSS.escape(nm)}"]`);
                           if (!els || els.length === 0) return;
                           const pv = prev[nm];
@@ -2385,7 +2385,7 @@
                           } else {
                             els[0].value = pv;
                           }
-                        } catch (e) {}
+                        });
                       });
                     });
                   } catch (e) {}
@@ -2493,13 +2493,13 @@
                   }
                 } else {
                   // For custom templates, if a corresponding form exists, update it too
-                  try {
+                  safe(() => {
                     for (let j = 0; j < formConfig.length; j++) {
                       if (formConfig[j] && formConfig[j]._templateId === t.id) {
                         // If this tab already has values entered by the user, avoid
                         // overwriting its `fields` to prevent clearing user input.
                         let hasValues = false;
-                        try {
+                        safe(() => {
                           const pane = q(contents, `.tab-pane[data-index='${j}']`);
                           if (pane) {
                             const f = q(pane, 'form.generated-form');
@@ -2515,7 +2515,7 @@
                               });
                             }
                           }
-                        } catch (e) {}
+                        });
                         if (!hasValues) {
                           formConfig[j].fields = JSON.parse(JSON.stringify(t.fields || []));
                         }
@@ -2527,7 +2527,7 @@
                         formConfig[j].title = t.label || formConfig[j].title;
                       }
                     }
-                  } catch (e) {}
+                  });
                 }
               } catch (e) {}
               formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
