@@ -304,7 +304,22 @@
         safe(() => safeParse(localStorage.getItem(k), fallback), fallback);
       const storageSet = (k, v) =>
         safe(() => localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)));
-      const wrapHandler = (fn) => (ev) => safe(() => fn(ev));
+      const wrapHandler = (fn) => (ev) => {
+        try {
+          const res = fn(ev);
+          if (res && typeof res.then === 'function') {
+            res.catch((e) => {
+              try {
+                if (DEBUG && console && console.error) console.error(e);
+              } catch (ex) {}
+            });
+          }
+        } catch (e) {
+          try {
+            if (DEBUG && console && console.error) console.error(e);
+          } catch (ex) {}
+        }
+      };
       const safeJson = (obj) =>
         safe(
           () =>
