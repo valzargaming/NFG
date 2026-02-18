@@ -1704,11 +1704,11 @@
                 cfgSimpleOut.value = '';
                 autosizeTextarea(cfgSimpleOut);
               });
-                cfgTaOut.value = '';
-                autosizeTextarea(cfgTaOut);
-                advChkOut.checked = false;
-                cfgTaOut.style.display = 'none';
-                resolveBtn.style.display = 'none';
+              cfgTaOut.value = '';
+              autosizeTextarea(cfgTaOut);
+              advChkOut.checked = false;
+              cfgTaOut.style.display = 'none';
+              resolveBtn.style.display = 'none';
               fieldsTaOut.value = '';
               autosizeTextarea(fieldsTaOut);
               return;
@@ -3201,7 +3201,8 @@
           const e = els[0];
           e.value = sel.value;
           // if this is a steps field, also update the combined input
-          if (fieldCfg && fieldCfg.type === 'steps' && combinedInput) combinedInput.value = sel.value;
+          if (fieldCfg && fieldCfg.type === 'steps' && combinedInput)
+            combinedInput.value = sel.value;
         });
       }
 
