@@ -1309,20 +1309,18 @@
             unloadBtn.addEventListener(
               'click',
               wrapHandler(() => {
-                try {
-                  const tid = formConfig[i] && formConfig[i]._templateId;
-                  if (tid && /^tpl-(\d+)$/.test(tid)) {
-                    alert('Cannot unload a default form tab.');
-                    return;
-                  }
-                  // remove this form tab
-                  const allPrev = captureAllFormValues();
-                  formConfig.splice(i, 1);
-                  safe(() => persistFormMap());
-                  safe(() => build());
-                  safe(() => restoreAllFormValues(allPrev));
-                  safe(() => activateTab(Math.max(0, i - 1)));
-                } catch (e) {}
+                const tid = formConfig[i] && formConfig[i]._templateId;
+                if (tid && /^tpl-(\d+)$/.test(tid)) {
+                  alert('Cannot unload a default form tab.');
+                  return;
+                }
+                // remove this form tab
+                const allPrev = captureAllFormValues();
+                formConfig.splice(i, 1);
+                safe(() => persistFormMap());
+                safe(() => build());
+                safe(() => restoreAllFormValues(allPrev));
+                safe(() => activateTab(Math.max(0, i - 1)));
               })
             );
             tplRow.appendChild(unloadBtn);
@@ -1624,28 +1622,26 @@
           resolveBtn.addEventListener(
             'click',
             wrapHandler(() => {
-              try {
-                const raw = String(cfgSimpleOut.value || '').trim();
-                if (!raw) {
-                  cfgTaOut.value = '';
+              const raw = String(cfgSimpleOut.value || '').trim();
+              if (!raw) {
+                cfgTaOut.value = '';
+                autosizeTextarea(cfgTaOut);
+                return;
+              }
+              if (raw[0] === '{' || raw[0] === '[') {
+                try {
+                  const parsed = JSON.parse(raw);
+                  cfgTaOut.value = JSON.stringify(parsed, null, 2);
                   autosizeTextarea(cfgTaOut);
-                  return;
-                }
-                if (raw[0] === '{' || raw[0] === '[') {
-                  try {
-                    const parsed = JSON.parse(raw);
-                    cfgTaOut.value = JSON.stringify(parsed, null, 2);
-                    autosizeTextarea(cfgTaOut);
-                  } catch (e) {
-                    // not valid JSON, treat as template string
-                    cfgTaOut.value = JSON.stringify({ type: 'template', template: raw }, null, 2);
-                    autosizeTextarea(cfgTaOut);
-                  }
-                } else {
+                } catch (e) {
+                  // not valid JSON, treat as template string
                   cfgTaOut.value = JSON.stringify({ type: 'template', template: raw }, null, 2);
                   autosizeTextarea(cfgTaOut);
                 }
-              } catch (e) {}
+              } else {
+                cfgTaOut.value = JSON.stringify({ type: 'template', template: raw }, null, 2);
+                autosizeTextarea(cfgTaOut);
+              }
             })
           );
 
@@ -1868,9 +1864,9 @@
           delOutBtn.addEventListener(
             'click',
             wrapHandler(() => {
-              try {
-                var _proceed = true;
-                try {
+              let _proceed = true;
+              safe(
+                () => {
                   if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) {
                     _proceed = true; // auto-accept in test/jsdom environment
                   } else if (typeof window.confirm === 'function') {
@@ -1878,11 +1874,13 @@
                       'Delete this output? This action cannot be undone.'
                     );
                   }
-                } catch (e) {
+                },
+                undefined,
+                () => {
                   _proceed = true;
                 }
-                if (!_proceed) return;
-              } catch (e) {}
+              );
+              if (!_proceed) return;
               const id = outList.value;
               outputs = outputs.filter((x) => x.id !== id);
               outputsMap = Object.fromEntries(outputs.map((x) => [x.id, x]));
@@ -2370,7 +2368,7 @@
                   safe(() => persistFormMap());
                   build();
                   // restore preserved values into rebuilt panes
-                  try {
+                  safe(() => {
                     Object.keys(allPrev).forEach((nameIdx) => {
                       const pane = q(contents, `.tab-pane[data-index='${nameIdx}']`);
                       if (!pane) return;
@@ -2403,7 +2401,7 @@
                         });
                       });
                     });
-                  } catch (e) {}
+                  });
                   // activate the newly created tab (last index)
                   safe(() => activateTab(formConfig.length - 1));
                 }
@@ -2471,7 +2469,7 @@
               // Associate the template with the currently selected Output (if any)
               if (outSelect && outSelect.value) t.outputId = outSelect.value;
               // If this template maps to a default form (tpl-<index>), update that formConfig entry
-              try {
+              safe(() => {
                 const m = /^tpl-(\d+)$/.exec(t.id);
                 if (m) {
                   const idx = Number(m[1]);
@@ -2480,7 +2478,7 @@
                     // If the existing tab already has user-filled values, do not
                     // overwrite its fields list (avoids clearing user input).
                     let hasValues = false;
-                    try {
+                    safe(() => {
                       const pane = q(contents, `.tab-pane[data-index='${idx}']`);
                       if (pane) {
                         const f = q(pane, 'form.generated-form');
@@ -2496,7 +2494,7 @@
                           });
                         }
                       }
-                    } catch (e) {}
+                    });
                     formConfig[idx].fields = JSON.parse(JSON.stringify(t.fields || []));
                     // explicitly set format to null when template cfg is null/blank
                     formConfig[idx].format = t.cfg
@@ -2544,7 +2542,7 @@
                     }
                   });
                 }
-              } catch (e) {}
+              });
               formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
               storageSet('nfg-forms', forms);
               // persist any mapping changes made by save
@@ -2555,7 +2553,7 @@
               const allPrev = captureAllFormValues();
               safe(() => build());
               safe(() => restoreAllFormValues(allPrev));
-              try {
+              safe(() => {
                 activateTab(Number(preserveIndex));
                 const newPane = q(contents, `.tab-pane[data-index='${preserveIndex}']`);
                 if (newPane) {
@@ -2566,7 +2564,7 @@
                   }
                   // status appended after applying to form panes below
                 }
-              } catch (e) {}
+              });
               // Also trigger change on any form panes that currently have this template selected
               try {
                 suppressTabActivation = true;
@@ -2579,14 +2577,13 @@
                     formTpl.dispatchEvent(new Event('change'));
                   }
                 }
-              } catch (e) {
               } finally {
                 suppressTabActivation = false;
               }
               // Ensure that when saving a default tpl-<index> we render any new fields
               // immediately in the corresponding form pane. This guards against
               // timing issues in tests that assert DOM presence right after save.
-              try {
+              safe(() => {
                 const m2 = /^tpl-(\d+)$/.exec(preserveId);
                 if (m2) {
                   const idx2 = Number(m2[1]);
@@ -2595,7 +2592,7 @@
                     const formEl = q(pane2, 'form.generated-form');
                     if (formEl && formConfig[idx2] && Array.isArray(formConfig[idx2].fields)) {
                       formConfig[idx2].fields.forEach((f) => {
-                        try {
+                        safe(() => {
                           if (
                             q(formEl, `[name="${CSS.escape(f.name)}"]`) ||
                             (f.type === 'steps' &&
@@ -2626,15 +2623,15 @@
                           if (f.placeholder) inputEl.placeholder = f.placeholder;
                           wrapper.appendChild(inputEl);
                           formEl.appendChild(wrapper);
-                        } catch (e) {}
+                        });
                       });
                       safe(() => activateTab(idx2));
                     }
                   }
                 }
-              } catch (e) {}
+              });
               // re-activate templates tab and show saved status (after form panes updated)
-              try {
+              safe(() => {
                 activateTab(Number(preserveIndex));
                 const tplPane = q(contents, `.tab-pane[data-index='${preserveIndex}']`);
                 if (tplPane) {
@@ -2646,16 +2643,16 @@
                   if (tplPaneContent) tplPaneContent.appendChild(status);
                   setTimeout(() => status.remove(), 1800);
                 }
-              } catch (e) {}
+              });
             })
           );
 
           delBtn.addEventListener(
             'click',
             wrapHandler(() => {
-              try {
-                var _proceed2 = true;
-                try {
+              let _proceed2 = true;
+              safe(
+                () => {
                   if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) {
                     _proceed2 = true; // auto-accept in test/jsdom environment
                   } else if (typeof window.confirm === 'function') {
@@ -2663,11 +2660,13 @@
                       'Delete this form/template? This action cannot be undone.'
                     );
                   }
-                } catch (e) {
+                },
+                undefined,
+                () => {
                   _proceed2 = true;
                 }
-                if (!_proceed2) return;
-              } catch (e) {}
+              );
+              if (!_proceed2) return;
               const id = tplSelect.value;
               // debug removed
               const preserveIndex = tplPane.dataset.index;
@@ -2679,32 +2678,32 @@
               refreshTplSelect();
               loadSelected();
               // If this was a custom template that had an associated form tab, remove that tab
-              try {
+              safe(() => {
                 if (id && id.startsWith('custom-')) {
                   for (let j = formConfig.length - 1; j >= 0; j--) {
                     if (formConfig[j] && formConfig[j]._templateId === id) formConfig.splice(j, 1);
                   }
                 }
-              } catch (e) {}
+              });
               const allPrev = captureAllFormValues();
               safe(() => build());
               safe(() => restoreAllFormValues(allPrev));
               // pick first available template in the templates pane (no status yet)
-              try {
+              safe(() => {
                 activateTab(Number(preserveIndex));
                 const newPane = q(contents, `.tab-pane[data-index='${preserveIndex}']`);
                 if (newPane) {
                   const newSelect = q(newPane, 'select');
                   if (newSelect && newSelect.options.length) newSelect.selectedIndex = 0;
                 }
-              } catch (e) {}
+              });
 
               // If any form panes used the deleted template, remove the option
               // and ensure panes update via the centralized helper.
               removeTemplateOptionFromFormPanes(id);
 
               // finally re-activate templates tab and show Deleted status
-              try {
+              safe(() => {
                 const newTplTab = q(tabbar, '.tab.right[data-templates="true"]');
                 if (newTplTab) {
                   activateTab(Number(newTplTab.dataset.index));
@@ -2722,7 +2721,7 @@
                     setTimeout(() => status.remove(), 1800);
                   }
                 }
-              } catch (e) {}
+              });
             })
           );
 
@@ -2732,16 +2731,16 @@
               const preserveIndex = tplPane.dataset.index;
               localStorage.removeItem('nfg-forms');
               // remove persisted per-tab form mapping as well
-              try {
+              safe(() => {
                 localStorage.removeItem(formMapKey);
                 formMap = {};
-              } catch (e) {}
+              });
               forms = defaultTemplates.slice();
               formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
               refreshTplSelect();
               loadSelected();
               // restore original formConfig fields/formats for default tabs
-              try {
+              safe(() => {
                 for (let idx = 0; idx < formConfig.length; idx++) {
                   if (originalFormConfig[idx]) {
                     formConfig[idx].fields = JSON.parse(
@@ -2754,11 +2753,11 @@
                       formConfig[idx]._templateId = originalFormConfig[idx]._templateId;
                   }
                 }
-              } catch (e) {}
+              });
               const allPrev = captureAllFormValues();
               safe(() => build());
               safe(() => restoreAllFormValues(allPrev));
-              try {
+              safe(() => {
                 const newTplTab = q(tabbar, '.tab.right[data-templates="true"]');
                 if (newTplTab) {
                   activateTab(Number(newTplTab.dataset.index));
@@ -2780,7 +2779,7 @@
                     // programmatic updates complete.
                   }
                 }
-              } catch (e) {}
+              });
               // After reset, ensure form panes point to a valid template and trigger change
               try {
                 suppressTabActivation = true;
@@ -2797,17 +2796,16 @@
                     }
                   }
                 }
-              } catch (e) {
               } finally {
                 suppressTabActivation = false;
               }
               // Ensure Templates tab remains active after programmatic changes
-              try {
+              safe(() => {
                 const newTplTab = q(tabbar, '.tab.right[data-templates="true"]');
                 if (newTplTab) {
                   activateTab(Number(newTplTab.dataset.index));
                   // append status after final activation so it isn't removed by rebuild
-                  try {
+                  safe(() => {
                     const finalPane = q(
                       contents,
                       `.tab-pane[data-index='${newTplTab.dataset.index}']`
@@ -2821,9 +2819,9 @@
                       if (container) container.appendChild(status);
                       setTimeout(() => status.remove(), 1800);
                     }
-                  } catch (e) {}
+                  });
                 }
-              } catch (e) {}
+              });
             })
           );
 
@@ -2939,23 +2937,21 @@
             keepRadio.value = '__keep__';
             keepRadio.checked = true;
             // determine current value from the target form
-            let currentVal = '';
-            try {
+            const currentVal = safe(() => {
               const currentEls = qAll(targetForm, `[name="${CSS.escape(it.name)}"]`);
               if (currentEls && currentEls.length) {
                 if (currentEls[0].type === 'radio') {
                   const c = currentEls.find((e) => e.checked);
-                  if (c) currentVal = c.value || '';
+                  if (c) return c.value || '';
                 } else if (currentEls[0].type === 'checkbox') {
                   const c = currentEls.find((e) => e.checked);
-                  if (c) currentVal = c.value || 'on';
+                  if (c) return c.value || 'on';
                 } else {
-                  currentVal = currentEls[0].value || '';
+                  return currentEls[0].value || '';
                 }
               }
-            } catch (e) {
-              currentVal = '';
-            }
+              return '';
+            }, '');
             const keepTxt = document.createElement('div');
             keepTxt.className = 'meta';
             keepTxt.textContent = `${currentVal || ''} (Keep current)`;
