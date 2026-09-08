@@ -111,7 +111,10 @@ function pollForCondition(window, fn, timeout = 2000, interval = 20) {
  * @returns {Promise<JSDOM>} A ready JSDOM instance with `window` and `document`.
  */
 async function setup(providedFormConfig) {
-  const html = fs.readFileSync(path.resolve(__dirname, '..', 'src', 'form-generator.html'), 'utf8');
+  // Require the HTML file so Jest's transformer can preprocess it (inject
+  // a sourceURL into the inline script) which enables coverage collection
+  // for the embedded runtime while keeping a single-file `form-generator.html`.
+  const html = require(path.resolve(__dirname, '..', 'src', 'form-generator.html'));
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
     resources: 'usable',

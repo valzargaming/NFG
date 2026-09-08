@@ -18,7 +18,7 @@ describe('forms tab editing', () => {
     const { newId } = await createAndSaveTemplate(dom, 'T1');
     const option = await pollForSelector(
       dom.window,
-      `.tab-pane[data-index=\"0\"] select option[value=\"${newId}\"]`
+      `.tab-pane[data-index="0"] select option[value="${newId}"]`
     );
     expect(option.textContent || option.text).toBe('T1');
 

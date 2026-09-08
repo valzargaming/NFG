@@ -48,8 +48,8 @@ artifacts:
 
 - `npm run build` — creates `dist/index.esm.js` and `dist/index.cjs.js`.
 - `npm run build:browser` — creates `dist/form-generator.js` (IIFE global `NFG`).
-  -- `npm run build:html` — copies `src/form-generator.html` into `dist/` (the
-  generated HTML will auto-mount the IIFE bundle if present).
+  -- `npm run build:html` — copies `src/form-generator.html` into `dist/` and
+  regenerates `src/embedded-html.js` (the runtime string `mount()` renders).
 
 The `files` field in `package.json` includes `dist/` and `src/form-generator.html`, so these
 artifacts will be included when publishing.
@@ -76,18 +76,20 @@ Consumer installation:
 npm install @yourorg/nfg
 ```
 
-Import examples:
+Import examples (the package exports `html` and `mount`):
 
 ESM:
 
 ```js
-import { scanPopulate } from '@yourorg/nfg';
+import { mount } from '@yourorg/nfg';
+mount(document.getElementById('root'));
 ```
 
 CommonJS:
 
 ```js
-const { scanPopulate } = require('@yourorg/nfg');
+const { mount } = require('@yourorg/nfg');
+mount('#root', { formConfig: [/* your tabs */] });
 ```
 
 ## 2) Install directly from a Git repository
@@ -135,8 +137,8 @@ Example:
 
 ## 5) Making NFG easy to consume (recommended developer tasks)
 
-- Provide a small entry `src/index.js` that exports the public functions (e.g.
-  `scanPopulate`, initialization helpers).
+- The entry `src/index.js` exports `html` (the full single-file app) and
+  `mount(container, { formConfig })`, which renders it as a live iframe.
 - Add `main`/`module` and `files` in `package.json` so npm packages include
   only the required files.
 - Optionally add a tiny build step that bundles a browser-friendly UMD/ESM file

@@ -10,3 +10,8 @@ global.CSS.escape = function (str) {
 return String(str).replace(/(["'\\])/g, '\\$1');
 };
 }
+
+// Load the standalone utilities so coverage can instrument them. They are
+// DOM-safe and will attach helpers to `window` when a DOM exists.
+// No additional modules required here; keep setup minimal so the
+// original `form-generator.html` remains the single runtime source.

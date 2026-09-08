@@ -69,7 +69,7 @@ describe('forms integration (save, update, delete, reset)', () => {
     // Survey tab index is 2 -- wait for the new input to appear
     await pollForSelector(
       dom.window,
-      `.tab-pane[data-index="2"] input[name=\"newfield\"]`,
+      `.tab-pane[data-index="2"] input[name="newfield"]`,
       2000,
       20
     );

@@ -67,7 +67,7 @@ describe('export HTML contains seeded forms and mapping', () => {
 
     // And the exported mapping should include the mapping to that id
     // (form-map JSON appears in the exported HTML)
-    const mapMatch = html.match(/localStorage.setItem\('nfg-form-map',\s*([^\)]+)\);/);
+    const mapMatch = html.match(/localStorage.setItem\('nfg-form-map',\s*([^)]+)\);/);
     expect(mapMatch).toBeTruthy();
     const mapJson = mapMatch ? mapMatch[1] : null;
     if (mapJson) {
