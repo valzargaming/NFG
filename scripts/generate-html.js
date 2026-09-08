@@ -12,10 +12,13 @@ if (!fs.existsSync(srcHtmlPath)) {
 
 const srcHtml = fs.readFileSync(srcHtmlPath, 'utf8');
 
-// 1. Copy the canonical single-file app into dist/ so it can be opened directly.
+// 1. Copy the canonical single-file app into dist/ so it can be opened directly,
+//    and as dist/index.html so a static host (GitHub Pages) serves it at the root.
 if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(path.join(outDir, 'form-generator.html'), srcHtml, 'utf8');
-console.log('Copied', srcHtmlPath, '->', path.join(outDir, 'form-generator.html'));
+fs.writeFileSync(path.join(outDir, 'index.html'), srcHtml, 'utf8');
+fs.writeFileSync(path.join(outDir, '.nojekyll'), '', 'utf8');
+console.log('Copied', srcHtmlPath, '-> dist/form-generator.html + dist/index.html');
 
 // 2. Emit src/embedded-html.js so `src/index.js` can ship the *real* runtime
 //    (mount() renders this, not a stub). Committed to the repo so the package

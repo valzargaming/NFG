@@ -1,6 +1,9 @@
 # NFG
 
-A note form generator without dependencies made in JavaScript and HTML
+A note form generator without dependencies made in JavaScript and HTML.
+
+**Live demo:** <https://valzargaming.github.io/NFG/> — the standalone app, published
+to GitHub Pages from `src/form-generator.html` on every push to `main`.
 
 ## Installation
 
