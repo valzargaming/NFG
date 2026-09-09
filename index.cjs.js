@@ -8,11 +8,11 @@ var require_embedded_html = __commonJS({
   "src/embedded-html.js"(exports2, module2) {
     module2.exports = `<!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8"/>
-        <meta name="viewport" content="width=device-width,initial-scale=1"/>
-        <title>Note Form Generator</title>
-        <style>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Note Form Generator</title>
+    <style>
       :root {
         --bg: #f7f9fc;
         --card: #ffffff;
@@ -256,34 +256,29 @@ var require_embedded_html = __commonJS({
         margin: 0 auto;
         padding: 0 18px;
       }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="top">
-                <h1>Note Form Generator</h1>
-                <div class="top-controls">
-                    <button
-                        id="themeToggle"
-                        class="btn ghost"
-                        type="button"
-                        aria-label="Toggle dark mode"
-                    >
-                        Dark
-                    </button>
-                </div>
-            </div>
-
-            <div id="tabbar" class="tabs"></div>
-            <div id="contents"></div>
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="top">
+        <h1>Note Form Generator</h1>
+        <div class="top-controls">
+          <button id="themeToggle" class="btn ghost" type="button" aria-label="Toggle dark mode">
+            Dark
+          </button>
         </div>
-        <footer class="footer">
-            <div class="footer-inner">
-                <div class="meta">Copyright \xA9\uFE0F 2026 Valithor Obsidion &lt;valithor@discordphp.org&gt;</div>
-            </div>
-        </footer>
+      </div>
 
-        <script>
+      <div id="tabbar" class="tabs"></div>
+      <div id="contents"></div>
+    </div>
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="meta">Copyright \xA9\uFE0F 2026 Valithor Obsidion &lt;valithor@discordphp.org&gt;</div>
+      </div>
+    </footer>
+
+    <script>
       const formConfig =
         window.formConfig && Array.isArray(window.formConfig) ? window.formConfig : [];
 
@@ -342,6 +337,156 @@ var require_embedded_html = __commonJS({
               .replace(/\\u2029/g, '\\\\u2029'),
           'null'
         );
+
+      // localStorage keys \\u2014 one place so the export seed and the runtime agree.
+      const KEYS = {
+        forms: 'nfg-forms',
+        outputs: 'nfg-outputs',
+        formMap: 'nfg-form-map',
+        devMode: 'nfg-dev-mode',
+        theme: 'nfg-theme',
+      };
+
+      // \`id -> item\` lookup for a list; rebuilt wherever the list changes so the
+      // array and its index never drift apart.
+      function rebuildMap(arr) {
+        return Object.fromEntries((arr || []).map((x) => [x && x.id, x]));
+      }
+
+      // Declarative element builder. Replaces the createElement + property/style
+      // /listener sequences that made up most of the DOM code.
+      //   el('button', { className: 'btn', type: 'button', text: 'Save',
+      //                  style: { marginLeft: '8px' }, onclick: fn }, childNode)
+      function el(tag, props, ...children) {
+        const node = document.createElement(tag);
+        if (props) {
+          Object.keys(props).forEach((k) => {
+            const v = props[k];
+            if (v == null) return;
+            if (k === 'style' && typeof v === 'object') Object.assign(node.style, v);
+            else if (k === 'dataset' && typeof v === 'object') Object.assign(node.dataset, v);
+            else if (k === 'class' || k === 'className') node.className = v;
+            else if (k === 'text' || k === 'textContent') node.textContent = v;
+            else if (k === 'html' || k === 'innerHTML') node.innerHTML = v;
+            else if (k.slice(0, 2) === 'on' && typeof v === 'function')
+              node.addEventListener(k.slice(2).toLowerCase(), v);
+            else if (k in node) node[k] = v;
+            else node.setAttribute(k, v);
+          });
+        }
+        children.flat().forEach((c) => {
+          if (c == null || c === false) return;
+          node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+        });
+        return node;
+      }
+
+      // --- steps parsing / numbered-list formatting -------------------------
+      // Shared by the steps UI, value restore, the populate flow and output
+      // generation, which each used to re-inline these three operations.
+
+      // "A > B > C" -> ['A', 'B', 'C']  (blank segments dropped)
+      function splitSteps(str) {
+        return String(str == null ? '' : str)
+          .split('>')
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+
+      // "key => value" -> { key: 'key', val: 'value' };  "plain" -> { key: '', val: 'plain' }
+      function parseStepPart(part) {
+        const p = String(part == null ? '' : part);
+        if (p.includes('=>')) {
+          const [k, ...rest] = p.split('=>');
+          return { key: k.trim(), val: rest.join('=>').trim() };
+        }
+        return { key: '', val: p.trim() };
+      }
+
+      // Drop a leading "1. ", "2) ", "- ", "* " or bullet so re-numbering is clean.
+      function stripListPrefix(s) {
+        return String(s == null ? '' : s)
+          .replace(/^\\s*(?:\\d+[.)]\\s*)?(?:[-*\\u2022]\\s*)?/, '')
+          .trim();
+      }
+
+      // ['A','1. B'] -> "\\n 1. A\\n 2. B"  (leading newline, one space indent)
+      function toNumberedList(items) {
+        const cleaned = (items || []).map(stripListPrefix);
+        if (cleaned.length === 0) return '';
+        return '\\n' + cleaned.map((v, i) => \` \${i + 1}. \${v}\`).join('\\n');
+      }
+
+      // --- form value capture / restore -----------------------------------
+      // One implementation of "read every named control into a map" and "write
+      // a map back", used by the rebuild-preserving flows (New / Duplicate /
+      // dev toggle / Load) and the top-level capture/restore helpers.
+
+      function formValues(form) {
+        const map = {};
+        if (!form) return map;
+        Array.from(form.elements).forEach((e) => {
+          if (!e.name) return;
+          const val = e.type === 'checkbox' ? (e.checked ? e.value || 'on' : '') : e.value;
+          if (Object.prototype.hasOwnProperty.call(map, e.name)) {
+            if (!Array.isArray(map[e.name])) map[e.name] = [map[e.name]];
+            map[e.name].push(val);
+          } else {
+            map[e.name] = val;
+          }
+        });
+        return map;
+      }
+
+      // When a "<field>_combined" value is restored, rebuild the per-step rows
+      // so the steps UI matches (click the adjacent Parse button if present,
+      // otherwise populate the list directly).
+      function maybeRestoreCombinedSteps(form, nm, pv) {
+        if (typeof nm !== 'string' || !nm.endsWith('_combined')) return;
+        if (typeof pv !== 'string' || !pv.trim()) return;
+        const base = nm.slice(0, -9);
+        const first = q(form, \`[name="\${CSS.escape(nm)}"]\`);
+        if (!first) return;
+        const parseBtn = first.nextElementSibling;
+        if (parseBtn && parseBtn.textContent && /Parse/.test(parseBtn.textContent)) {
+          parseBtn.click();
+          return;
+        }
+        const container = q(form, \`.steps-container[data-name="\${CSS.escape(base)}"]\`);
+        const list = container && q(container, '.steps-list');
+        if (!list) return;
+        list.innerHTML = '';
+        splitSteps(pv).forEach((p) => createStepRow(base, parseStepPart(p), container, list));
+      }
+
+      function applyValues(form, prev) {
+        if (!form || !prev) return;
+        Object.keys(prev).forEach((nm) => {
+          safe(() => {
+            const els = qAll(form, \`[name="\${CSS.escape(nm)}"]\`);
+            if (!els || els.length === 0) return;
+            const pv = prev[nm];
+            if (els[0].type === 'radio') {
+              els.forEach((r) => (r.checked = r.value == pv));
+              return;
+            }
+            if (els[0].type === 'checkbox') {
+              els.forEach((c) => {
+                c.checked = Array.isArray(pv)
+                  ? pv.includes(c.value)
+                  : !!pv && String(pv) !== 'false' && String(pv) !== '0';
+              });
+              return;
+            }
+            if (Array.isArray(pv)) {
+              for (let k = 0; k < els.length && k < pv.length; k++) els[k].value = pv[k];
+            } else {
+              els[0].value = pv;
+              safe(() => maybeRestoreCombinedSteps(form, nm, pv));
+            }
+          });
+        });
+      }
 
       // Helper to download a string as a file (used by export flow)
       function downloadFile(content, filename = 'nfg-export.html', type = 'text/html') {
@@ -424,7 +569,7 @@ var require_embedded_html = __commonJS({
 
       // Dev mode toggle: when true, Templates pane and per-form Unload buttons are visible.
       // Persisted in localStorage key 'nfg-dev-mode'. Default is false to preserve current behavior.
-      const devKey = 'nfg-dev-mode';
+      const devKey = KEYS.devMode;
       let devMode = false;
       const s = storageGet(devKey);
       if (s !== null) devMode = s === 'true' || s === true;
@@ -522,61 +667,9 @@ var require_embedded_html = __commonJS({
             if (exportBtn) exportBtn.style.display = devMode ? '' : 'none';
             // Preserve all current form values across the rebuild so toggling
             // dev mode doesn't clear user input.
-            const allPrev = {};
-            safe(() => {
-              qAll(contents, '.tab-pane').forEach((pane) => {
-                const idx = pane.dataset.index;
-                const form = q(pane, 'form.generated-form');
-                if (!form) return;
-                const map = {};
-                Array.from(form.elements).forEach((e) => {
-                  if (!e.name) return;
-                  const name = e.name;
-                  const val = e.type === 'checkbox' ? (e.checked ? e.value || 'on' : '') : e.value;
-                  if (Object.prototype.hasOwnProperty.call(map, name)) {
-                    if (!Array.isArray(map[name])) map[name] = [map[name]];
-                    map[name].push(val);
-                  } else {
-                    map[name] = val;
-                  }
-                });
-                allPrev[idx] = map;
-              });
-            });
+            const allPrev = captureAllFormValues();
             safe(() => build());
-            safe(() => {
-              Object.keys(allPrev).forEach((idx) => {
-                const pane = q(contents, \`.tab-pane[data-index='\${idx}']\`);
-                if (!pane) return;
-                const form = q(pane, 'form.generated-form');
-                if (!form) return;
-                const prev = allPrev[idx] || {};
-                Object.keys(prev).forEach((name) => {
-                  safe(() => {
-                    const els = qAll(form, \`[name="\${CSS.escape(name)}"]\`);
-                    if (!els || els.length === 0) return;
-                    const pv = prev[name];
-                    if (els[0].type === 'radio') {
-                      els.forEach((r) => (r.checked = r.value == pv));
-                      return;
-                    }
-                    if (els[0].type === 'checkbox') {
-                      els.forEach((c) => {
-                        c.checked = Array.isArray(pv)
-                          ? pv.includes(c.value)
-                          : !!pv && String(pv) !== 'false' && String(pv) !== '0';
-                      });
-                      return;
-                    }
-                    if (Array.isArray(pv)) {
-                      for (let k = 0; k < els.length && k < pv.length; k++) els[k].value = pv[k];
-                    } else {
-                      els[0].value = pv;
-                    }
-                  });
-                });
-              });
-            });
+            safe(() => restoreAllFormValues(allPrev));
           }
           checkbox.addEventListener(
             'change',
@@ -612,7 +705,7 @@ var require_embedded_html = __commonJS({
       // Load editable forms from localStorage if present, otherwise merge with defaults
       let forms;
       // Load persisted forms (parsed) via storageGet which handles safety
-      const parsedForms = storageGet('nfg-forms', null);
+      const parsedForms = storageGet(KEYS.forms, null);
       if (Array.isArray(parsedForms)) {
         const map = Object.fromEntries(defaultTemplates.map((t) => [t.id, t]));
         for (const s of parsedForms) {
@@ -623,9 +716,9 @@ var require_embedded_html = __commonJS({
       if (!forms) forms = defaultTemplates.slice();
 
       // map for quick lookup
-      let formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
+      let formsMap = rebuildMap(forms);
       // Outputs: separate persisted output definitions (format + fields)
-      const outputsKey = 'nfg-outputs';
+      const outputsKey = KEYS.outputs;
       let outputs;
       // Load persisted outputs via storageGet (returns parsed value)
       const parsedOut = storageGet(outputsKey, null);
@@ -643,9 +736,9 @@ var require_embedded_html = __commonJS({
           });
         }
       }
-      let outputsMap = Object.fromEntries(outputs.map((x) => [x.id, x]));
+      let outputsMap = rebuildMap(outputs);
       // key for persisting per-tab form selection (map index -> formId)
-      const formMapKey = 'nfg-form-map';
+      const formMapKey = KEYS.formMap;
       let formMap = {};
       // try to load saved mapping and apply to formConfig
       // Load persisted per-tab form mapping using storageGet
@@ -678,22 +771,8 @@ var require_embedded_html = __commonJS({
         const allPrev = {};
         safe(() => {
           qAll(contents, '.tab-pane').forEach((pane) => {
-            const idx = pane.dataset.index;
             const form = q(pane, 'form.generated-form');
-            if (!form) return;
-            const map = {};
-            Array.from(form.elements).forEach((e) => {
-              if (!e.name) return;
-              const name = e.name;
-              const val = e.type === 'checkbox' ? (e.checked ? e.value || 'on' : '') : e.value;
-              if (Object.prototype.hasOwnProperty.call(map, name)) {
-                if (!Array.isArray(map[name])) map[name] = [map[name]];
-                map[name].push(val);
-              } else {
-                map[name] = val;
-              }
-            });
-            allPrev[idx] = map;
+            if (form) allPrev[pane.dataset.index] = formValues(form);
           });
         });
         return allPrev;
@@ -705,71 +784,7 @@ var require_embedded_html = __commonJS({
           Object.keys(allPrev || {}).forEach((nameIdx) => {
             const pane = q(contents, \`.tab-pane[data-index='\${nameIdx}']\`);
             if (!pane) return;
-            const form = q(pane, 'form.generated-form');
-            if (!form) return;
-            const prev = allPrev[nameIdx] || {};
-            Object.keys(prev).forEach((nm) => {
-              safe(() => {
-                const els = qAll(form, \`[name="\${CSS.escape(nm)}"]\`);
-                if (!els || els.length === 0) return;
-                const pv = prev[nm];
-                if (els[0].type === 'radio') {
-                  els.forEach((r) => (r.checked = r.value == pv));
-                  return;
-                }
-                if (els[0].type === 'checkbox') {
-                  els.forEach((c) => {
-                    c.checked = Array.isArray(pv)
-                      ? pv.includes(c.value)
-                      : !!pv && String(pv) !== 'false' && String(pv) !== '0';
-                  });
-                  return;
-                }
-                if (Array.isArray(pv)) {
-                  for (let k = 0; k < els.length && k < pv.length; k++) els[k].value = pv[k];
-                } else {
-                  els[0].value = pv;
-                  // If this is the combined steps input (name ends with '_combined'),
-                  // parse it into individual step rows so programmatic population
-                  // restores the per-step UI as well.
-                  safe(() => {
-                    if (
-                      typeof nm === 'string' &&
-                      nm.endsWith('_combined') &&
-                      typeof pv === 'string' &&
-                      pv.trim()
-                    ) {
-                      const base = nm.slice(0, -9); // remove trailing '_combined'
-                      const parseBtn = els[0].nextElementSibling;
-                      // If a Parse button exists adjacent to the combined input, click it.
-                      if (parseBtn && parseBtn.textContent && /Parse/.test(parseBtn.textContent)) {
-                        parseBtn.click();
-                      } else {
-                        // Fallback: manually populate the steps list using same logic
-                        const container = q(form, \`.steps-container[data-name="\${base}"]\`);
-                        const list = container && q(container, '.steps-list');
-                        if (list) {
-                          const parts = pv
-                            .split('>')
-                            .map((s) => s.trim())
-                            .filter(Boolean);
-                          list.innerHTML = '';
-                          parts.forEach((p) => {
-                            if (p.includes('=>')) {
-                              const [k, ...rest] = p.split('=>');
-                              const val = rest.join('=>').trim();
-                              createStepRow(base, { key: k.trim(), val }, container, list);
-                            } else {
-                              createStepRow(base, p, container, list);
-                            }
-                          });
-                        }
-                      }
-                    }
-                  });
-                }
-              });
-            });
+            applyValues(q(pane, 'form.generated-form'), allPrev[nameIdx] || {});
           });
         });
       }
@@ -842,18 +857,6 @@ var require_embedded_html = __commonJS({
           kv.val = keyVal;
         }
 
-        const row = document.createElement('div');
-        row.style.display = 'flex';
-        row.style.gap = '8px';
-        row.style.marginTop = '6px';
-
-        const keyInp = document.createElement('input');
-        keyInp.type = 'text';
-        keyInp.name = baseName + '_key';
-        keyInp.placeholder = 'key';
-        keyInp.style.width = '80px';
-        keyInp.autocomplete = 'off';
-
         let defaultKey = kv.key || '';
         if (!defaultKey && container && container.dataset) {
           if (container.dataset.keyMode === 'numbered') {
@@ -863,30 +866,35 @@ var require_embedded_html = __commonJS({
             defaultKey = '-';
           }
         }
-        keyInp.value = defaultKey;
 
-        const inp = document.createElement('input');
-        inp.type = 'text';
-        inp.name = baseName;
-        inp.id = baseName + '-' + ++dynamicIdCounter;
-        inp.placeholder = 'Step';
-        inp.autocomplete = 'off';
-        if (kv.val) inp.value = kv.val;
-
-        const remove = document.createElement('button');
-        remove.type = 'button';
-        remove.className = 'btn ghost';
-        remove.textContent = '-';
-        remove.addEventListener(
-          'click',
-          wrapHandler(() => {
-            row.remove();
+        const keyInp = el('input', {
+          type: 'text',
+          name: baseName + '_key',
+          placeholder: 'key',
+          autocomplete: 'off',
+          value: defaultKey,
+          style: { width: '80px' },
+        });
+        const inp = el('input', {
+          type: 'text',
+          name: baseName,
+          id: baseName + '-' + ++dynamicIdCounter,
+          placeholder: 'Step',
+          autocomplete: 'off',
+          value: kv.val || '',
+        });
+        const row = el(
+          'div',
+          { style: { display: 'flex', gap: '8px', marginTop: '6px' } },
+          keyInp,
+          inp,
+          el('button', {
+            type: 'button',
+            className: 'btn ghost',
+            textContent: '-',
+            onclick: wrapHandler(() => row.remove()),
           })
         );
-
-        row.appendChild(keyInp);
-        row.appendChild(inp);
-        row.appendChild(remove);
         if (list) list.appendChild(row);
         return inp;
       }
@@ -895,44 +903,32 @@ var require_embedded_html = __commonJS({
         tabbar.innerHTML = '';
         contents.innerHTML = '';
         formConfig.forEach((tab, i) => {
-          const t = document.createElement('div');
-          t.className = 'tab';
-          t.textContent = tab.title;
-          t.dataset.index = i;
-          t.addEventListener(
-            'click',
-            wrapHandler(() => activateTab(i))
+          tabbar.appendChild(
+            el('div', {
+              className: 'tab',
+              textContent: tab.title,
+              dataset: { index: i },
+              onclick: wrapHandler(() => activateTab(i)),
+            })
           );
-          tabbar.appendChild(t);
-
-          const pane = document.createElement('div');
-          pane.className = 'tab-pane';
-          pane.style.display = 'none';
-          pane.dataset.index = i;
 
           // subtabs: Form and Populate
-          const subtabs = document.createElement('div');
-          subtabs.className = 'subtabs';
-          const stForm = document.createElement('div');
-          stForm.className = 'subtab active';
-          stForm.textContent = 'Form';
-          const stPop = document.createElement('div');
-          stPop.className = 'subtab';
-          stPop.textContent = 'Populate';
-          subtabs.appendChild(stForm);
-          subtabs.appendChild(stPop);
-          pane.appendChild(subtabs);
+          const stForm = el('div', { className: 'subtab active', textContent: 'Form' });
+          const stPop = el('div', { className: 'subtab', textContent: 'Populate' });
+          const pane = el(
+            'div',
+            { className: 'tab-pane', dataset: { index: i }, style: { display: 'none' } },
+            el('div', { className: 'subtabs' }, stForm, stPop)
+          );
 
-          const formArea = document.createElement('div');
-          formArea.className = 'tab-content form-area';
-          const populateArea = document.createElement('div');
-          populateArea.className = 'tab-content populate-area';
-          populateArea.style.display = 'none';
+          const formArea = el('div', { className: 'tab-content form-area' });
+          const populateArea = el('div', {
+            className: 'tab-content populate-area',
+            style: { display: 'none' },
+          });
 
           // build form
-          const form = document.createElement('form');
-          form.className = 'generated-form';
-          form.autocomplete = 'off';
+          const form = el('form', { className: 'generated-form', autocomplete: 'off' });
           tab.fields.forEach((f) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'field';
@@ -1102,28 +1098,17 @@ var require_embedded_html = __commonJS({
               parseBtnTop.addEventListener(
                 'click',
                 wrapHandler(() => {
-                  const parts = (input.value || '')
-                    .split('>')
-                    .map((s) => s.trim())
-                    .filter(Boolean);
+                  const parts = splitSteps(input.value);
                   list.innerHTML = '';
                   if (parts.length === 0) {
                     addPathItem('');
                   } else {
                     parts.forEach((p) => {
-                      if (p.includes('=>')) {
-                        const [k, ...rest] = p.split('=>');
-                        const val = rest.join('=>').trim();
-                        // When parsing a numbered key like "1" from a combined
-                        // steps string, add the period so the per-step key field
-                        // reflects the numbered style ("1."). If the key already
-                        // included punctuation, preserve it.
-                        let key = k.trim();
-                        if (/^\\d+$/.test(key)) key = key + '.';
-                        addPathItem({ key, val });
-                      } else {
-                        addPathItem(p);
-                      }
+                      const kv = parseStepPart(p);
+                      // A bare numeric key from a combined string ("1") gets a
+                      // period so the per-step key field shows the numbered style.
+                      if (kv.key && /^\\d+$/.test(kv.key)) kv.key += '.';
+                      addPathItem(kv.key ? kv : kv.val);
                     });
                   }
                 })
@@ -1180,18 +1165,7 @@ var require_embedded_html = __commonJS({
               const allPrev = captureAllFormValues();
               safe(() => {
                 // capture current form values
-                const vals = {};
-                Array.from(form.elements).forEach((e) => {
-                  if (!e.name) return;
-                  const name = e.name;
-                  const v = e.type === 'checkbox' ? (e.checked ? e.value || 'on' : '') : e.value;
-                  if (Object.prototype.hasOwnProperty.call(vals, name)) {
-                    if (!Array.isArray(vals[name])) vals[name] = [vals[name]];
-                    vals[name].push(v);
-                  } else {
-                    vals[name] = v;
-                  }
-                });
+                const vals = formValues(form);
 
                 const newFields = (tab.fields || []).map((f) => {
                   const nf = JSON.parse(JSON.stringify(f));
@@ -1767,7 +1741,7 @@ var require_embedded_html = __commonJS({
               const id = \`out-\${Date.now()}\`;
               const no = { id, label: id, cfg: null, fields: [] };
               outputs.push(no);
-              outputsMap = Object.fromEntries(outputs.map((x) => [x.id, x]));
+              outputsMap = rebuildMap(outputs);
               storageSet(outputsKey, outputs);
 
               refreshOutList();
@@ -1819,7 +1793,7 @@ var require_embedded_html = __commonJS({
                 alert('Invalid fields JSON: ' + e.message);
                 return;
               }
-              outputsMap = Object.fromEntries(outputs.map((x) => [x.id, x]));
+              outputsMap = rebuildMap(outputs);
               // persist outputs so Templates can reference them later
               storageSet(outputsKey, outputs);
               refreshOutList();
@@ -1896,7 +1870,7 @@ var require_embedded_html = __commonJS({
               if (!_proceed) return;
               const id = outList.value;
               outputs = outputs.filter((x) => x.id !== id);
-              outputsMap = Object.fromEntries(outputs.map((x) => [x.id, x]));
+              outputsMap = rebuildMap(outputs);
               storageSet(outputsKey, outputs);
               refreshOutList();
               loadOut();
@@ -2310,8 +2284,8 @@ var require_embedded_html = __commonJS({
                 outputId: outId,
               };
               forms.push(nt);
-              formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
-              storageSet('nfg-forms', forms);
+              formsMap = rebuildMap(forms);
+              storageSet(KEYS.forms, forms);
               refreshTplSelect();
               tplSelect.value = id;
               loadSelected();
@@ -2329,28 +2303,7 @@ var require_embedded_html = __commonJS({
               if (!id) return;
               // Preserve current form values across the DOM rebuild so loading
               // a template doesn't clear data entered in other tabs.
-              const allPrev = {};
-              safe(() => {
-                qAll(contents, '.tab-pane').forEach((pane) => {
-                  const idx = pane.dataset.index;
-                  const form = q(pane, 'form.generated-form');
-                  if (!form) return;
-                  const map = {};
-                  Array.from(form.elements).forEach((e) => {
-                    if (!e.name) return;
-                    const name = e.name;
-                    const val =
-                      e.type === 'checkbox' ? (e.checked ? e.value || 'on' : '') : e.value;
-                    if (Object.prototype.hasOwnProperty.call(map, name)) {
-                      if (!Array.isArray(map[name])) map[name] = [map[name]];
-                      map[name].push(val);
-                    } else {
-                      map[name] = val;
-                    }
-                  });
-                  allPrev[idx] = map;
-                });
-              });
+              const allPrev = captureAllFormValues();
 
               safe(() => {
                 // if a tab already exists for this template, do nothing
@@ -2376,45 +2329,12 @@ var require_embedded_html = __commonJS({
                     _templateId: id,
                   };
                   formConfig.push(newForm);
-                  formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
+                  formsMap = rebuildMap(forms);
                   // persist mapping and forms
                   safe(() => persistFormMap());
                   build();
                   // restore preserved values into rebuilt panes
-                  safe(() => {
-                    Object.keys(allPrev).forEach((nameIdx) => {
-                      const pane = q(contents, \`.tab-pane[data-index='\${nameIdx}']\`);
-                      if (!pane) return;
-                      const form = q(pane, 'form.generated-form');
-                      if (!form) return;
-                      const prev = allPrev[nameIdx] || {};
-                      Object.keys(prev).forEach((nm) => {
-                        safe(() => {
-                          const els = qAll(form, \`[name="\${CSS.escape(nm)}"]\`);
-                          if (!els || els.length === 0) return;
-                          const pv = prev[nm];
-                          if (els[0].type === 'radio') {
-                            els.forEach((r) => (r.checked = r.value == pv));
-                            return;
-                          }
-                          if (els[0].type === 'checkbox') {
-                            els.forEach((c) => {
-                              c.checked = Array.isArray(pv)
-                                ? pv.includes(c.value)
-                                : !!pv && String(pv) !== 'false' && String(pv) !== '0';
-                            });
-                            return;
-                          }
-                          if (Array.isArray(pv)) {
-                            for (let k = 0; k < els.length && k < pv.length; k++)
-                              els[k].value = pv[k];
-                          } else {
-                            els[0].value = pv;
-                          }
-                        });
-                      });
-                    });
-                  });
+                  safe(() => restoreAllFormValues(allPrev));
                   // activate the newly created tab (last index)
                   safe(() => activateTab(formConfig.length - 1));
                 }
@@ -2556,8 +2476,8 @@ var require_embedded_html = __commonJS({
                   });
                 }
               });
-              formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
-              storageSet('nfg-forms', forms);
+              formsMap = rebuildMap(forms);
+              storageSet(KEYS.forms, forms);
               // persist any mapping changes made by save
               safe(() => persistFormMap());
               // preserve templates tab and selection after rebuild
@@ -2684,8 +2604,8 @@ var require_embedded_html = __commonJS({
               // debug removed
               const preserveIndex = tplPane.dataset.index;
               forms = forms.filter((x) => x.id !== id);
-              formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
-              storageSet('nfg-forms', forms);
+              formsMap = rebuildMap(forms);
+              storageSet(KEYS.forms, forms);
               // update persisted mapping after deletion
               safe(() => persistFormMap());
               refreshTplSelect();
@@ -2742,14 +2662,14 @@ var require_embedded_html = __commonJS({
             'click',
             wrapHandler(() => {
               const preserveIndex = tplPane.dataset.index;
-              localStorage.removeItem('nfg-forms');
+              localStorage.removeItem(KEYS.forms);
               // remove persisted per-tab form mapping as well
               safe(() => {
                 localStorage.removeItem(formMapKey);
                 formMap = {};
               });
               forms = defaultTemplates.slice();
-              formsMap = Object.fromEntries(forms.map((x) => [x.id, x]));
+              formsMap = rebuildMap(forms);
               refreshTplSelect();
               loadSelected();
               // restore original formConfig fields/formats for default tabs
@@ -3028,73 +2948,42 @@ var require_embedded_html = __commonJS({
         return items;
       }
 
+      // Resolve one "{name}" token for a \`type: "template"\` output.
+      //  - an explicit value (even "") is returned as-is (arrays joined by \\n)
+      //  - otherwise the "<name>_combined" value is used, formatted as a
+      //    numbered list when it is an array or a ">"-separated string
+      function formatTemplateToken(name, values) {
+        const hasExplicit = values && Object.prototype.hasOwnProperty.call(values, name);
+        if (hasExplicit) {
+          const val = values[name];
+          if (Array.isArray(val)) return val.join('\\n');
+          return val !== undefined && val !== null ? String(val) : '';
+        }
+        let val;
+        if (values && Object.prototype.hasOwnProperty.call(values, name + '_combined')) {
+          val = values[name + '_combined'];
+        }
+        if (Array.isArray(val)) return toNumberedList(val);
+        if (typeof val === 'string' && val.includes('>')) return toNumberedList(splitSteps(val));
+        return val !== undefined && val !== null ? String(val) : '';
+      }
+
+      const fillNamedTokens = (tpl, values) =>
+        String(tpl || '').replace(/\\{([^}]+)\\}/g, (_, name) =>
+          values && values[name] !== undefined ? values[name] : ''
+        );
+
       // Generate output based on format configuration and values object
       function generateOutput(formatCfg, values) {
         if (!formatCfg) return JSON.stringify(values, null, 2);
+        if (typeof formatCfg === 'string') return fillNamedTokens(formatCfg, values);
         const tpl = formatCfg.template || '';
         if (formatCfg.type === 'template') {
-          return tpl.replace(/\\{([^}]+)\\}/g, (_, name) => {
-            // prefer explicit value (even empty string) if provided; only
-            // fall back to combined input when the explicit key is absent
-            const hasExplicit = values && Object.prototype.hasOwnProperty.call(values, name);
-            let val = hasExplicit ? values[name] : undefined;
-            if (
-              !hasExplicit &&
-              values &&
-              Object.prototype.hasOwnProperty.call(values, name + '_combined')
-            ) {
-              val = values[name + '_combined'];
-            }
-
-            // If an explicit value exists, return it without reformatting.
-            if (hasExplicit) {
-              if (Array.isArray(val)) {
-                // preserve array contents exactly (no numbering), join with newlines
-                return val.join('\\n');
-              }
-              return val !== undefined && val !== null ? String(val) : '';
-            }
-
-            // If the value is an array, strip any existing numeric prefixes
-            // (e.g. "1. A") then format as a numbered list
-            if (Array.isArray(val)) {
-              if (val.length === 0) return '';
-              const cleaned = val.map((v) =>
-                String(v)
-                  .replace(/^\\s*(?:\\d+[\\.)]\\s*)?(?:[-*\u2022]\\s*)?/, '')
-                  .trim()
-              );
-              return '\\n' + cleaned.map((v, i) => \` \${i + 1}. \${v}\`).join('\\n');
-            }
-
-            // If it's a string containing separators like '>', split and format
-            if (typeof val === 'string' && val.includes('>')) {
-              const parts = val
-                .split('>')
-                .map((s) => s.trim())
-                .filter(Boolean)
-                .map((p) =>
-                  String(p)
-                    .replace(/^\\s*(?:\\d+[\\.)]\\s*)?(?:[-*\u2022]\\s*)?/, '')
-                    .trim()
-                );
-              if (parts.length === 0) return '';
-              return '\\n' + parts.map((p, i) => \` \${i + 1}. \${p}\`).join('\\n');
-            }
-
-            // fallback: string/number or empty
-            return val !== undefined && val !== null ? String(val) : '';
-          });
+          return tpl.replace(/\\{([^}]+)\\}/g, (_, name) => formatTemplateToken(name, values));
         }
         if (formatCfg.type === 'sprintf') {
           // support Python-style named tokens: %(name)s
           return tpl.replace(/%\\(([^)]+)\\)s/g, (_, name) =>
-            values[name] !== undefined ? values[name] : ''
-          );
-        }
-        // fallback: if formatCfg is string treat as template
-        if (typeof formatCfg === 'string') {
-          return formatCfg.replace(/\\{([^}]+)\\}/g, (_, name) =>
             values[name] !== undefined ? values[name] : ''
           );
         }
@@ -3115,10 +3004,7 @@ var require_embedded_html = __commonJS({
           const combinedInput = q(targetForm, \`[name="\${CSS.escape(sel.name + '_combined')}"]\`);
           // If this field's type is 'steps' and there are no inputs yet, create items
           if (fieldCfg && fieldCfg.type === 'steps') {
-            const parts = String(sel.value || '')
-              .split('>')
-              .map((s) => s.trim())
-              .filter(Boolean);
+            const parts = splitSteps(sel.value);
             const existing = qAll(targetForm, \`[name="\${CSS.escape(sel.name)}"]\`);
             const container = q(targetForm, \`.steps-container[data-name="\${sel.name}"]\`);
             const list = container && q(container, '.steps-list');
@@ -3127,15 +3013,7 @@ var require_embedded_html = __commonJS({
               if (list) list.innerHTML = '';
               // create inputs per part
               parts.forEach((p) => {
-                if (list) {
-                  if (p.includes('=>')) {
-                    const [k, ...rest] = p.split('=>');
-                    const val = rest.join('=>').trim();
-                    createStepRow(sel.name, { key: k.trim(), val }, container, list);
-                  } else {
-                    createStepRow(sel.name, p, container, list);
-                  }
-                }
+                if (list) createStepRow(sel.name, parseStepPart(p), container, list);
               });
               // Also update the combined input so the combined representation
               // is visible to the user after applying the selection.
@@ -3163,10 +3041,7 @@ var require_embedded_html = __commonJS({
           }
           // For steps fields, if sel.value contains '>' distribute values
           if (fieldCfg && fieldCfg.type === 'steps' && String(sel.value || '').includes('>')) {
-            const parts = String(sel.value || '')
-              .split('>')
-              .map((s) => s.trim())
-              .filter(Boolean);
+            const parts = splitSteps(sel.value);
             // locate container/list up-front so it's available to the entire block
             const container = q(targetForm, \`.steps-container[data-name="\${sel.name}"]\`);
             const list = container && q(container, '.steps-list');
@@ -3179,13 +3054,7 @@ var require_embedded_html = __commonJS({
             const newEls = qAll(targetForm, \`[name="\${CSS.escape(sel.name)}"]\`);
             const newKeys = qAll(targetForm, \`[name="\${CSS.escape(sel.name + '_key')}"]\`);
             parts.forEach((p, idx) => {
-              let key = '';
-              let val = p;
-              if (p.includes('=>')) {
-                const [k, ...rest] = p.split('=>');
-                key = k.trim();
-                val = rest.join('=>').trim();
-              }
+              const { key, val } = parseStepPart(p);
               if (newEls[idx]) newEls[idx].value = val;
               if (newKeys[idx]) {
                 if (key) newKeys[idx].value = key;
@@ -3220,7 +3089,7 @@ var require_embedded_html = __commonJS({
 
       // Theme handling: toggle dark mode and persist choice
       (function () {
-        const key = 'nfg-theme';
+        const key = KEYS.theme;
         const btn = document.getElementById('themeToggle');
         function applyTheme(t) {
           if (t === 'dark') document.documentElement.classList.add('dark');
@@ -3244,8 +3113,8 @@ var require_embedded_html = __commonJS({
             })
           );
       })();
-        <\/script>
-    </body>
+    <\/script>
+  </body>
 </html>
 `;
   }
