@@ -1058,7 +1058,21 @@ var NFG=(()=>{var s=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
 
       // Create a step row (key input + value input + remove button) and append to \`list\`.
       // \`baseName\` is the field name, \`keyVal\` can be a string value or {key,val}.
-      function createStepRow(baseName, keyVal, container, list) {
+      // In Numbered mode, re-number the steps after one is inserted or removed.
+      // Keys were only ever set once, from the count at creation \u2014 so removing
+      // step 2 of 3 left "1." "3.", and Generate writes keys verbatim ("3. \u2026"
+      // straight into the note). Only keys that still look auto-numbered
+      // ("N.") are touched: anything the user typed as a key is theirs.
+      function renumberSteps(baseName, container, list) {
+        if (!container || !list || container.dataset.keyMode !== 'numbered') return;
+        qAll(list, \`[name="\${baseName}_key"]\`).forEach((k, idx) => {
+          if (/^\\d+\\.$/.test(String(k.value).trim())) k.value = idx + 1 + '.';
+        });
+      }
+
+      // \`before\` (optional): insert the new row ahead of that node instead of at
+      // the end of the list \u2014 used by a row's own "+".
+      function createStepRow(baseName, keyVal, container, list, before) {
         const kv = { key: '', val: '' };
         if (keyVal && typeof keyVal === 'object') {
           kv.key = keyVal.key || '';
@@ -1095,17 +1109,38 @@ var NFG=(()=>{var s=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
         });
         const row = el(
           'div',
-          { style: { display: 'flex', gap: '8px', marginTop: '6px' } },
+          { className: 'step-row', style: { display: 'flex', gap: '8px', marginTop: '6px' } },
           keyInp,
           inp,
           el('button', {
             type: 'button',
             className: 'btn ghost',
             textContent: '-',
-            onclick: wrapHandler(() => row.remove()),
+            title: 'Remove this step',
+            'aria-label': 'Remove this step',
+            dataset: { step: 'remove' },
+            onclick: wrapHandler(() => {
+              row.remove();
+              renumberSteps(baseName, container, list);
+            }),
+          }),
+          // Insert a step directly below this one \u2014 "+ Add" only ever appended
+          // at the end, so a missed step meant retyping everything after it.
+          el('button', {
+            type: 'button',
+            className: 'btn ghost',
+            textContent: '+',
+            title: 'Insert a step below this one',
+            'aria-label': 'Insert a step below this one',
+            dataset: { step: 'insert' },
+            onclick: wrapHandler(() => {
+              const added = createStepRow(baseName, '', container, list, row.nextSibling);
+              renumberSteps(baseName, container, list);
+              safe(() => added.focus());
+            }),
           })
         );
-        if (list) list.appendChild(row);
+        if (list) list.insertBefore(row, before || null);
         return inp;
       }
 
@@ -1288,10 +1323,6 @@ var NFG=(()=>{var s=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
                 input.value = f.default;
               }
               wrapper.appendChild(combinedRow);
-              if (f.default && typeof f.default === 'string' && f.default.trim()) {
-                // trigger parse to populate individual step rows
-                parseBtnTop.click();
-              }
               // default key behavior selector (none | numbered)
               const controlRow = document.createElement('div');
               controlRow.style.display = 'flex';
@@ -1387,6 +1418,13 @@ var NFG=(()=>{var s=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
               wrapper.appendChild(container);
               container.appendChild(list);
               container.appendChild(addBtn);
+              // Split a default combined string into step rows. This used to
+              // click Parse before Parse had a click handler \u2014 so a field's
+              // \`default\` (and every Duplicate, which copies steps as one)
+              // showed its steps in the combined box but only one blank row.
+              if (f.default && typeof f.default === 'string' && f.default.trim()) {
+                parseBtnTop.click();
+              }
               form.appendChild(wrapper);
             } else {
               form.appendChild(wrapper);

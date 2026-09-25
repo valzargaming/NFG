@@ -6,7 +6,3381 @@ var __commonJS = (cb, mod) => function __require() {
 // src/embedded-html.js
 var require_embedded_html = __commonJS({
   "src/embedded-html.js"(exports2, module2) {
-    module2.exports = "<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />\n    <title>Note Form Generator</title>\n    <style>\n      :root {\n        --bg: #f7f9fc;\n        --card: #ffffff;\n        --text: #111216;\n        --accent: #2b8cff;\n        --muted: #666666;\n        --border: #e9eef6;\n        --panel: #fbfdff;\n      }\n      .dark {\n        --bg: #0b1220;\n        --card: #0f1724;\n        --text: #e6eef8;\n        --accent: #4aa3ff;\n        --muted: #94a9c2;\n        --border: #253244;\n        --panel: #071226;\n      }\n      body {\n        font-family: Segoe UI, Roboto, Helvetica, Arial, sans-serif;\n        margin: 0;\n        background: var(--bg);\n        color: var(--text);\n        transition: background 0.18s, color 0.18s;\n      }\n      .container {\n        max-width: 960px;\n        margin: 28px auto;\n        padding: 18px;\n        background: var(--card);\n        border-radius: 8px;\n        box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);\n      }\n      .top {\n        display: flex;\n        justify-content: space-between;\n        align-items: center;\n      }\n      .top {\n        /* keep the header stable and prevent reflow when tabs change */\n        position: sticky;\n        top: 0;\n        z-index: 3;\n        padding-bottom: 8px;\n      }\n      .top h1 {\n        flex: 0 0 auto;\n      }\n      .top-controls {\n        display: flex;\n        align-items: center;\n        gap: 10px;\n        flex: 0 0 auto;\n        white-space: nowrap;\n      }\n      h1 {\n        font-size: 18px;\n        margin: 0;\n      }\n      .tabs {\n        display: flex;\n        gap: 6px;\n        margin-top: 14px;\n        border-bottom: 1px solid var(--border);\n        overflow-x: auto;\n        white-space: nowrap;\n        -webkit-overflow-scrolling: touch;\n      }\n      .tab {\n        padding: 10px 14px;\n        cursor: pointer;\n        border-radius: 6px 6px 0 0;\n        color: var(--muted);\n        flex: 0 0 auto;\n      }\n      .tab.right {\n        margin-left: auto;\n      }\n      .tab.active {\n        background: linear-gradient(180deg, #fff, #f4f8ff);\n        color: var(--accent);\n        box-shadow: 0 -4px 12px rgba(43, 140, 255, 0.06);\n        border-bottom: 2px solid #fff;\n      }\n      /* Reordering (dev mode): drag a tab, or use Move left / Move right. */\n      .tab[draggable='true'] {\n        cursor: grab;\n      }\n      .tab.dragging {\n        opacity: 0.45;\n      }\n      .tab.drop-before {\n        box-shadow: inset 3px 0 0 var(--accent);\n      }\n      .tab.drop-after {\n        box-shadow: inset -3px 0 0 var(--accent);\n      }\n      .tab-content {\n        padding: 18px;\n      }\n      .field {\n        margin-bottom: 12px;\n      }\n      label {\n        display: block;\n        margin-bottom: 6px;\n        font-weight: 600;\n      }\n      input[type='text'],\n      input[type='number'],\n      select,\n      textarea {\n        width: 100%;\n        padding: 8px 10px;\n        border: 1px solid var(--border);\n        border-radius: 6px;\n        background: transparent;\n        color: var(--text);\n      }\n      .subtabs {\n        display: flex;\n        gap: 6px;\n        margin-bottom: 12px;\n      }\n      .subtab {\n        padding: 6px 10px;\n        border-radius: 6px;\n        background: transparent;\n        border: 1px solid var(--border);\n        cursor: pointer;\n        color: var(--muted);\n      }\n      .subtab.active {\n        background: var(--accent);\n        color: #fff;\n      }\n      .btn {\n        display: inline-block;\n        padding: 8px 12px;\n        border-radius: 6px;\n        background: var(--accent);\n        color: #fff;\n        border: 0;\n        cursor: pointer;\n      }\n      .btn.warn {\n        background: #e05252;\n        color: #fff;\n        border: 0;\n      }\n      .btn.ghost {\n        background: #f2f6ff;\n        color: var(--accent);\n        border: 1px solid #d7e7ff;\n      }\n      /* A disabled button must look it \u2014 e.g. \"\u2190 Left\" on the first tab. */\n      .btn:disabled {\n        opacity: 0.45;\n        cursor: not-allowed;\n      }\n      .btn-warn {\n        background: #e05252;\n        color: #fff;\n        border: 0;\n      }\n      .btn-warn.ghost {\n        background: #fff5f5;\n        color: #e05252;\n        border: 1px solid #ffd6d6;\n      }\n      .meta {\n        color: var(--muted);\n        font-size: 13px;\n      }\n      .preview-list {\n        border: 1px solid var(--border);\n        padding: 10px;\n        border-radius: 6px;\n        background: var(--panel);\n      }\n      .field-header {\n        margin: 8px 0;\n        font-weight: 700;\n        color: var(--text);\n      }\n      .preview-item {\n        display: flex;\n        align-items: center;\n        gap: 8px;\n        padding: 6px 0;\n        border-bottom: 1px dashed #f0f4fb;\n      }\n      .preview-item:last-child {\n        border-bottom: none;\n      }\n      .field-inline {\n        display: inline-block;\n        vertical-align: top;\n        margin-right: 4%;\n        box-sizing: border-box;\n        max-width: 100%;\n      }\n      .small {\n        font-size: 13px;\n        color: #333;\n      }\n      /* Dev toggle switch */\n      .switch {\n        display: inline-flex;\n        align-items: center;\n        gap: 8px;\n        margin-left: 6px;\n      }\n      .switch input {\n        display: none;\n      }\n      .switch .knob {\n        width: 40px;\n        height: 20px;\n        background: #d7dbe0;\n        border-radius: 20px;\n        position: relative;\n        transition: background 0.15s;\n        box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.03);\n      }\n      .switch .knob::after {\n        content: '';\n        position: absolute;\n        left: 3px;\n        top: 3px;\n        width: 14px;\n        height: 14px;\n        background: #fff;\n        border-radius: 50%;\n        transition: left 0.15s;\n        box-shadow: 0 1px 2px rgba(2, 6, 23, 0.08);\n      }\n      .switch input:checked + .knob {\n        background: var(--accent);\n      }\n      .switch input:checked + .knob::after {\n        left: 23px;\n      }\n      .switch .label {\n        font-size: 13px;\n        color: var(--muted);\n        user-select: none;\n      }\n      .footer {\n        margin-top: 12px;\n        border-top: 1px solid var(--border);\n        padding-top: 10px;\n        text-align: center;\n        font-size: 13px;\n        color: var(--muted);\n      }\n      .footer-inner {\n        max-width: 960px;\n        margin: 0 auto;\n        padding: 0 18px;\n      }\n    </style>\n  </head>\n  <body>\n    <div class=\"container\">\n      <div class=\"top\">\n        <h1>Note Form Generator</h1>\n        <div class=\"top-controls\">\n          <button id=\"themeToggle\" class=\"btn ghost\" type=\"button\" aria-label=\"Toggle dark mode\">\n            Dark\n          </button>\n        </div>\n      </div>\n\n      <div id=\"tabbar\" class=\"tabs\"></div>\n      <div id=\"contents\"></div>\n    </div>\n    <footer class=\"footer\">\n      <div class=\"footer-inner\">\n        <div class=\"meta\">Copyright \xA9\uFE0F 2026 Valithor Obsidion &lt;valithor@discordphp.org&gt;</div>\n      </div>\n    </footer>\n\n    <script>\n      const formConfig =\n        window.formConfig && Array.isArray(window.formConfig) ? window.formConfig : [];\n\n      // Keep a pristine copy of the original formConfig so we can restore defaults\n      const originalFormConfig = JSON.parse(JSON.stringify(formConfig));\n\n      // A short, stable fingerprint of the tabs this page was SHIPPED with. The\n      // saved tab list only applies to the page it was saved from: if the\n      // original tabs change \u2014 a new export, or an embedding page that updates\n      // its built-in tabs \u2014 the saved list is stale (its built-in ids are\n      // positions in the OLD list) and the page's own tabs win instead.\n      const seedPrint = (() => {\n        const s = JSON.stringify(originalFormConfig);\n        let h = 5381;\n        for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;\n        return (h >>> 0).toString(36) + '.' + s.length.toString(36);\n      })();\n      // Unique id for tabs made on the fly (New / Duplicate).\n      const uid = (prefix) =>\n        prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);\n\n      const tabbar = document.getElementById('tabbar');\n      const contents = document.getElementById('contents');\n\n      // Small safety helpers to reduce repetitive try/catch boilerplate\n      const DEBUG = false;\n      const safe = (fn, fallback = undefined, onError) => {\n        try {\n          return fn();\n        } catch (e) {\n          try {\n            if (onError) onError(e);\n            else if (DEBUG && console && console.error) console.error(e);\n          } catch (ex) {}\n          return fallback;\n        }\n      };\n      const safeParse = (s, fallback = null) => {\n        if (s === undefined || s === null) return fallback;\n        return safe(() => JSON.parse(s), fallback);\n      };\n      const q = (root, sel) => safe(() => (root || document).querySelector(sel), null);\n      const qAll = (root, sel) =>\n        safe(() => Array.from((root || document).querySelectorAll(sel)), []);\n      const storageGet = (k, fallback = null) =>\n        safe(() => safeParse(localStorage.getItem(k), fallback), fallback);\n      const storageSet = (k, v) =>\n        safe(() => localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)));\n      const wrapHandler = (fn) => (ev) => {\n        try {\n          const res = fn(ev);\n          if (res && typeof res.then === 'function') {\n            res.catch((e) => {\n              try {\n                if (DEBUG && console && console.error) console.error(e);\n              } catch (ex) {}\n            });\n          }\n        } catch (e) {\n          try {\n            if (DEBUG && console && console.error) console.error(e);\n          } catch (ex) {}\n        }\n      };\n      const safeJson = (obj) =>\n        safe(\n          () =>\n            JSON.stringify(obj)\n              .replace(/</g, '\\\\u003c')\n              .replace(/\\u2028/g, '\\\\u2028')\n              .replace(/\\u2029/g, '\\\\u2029'),\n          'null'\n        );\n\n      // localStorage keys \\u2014 one place so the export seed and the runtime agree.\n      const KEYS = {\n        forms: 'nfg-forms',\n        outputs: 'nfg-outputs',\n        formMap: 'nfg-form-map',\n        devMode: 'nfg-dev-mode',\n        theme: 'nfg-theme',\n        // the tab list itself \u2014 which tabs are open, in order (see persistFormMap)\n        tabs: 'nfg-tabs',\n        // which export last seeded this browser's storage (see Export)\n        seed: 'nfg-seed',\n      };\n\n      // `id -> item` lookup for a list; rebuilt wherever the list changes so the\n      // array and its index never drift apart.\n      function rebuildMap(arr) {\n        return Object.fromEntries((arr || []).map((x) => [x && x.id, x]));\n      }\n\n      // Declarative element builder. Replaces the createElement + property/style\n      // /listener sequences that made up most of the DOM code.\n      //   el('button', { className: 'btn', type: 'button', text: 'Save',\n      //                  style: { marginLeft: '8px' }, onclick: fn }, childNode)\n      function el(tag, props, ...children) {\n        const node = document.createElement(tag);\n        if (props) {\n          Object.keys(props).forEach((k) => {\n            const v = props[k];\n            if (v == null) return;\n            if (k === 'style' && typeof v === 'object') Object.assign(node.style, v);\n            else if (k === 'dataset' && typeof v === 'object') Object.assign(node.dataset, v);\n            else if (k === 'class' || k === 'className') node.className = v;\n            else if (k === 'text' || k === 'textContent') node.textContent = v;\n            else if (k === 'html' || k === 'innerHTML') node.innerHTML = v;\n            else if (k.slice(0, 2) === 'on' && typeof v === 'function')\n              node.addEventListener(k.slice(2).toLowerCase(), v);\n            else if (k in node) node[k] = v;\n            else node.setAttribute(k, v);\n          });\n        }\n        children.flat().forEach((c) => {\n          if (c == null || c === false) return;\n          node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);\n        });\n        return node;\n      }\n\n      // --- steps parsing / numbered-list formatting -------------------------\n      // Shared by the steps UI, value restore, the populate flow and output\n      // generation, which each used to re-inline these three operations.\n\n      // \"A > B > C\" -> ['A', 'B', 'C']  (blank segments dropped)\n      function splitSteps(str) {\n        return String(str == null ? '' : str)\n          .split('>')\n          .map((s) => s.trim())\n          .filter(Boolean);\n      }\n\n      // \"key => value\" -> { key: 'key', val: 'value' };  \"plain\" -> { key: '', val: 'plain' }\n      function parseStepPart(part) {\n        const p = String(part == null ? '' : part);\n        if (p.includes('=>')) {\n          const [k, ...rest] = p.split('=>');\n          return { key: k.trim(), val: rest.join('=>').trim() };\n        }\n        return { key: '', val: p.trim() };\n      }\n\n      // Drop a leading \"1. \", \"2) \", \"- \", \"* \" or bullet so re-numbering is clean.\n      function stripListPrefix(s) {\n        return String(s == null ? '' : s)\n          .replace(/^\\s*(?:\\d+[.)]\\s*)?(?:[-*\\u2022]\\s*)?/, '')\n          .trim();\n      }\n\n      // ['A','1. B'] -> \"\\n 1. A\\n 2. B\"  (leading newline, one space indent)\n      function toNumberedList(items) {\n        const cleaned = (items || []).map(stripListPrefix);\n        if (cleaned.length === 0) return '';\n        return '\\n' + cleaned.map((v, i) => ` ${i + 1}. ${v}`).join('\\n');\n      }\n\n      // --- form value capture / restore -----------------------------------\n      // One implementation of \"read every named control into a map\" and \"write\n      // a map back\", used by the rebuild-preserving flows (New / Duplicate /\n      // dev toggle / Load) and the top-level capture/restore helpers.\n\n      function formValues(form) {\n        const map = {};\n        if (!form) return map;\n        Array.from(form.elements).forEach((e) => {\n          if (!e.name) return;\n          const val = e.type === 'checkbox' ? (e.checked ? e.value || 'on' : '') : e.value;\n          if (Object.prototype.hasOwnProperty.call(map, e.name)) {\n            if (!Array.isArray(map[e.name])) map[e.name] = [map[e.name]];\n            map[e.name].push(val);\n          } else {\n            map[e.name] = val;\n          }\n        });\n        return map;\n      }\n\n      // When a \"<field>_combined\" value is restored, rebuild the per-step rows\n      // so the steps UI matches (click the adjacent Parse button if present,\n      // otherwise populate the list directly).\n      function maybeRestoreCombinedSteps(form, nm, pv) {\n        if (typeof nm !== 'string' || !nm.endsWith('_combined')) return;\n        if (typeof pv !== 'string' || !pv.trim()) return;\n        const base = nm.slice(0, -9);\n        const first = q(form, `[name=\"${CSS.escape(nm)}\"]`);\n        if (!first) return;\n        const parseBtn = first.nextElementSibling;\n        if (parseBtn && parseBtn.textContent && /Parse/.test(parseBtn.textContent)) {\n          parseBtn.click();\n          return;\n        }\n        const container = q(form, `.steps-container[data-name=\"${CSS.escape(base)}\"]`);\n        const list = container && q(container, '.steps-list');\n        if (!list) return;\n        list.innerHTML = '';\n        splitSteps(pv).forEach((p) => createStepRow(base, parseStepPart(p), container, list));\n      }\n\n      function applyValues(form, prev) {\n        if (!form || !prev) return;\n        Object.keys(prev).forEach((nm) => {\n          safe(() => {\n            const els = qAll(form, `[name=\"${CSS.escape(nm)}\"]`);\n            if (!els || els.length === 0) return;\n            const pv = prev[nm];\n            if (els[0].type === 'radio') {\n              els.forEach((r) => (r.checked = r.value == pv));\n              return;\n            }\n            if (els[0].type === 'checkbox') {\n              els.forEach((c) => {\n                c.checked = Array.isArray(pv)\n                  ? pv.includes(c.value)\n                  : !!pv && String(pv) !== 'false' && String(pv) !== '0';\n              });\n              return;\n            }\n            if (Array.isArray(pv)) {\n              for (let k = 0; k < els.length && k < pv.length; k++) els[k].value = pv[k];\n            } else {\n              els[0].value = pv;\n              safe(() => maybeRestoreCombinedSteps(form, nm, pv));\n            }\n          });\n        });\n      }\n\n      // Helper to download a string as a file (used by export flow)\n      function downloadFile(content, filename = 'nfg-export.html', type = 'text/html') {\n        safe(() => {\n          const blob = new Blob([content], { type });\n          const url = URL.createObjectURL(blob);\n          const a = document.createElement('a');\n          a.href = url;\n          a.download = filename;\n          document.body.appendChild(a);\n          a.click();\n          a.remove();\n          setTimeout(() => URL.revokeObjectURL(url), 5000);\n        });\n      }\n\n      // Small DOM helpers for option population and select syncing\n      function createOption(value, text) {\n        return safe(() => {\n          const o = document.createElement('option');\n          o.value = value;\n          o.textContent = text;\n          return o;\n        });\n      }\n\n      function refreshOutputsSelectors() {\n        safe(() => {\n          const sels = qAll(document, 'select[data-outputs-selector=\"true\"]');\n          sels.forEach((sel) => {\n            sel.innerHTML = '';\n            outputs.forEach((o) => sel.appendChild(createOption(o.id, o.label || o.id)));\n          });\n        });\n      }\n\n      function addTemplateOptionToFormPanes(id, label) {\n        safe(() => {\n          for (let fi = 0; fi < formConfig.length; fi++) {\n            const paneEl = q(contents, `.tab-pane[data-index='${fi}']`);\n            if (!paneEl) continue;\n            const sel = q(paneEl, 'select');\n            if (!sel) continue;\n            if (!q(sel, `option[value=\"${id}\"]`)) sel.appendChild(createOption(id, label || id));\n          }\n        });\n      }\n\n      // Remove a template option from all per-form template selects.\n      // If a select had the removed option selected, pick the first option\n      // and dispatch a change event so the pane updates. Suppress tab\n      // activation while making programmatic changes to avoid side-effects.\n      function removeTemplateOptionFromFormPanes(id) {\n        safe(() => {\n          try {\n            suppressTabActivation = true;\n            for (let fi = 0; fi < formConfig.length; fi++) {\n              const paneEl = q(contents, `.tab-pane[data-index='${fi}']`);\n              if (!paneEl) continue;\n              const sel = q(paneEl, 'select');\n              if (!sel) continue;\n              const opt = q(sel, `option[value=\"${id}\"]`);\n              if (!opt) continue;\n              const wasSelected = String(sel.value) === String(id);\n              safe(() => opt.remove());\n              if (wasSelected) {\n                safe(() => {\n                  if (sel.options.length) {\n                    sel.selectedIndex = 0;\n                    sel.dispatchEvent(new Event('change'));\n                  }\n                });\n              }\n            }\n          } finally {\n            suppressTabActivation = false;\n          }\n        });\n      }\n\n      // Dev mode toggle: when true, Templates pane and per-form Unload buttons are visible.\n      // Persisted in localStorage key 'nfg-dev-mode'. Default is false to preserve current behavior.\n      const devKey = KEYS.devMode;\n      let devMode = false;\n      const s = storageGet(devKey);\n      if (s !== null) devMode = s === 'true' || s === true;\n\n      // create a small Dev toggle switch next to theme toggle\n      (function addDevToggleBtn() {\n        safe(() => {\n          const header = q(document, '.top > div');\n          if (!header) return;\n          const wrapper = document.createElement('label');\n          wrapper.className = 'switch';\n          wrapper.dataset.devToggle = 'true';\n          wrapper.style.marginLeft = '6px';\n          // inner structure: checkbox + knob + label\n          wrapper.innerHTML = `<input id=\"devToggle\" type=\"checkbox\" ${\n            devMode ? 'checked' : ''\n          }><span class=\"knob\"></span><span class=\"label\">${devMode ? 'Dev On' : 'Dev Off'}</span>`;\n          const checkbox = q(wrapper, 'input');\n          if (checkbox) checkbox.autocomplete = 'off';\n          const textLabel = q(wrapper, '.label');\n          // export button (visible only in dev mode)\n          const exportBtn = document.createElement('button');\n          exportBtn.type = 'button';\n          exportBtn.className = 'btn ghost';\n          exportBtn.textContent = 'Export HTML';\n          exportBtn.style.marginLeft = '8px';\n          exportBtn.style.display = devMode ? '' : 'none';\n          exportBtn.dataset.exportButton = 'true';\n          exportBtn.addEventListener(\n            'click',\n            wrapHandler(async () => {\n              try {\n                const seed = [];\n                // Safely serialize JSON for embedding inside a <script> tag.\n                // Uses top-level `safeJson` helper.\n                // The exported file rebuilds its built-in forms `tpl-0..N` from\n                // the tabs it is seeded with, BY POSITION. So after an Unload the\n                // old `tpl-N` definitions no longer line up: shipping them would\n                // hand tab 0 of the new file the definition of whatever used to\n                // be tab 0 in this one. Ship the tabs as they are now instead \u2014\n                // current fields, and the format of the form each tab IS \u2014 and\n                // let `tpl-*` regenerate from them. Custom forms are not\n                // positional and ship unchanged.\n                const isBuiltIn = (id) => id === '__json__' || /^tpl-\\d+$/.test(String(id));\n                const oldToNew = {};\n                const exportedTabs = formConfig.map((tab, ei) => {\n                  if (tab && tab._formId) oldToNew[tab._formId] = `tpl-${ei}`;\n                  const def = tab && tab._formId ? formsMap[tab._formId] : null;\n                  let format = deepCopy(tab.format === undefined ? null : tab.format);\n                  if (def && Object.prototype.hasOwnProperty.call(def, 'cfg')) {\n                    format =\n                      typeof def.cfg === 'string'\n                        ? { type: 'template', template: def.cfg }\n                        : deepCopy(def.cfg);\n                  }\n                  return { title: tab.title, fields: deepCopy(tab.fields || []), format };\n                });\n                // The tab list lives in the page, not in storage \u2014 set it every load.\n                const tabsLine = 'window.formConfig = ' + safeJson(exportedTabs) + ';';\n                safe(() =>\n                  seed.push(\n                    \"localStorage.setItem('nfg-forms', \" +\n                      safeJson(forms.filter((f) => f && !isBuiltIn(f.id))) +\n                      ');'\n                  )\n                );\n                safe(() =>\n                  seed.push(\"localStorage.setItem('nfg-outputs', \" + safeJson(outputs) + ');')\n                );\n                safe(() => {\n                  // Each tab's Template selection, renumbered: a `tpl-*` choice\n                  // follows its tab to that tab's new position (or is dropped\n                  // if that tab was not exported); a custom choice is kept.\n                  const exportMap = {};\n                  formConfig.forEach((tab, ei) => {\n                    const sel = tab && tab._templateId;\n                    if (!sel) return;\n                    if (isBuiltIn(sel)) {\n                      if (oldToNew[sel]) exportMap[ei] = oldToNew[sel];\n                    } else if (formsMap && formsMap[sel]) {\n                      exportMap[ei] = sel;\n                    }\n                  });\n                  seed.push(\"localStorage.setItem('nfg-form-map', \" + safeJson(exportMap) + ');');\n                });\n                safe(() => seed.push(\"localStorage.setItem('nfg-dev-mode', 'false');\"));\n                // Storage is seeded ONCE per export, not on every load. It used\n                // to run on every open, so anything edited inside an exported\n                // file \u2014 forms, template choices \u2014 was overwritten by the next\n                // refresh, and dev mode switched itself back off each time. The\n                // id marks which export last seeded this browser; a different\n                // export (or a fresh browser) still gets seeded.\n                const exportId =\n                  'nfg-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);\n                const idJson = safeJson(exportId);\n                const seedScript =\n                  `<script data-nfg-seed>try{${tabsLine}}catch(e){}` +\n                  `try{if(localStorage.getItem('${KEYS.seed}')!==${idJson}){${seed.join('')}` +\n                  `localStorage.setItem('${KEYS.seed}',${idJson});}}catch(e){}<\\/script>`;\n                // create a cleaned clone of the document and remove dev UI elements\n                const docClone = document.documentElement.cloneNode(true);\n                safe(() => {\n                  const toRemove = qAll(docClone, '[data-dev-toggle], [data-export-button]');\n                  toRemove.forEach((n) => n.remove());\n                  // Strip every EARLIER export's seed. Exporting an exported file\n                  // clones a document that still carries its old seed; the new one\n                  // went in ahead of it, so the old one ran last and won \u2014 a\n                  // re-export of a fixed file opened as the version before the fix.\n                  // Seeds from before the marker existed are recognised by their\n                  // opening statement.\n                  qAll(docClone, 'body script').forEach((n) => {\n                    if (\n                      n.hasAttribute('data-nfg-seed') ||\n                      /^\\s*try\\{\\s*window\\.formConfig\\s*=/.test(n.textContent || '')\n                    )\n                      n.remove();\n                  });\n                });\n                let html = '<!doctype html>\\n' + docClone.outerHTML;\n                html = html.replace(/<body([^>]*)>/i, (m, attrs) => `<body${attrs}>${seedScript}`);\n                // Ask user whether to copy to clipboard or save file. If clipboard\n                // isn't available, fall back to saving file.\n                let wantCopy = false;\n                safe(() => {\n                  if (typeof window.confirm === 'function') {\n                    wantCopy = window.confirm(\n                      'Copy exported HTML to clipboard? Press OK to copy, Cancel to save to a file.'\n                    );\n                  }\n                });\n\n                if (wantCopy && navigator.clipboard && navigator.clipboard.writeText) {\n                  try {\n                    await navigator.clipboard.writeText(html);\n                    alert('Exported HTML copied to clipboard');\n                  } catch (e) {\n                    // fallback to saving file if clipboard fails\n                    downloadFile(html);\n                  }\n                } else {\n                  downloadFile(html);\n                }\n              } catch (err) {\n                alert('Export failed: ' + (err && err.message));\n              }\n            })\n          );\n          function apply() {\n            storageSet(devKey, devMode ? 'true' : 'false');\n            if (checkbox) checkbox.checked = devMode;\n            if (textLabel) textLabel.textContent = 'Dev';\n            if (exportBtn) exportBtn.style.display = devMode ? '' : 'none';\n            // Preserve all current form values across the rebuild so toggling\n            // dev mode doesn't clear user input.\n            const allPrev = captureAllFormValues();\n            safe(() => build());\n            safe(() => restoreAllFormValues(allPrev));\n          }\n          checkbox.addEventListener(\n            'change',\n            wrapHandler(() => {\n              devMode = !!checkbox.checked;\n              apply();\n            })\n          );\n          // Place the Export button to the left of the theme toggle so enabling\n          // dev mode doesn't drastically shift layout. Insert before the\n          // `#themeToggle` button when present, otherwise append.\n          const themeBtnEl = q(header, '#themeToggle');\n          if (themeBtnEl) header.insertBefore(exportBtn, themeBtnEl);\n          else header.appendChild(exportBtn);\n          // Keep the dev toggle after the theme button (end of controls)\n          header.appendChild(wrapper);\n          apply();\n        });\n      })();\n\n      // A tab carries two ids that used to be one:\n      //   _formId     \u2014 WHICH form definition this tab is. Stable. Load, Unload,\n      //                 Save and Delete find a tab by this.\n      //   _templateId \u2014 which output template the tab has SELECTED in its\n      //                 Template dropdown. Changes freely; drives formatting only.\n      // Conflating them meant picking a different output template silently changed\n      // what the tab *was* \u2014 so whether Unload, Load or Save could find a tab\n      // depended on a dropdown.\n      const deepCopy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));\n\n      // Build list of available templates (include JSON fallback)\n      const defaultTemplates = [{ id: '__json__', label: '__json__', cfg: null }];\n      // Create a default template entry for every tab so each tab has a template option\n      formConfig.forEach((t, idx) => {\n        const id = `tpl-${idx}`;\n        const label = t.format && t.format.label ? t.format.label : `${t.title}`;\n        const cfg = t.format ? deepCopy(t.format) : null;\n        // Built-in forms carry the tab's FIELDS. They used to be created without\n        // any, so opening a built-in tab in the Forms editor showed an empty\n        // Fields box \u2014 and saving it (even just to rename it) wrote that empty\n        // list back onto the tab, deleting every field.\n        defaultTemplates.push({ id, label, cfg, fields: deepCopy(t.fields || []) });\n        t._templateId = id;\n        t._formId = id;\n      });\n\n      // Load editable forms from localStorage if present, otherwise merge with defaults\n      let forms;\n      // Load persisted forms (parsed) via storageGet which handles safety\n      const parsedForms = storageGet(KEYS.forms, null);\n      if (Array.isArray(parsedForms)) {\n        // Copies, not the defaults themselves: Save edits a form object in\n        // place, and sharing them made every edit rewrite the \"pristine\"\n        // defaults \u2014 so Reset to defaults handed the edited versions back.\n        const map = Object.fromEntries(deepCopy(defaultTemplates).map((t) => [t.id, t]));\n        for (const s of parsedForms) {\n          if (s && s.id) map[s.id] = s;\n        }\n        forms = Object.values(map);\n      }\n      if (!forms) forms = deepCopy(defaultTemplates);\n\n      // map for quick lookup\n      let formsMap = rebuildMap(forms);\n\n      // Reopen the tabs as they were left, when they were saved from THIS page's\n      // original tabs (see `seedPrint`). Built-in ids were assigned from those\n      // original tabs just above, so a saved `tpl-N` still means the same tab.\n      // A tab whose form definition has since been deleted is dropped; tabs\n      // made on the fly (New / Duplicate) carry their own `adhoc-` identity.\n      safe(() => {\n        const saved = storageGet(KEYS.tabs, null);\n        if (!saved || saved.seed !== seedPrint || !Array.isArray(saved.tabs)) return;\n        const restored = saved.tabs\n          .filter(\n            (t) =>\n              t &&\n              Array.isArray(t.fields) &&\n              typeof t._formId === 'string' &&\n              (formsMap[t._formId] || t._formId.startsWith('adhoc-'))\n          )\n          .map((t) => {\n            const tab = deepCopy(t);\n            // A Template choice that no longer exists falls back to the tab's\n            // own form \u2014 or, for a tab made on the fly, to plain JSON output.\n            if (!tab._templateId || !formsMap[tab._templateId]) {\n              tab._templateId = formsMap[tab._formId] ? tab._formId : '__json__';\n            }\n            return tab;\n          });\n        formConfig.splice(0, formConfig.length, ...restored);\n      });\n\n      // A SAVED definition wins over the tab's own copy of its fields. Tabs\n      // render `formConfig[i].fields`, while the Forms editor saves to\n      // `nfg-forms` \u2014 two copies with nothing reconciling them on load, so a\n      // page refresh put the OLD fields back on the tab while the edit sat\n      // unused in storage (and an export after the refresh shipped the old ones).\n      // Only definitions that were actually saved apply; format stays with the\n      // tab's Template selection, which is restored from the form map below.\n      if (Array.isArray(parsedForms)) {\n        const saved = rebuildMap(parsedForms);\n        formConfig.forEach((t) => {\n          const def = t && t._formId ? saved[t._formId] : null;\n          if (def && Array.isArray(def.fields)) t.fields = deepCopy(def.fields);\n        });\n      }\n      // Outputs: separate persisted output definitions (format + fields)\n      const outputsKey = KEYS.outputs;\n      let outputs;\n      // Load persisted outputs via storageGet (returns parsed value)\n      const parsedOut = storageGet(outputsKey, null);\n      if (Array.isArray(parsedOut)) outputs = parsedOut;\n      // if no persisted outputs, derive defaults from formConfig\n      if (!outputs) {\n        outputs = [];\n        for (let i = 0; i < formConfig.length; i++) {\n          const f = formConfig[i];\n          outputs.push({\n            id: `out-${i}`,\n            label: f.title || `Output ${i}`,\n            cfg: f.format ? JSON.parse(JSON.stringify(f.format)) : null,\n            fields: f.fields ? JSON.parse(JSON.stringify(f.fields)) : [],\n          });\n        }\n      }\n      let outputsMap = rebuildMap(outputs);\n      // key for persisting per-tab form selection (map index -> formId)\n      const formMapKey = KEYS.formMap;\n      let formMap = {};\n      // try to load saved mapping and apply to formConfig\n      // Load persisted per-tab form mapping using storageGet\n      const parsedMap = storageGet(formMapKey, null);\n      if (parsedMap && typeof parsedMap === 'object') {\n        formMap = parsedMap;\n        Object.keys(parsedMap).forEach((k) => {\n          const idx = Number(k);\n          const id = parsedMap[k];\n          if (!Number.isNaN(idx) && formConfig[idx] && formsMap[id]) {\n            formConfig[idx]._templateId = id;\n          }\n        });\n      }\n\n      function persistFormMap() {\n        const map = {};\n        for (let i = 0; i < formConfig.length; i++) {\n          if (formConfig[i] && formConfig[i]._templateId && formsMap[formConfig[i]._templateId]) {\n            map[i] = formConfig[i]._templateId;\n          }\n        }\n        formMap = map;\n        // use storageSet which handles JSON serialization and safety\n        storageSet(formMapKey, map);\n        // And the tab list itself. It used to live only in memory, so Unload,\n        // Load, New and Duplicate lasted until the next refresh: an unloaded tab\n        // came back, a loaded one vanished, and only an Export kept either.\n        // Typed values are deliberately NOT saved, as before.\n        storageSet(KEYS.tabs, {\n          seed: seedPrint,\n          tabs: formConfig.map((t) => ({\n            title: t.title,\n            fields: t.fields,\n            format: t.format === undefined ? null : t.format,\n            _formId: t._formId,\n            _templateId: t._templateId,\n          })),\n        });\n      }\n      // Capture all current form values across tabs. Returns an object\n      // mapping pane dataset.index -> { name: value | [values] }\n      function captureAllFormValues() {\n        const allPrev = {};\n        safe(() => {\n          qAll(contents, '.tab-pane').forEach((pane) => {\n            const form = q(pane, 'form.generated-form');\n            if (form) allPrev[pane.dataset.index] = formValues(form);\n          });\n        });\n        return allPrev;\n      }\n\n      // Restore values captured by `captureAllFormValues` into the rebuilt DOM.\n      function restoreAllFormValues(allPrev) {\n        safe(() => {\n          Object.keys(allPrev || {}).forEach((nameIdx) => {\n            const pane = q(contents, `.tab-pane[data-index='${nameIdx}']`);\n            if (!pane) return;\n            applyValues(q(pane, 'form.generated-form'), allPrev[nameIdx] || {});\n          });\n        });\n      }\n      // The same pair keyed by the TAB (its `_formId`) instead of its position.\n      // Removing a tab shifts every later tab down one; restoring by index then\n      // poured each tab's typed values into its neighbour. Use these around any\n      // change that removes, inserts or reorders tabs.\n      function captureValuesByForm() {\n        const byIdx = captureAllFormValues();\n        const out = {};\n        Object.keys(byIdx).forEach((k) => {\n          const t = formConfig[Number(k)];\n          if (t && t._formId) out[t._formId] = byIdx[k];\n        });\n        return out;\n      }\n      function restoreValuesByForm(byForm) {\n        const byIdx = {};\n        formConfig.forEach((t, i) => {\n          if (t && t._formId && byForm && byForm[t._formId]) byIdx[i] = byForm[t._formId];\n        });\n        restoreAllFormValues(byIdx);\n      }\n      // Move the tab at `from` to position `to`. Typed values travel with their\n      // tab (keyed by identity, not position), the new order is saved with the\n      // tab list, and an Export ships it. `refocus` names the Move button to put\n      // focus back on, so holding a key to walk a tab along keeps working after\n      // the rebuild.\n      function moveTab(from, to, refocus) {\n        if (\n          from === to ||\n          from < 0 ||\n          to < 0 ||\n          from >= formConfig.length ||\n          to >= formConfig.length\n        )\n          return;\n        const allPrev = captureValuesByForm();\n        const [tab] = formConfig.splice(from, 1);\n        formConfig.splice(to, 0, tab);\n        safe(() => persistFormMap());\n        safe(() => build());\n        safe(() => restoreValuesByForm(allPrev));\n        safe(() => activateTab(to));\n        if (refocus) {\n          safe(() => {\n            const btn = q(contents, `.tab-pane[data-index='${to}'] [data-move='${refocus}']`);\n            if (btn && !btn.disabled) btn.focus();\n          });\n        }\n      }\n      // index of the tab being dragged in the tab bar, or null\n      let dragFrom = null;\n      // counter used to give generated dynamic inputs unique ids\n      let dynamicIdCounter = 0;\n      // when true, tpl select change handlers should not activate tabs (used during programmatic updates)\n      let suppressTabActivation = false;\n\n      // Auto-resize a textarea to fit its content\n      function autosizeTextarea(ta) {\n        if (!ta) return;\n        safe(() => {\n          ta.style.height = 'auto';\n          ta.style.overflow = 'hidden';\n          var newH = ta.scrollHeight;\n          // Ensure at least one line of height (use computed line-height or font-size as fallback)\n          safe(() => {\n            var cs = window.getComputedStyle(ta);\n            var lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) || 16;\n            var padTop = parseFloat(cs.paddingTop) || 0;\n            var padBottom = parseFloat(cs.paddingBottom) || 0;\n            var minH = Math.ceil(lh + padTop + padBottom);\n            if (!newH || newH < minH) newH = minH;\n          });\n          ta.style.height = newH + 'px';\n        });\n      }\n\n      // Highlight the character position reported by a JSON parse error inside a textarea\n      function highlightJsonError(ta, err) {\n        if (!ta || !err) return;\n        safe(() => {\n          const msg = String(err && err.message ? err.message : '');\n          // Look for common position indicators from JSON.parse errors\n          const m =\n            msg.match(/at position\\s*(\\d+)/i) ||\n            msg.match(/position\\s*(\\d+)/i) ||\n            msg.match(/column\\s*(\\d+)/i);\n          if (!m) return;\n          const pos = Number(m[1]);\n          if (Number.isNaN(pos)) return;\n          // Focus and select the offending character\n          safe(() => {\n            ta.focus();\n            if (typeof ta.setSelectionRange === 'function') {\n              // clamp pos to bounds\n              const idx = Math.max(0, Math.min(pos, (ta.value || '').length - 1));\n              ta.setSelectionRange(idx, idx + 1);\n            }\n            // Try to scroll the line into view roughly using line-height\n            safe(() => {\n              const cs = window.getComputedStyle(ta);\n              const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) || 16;\n              const before = (ta.value || '').slice(0, pos);\n              const lineNo = (before.match(/\\n/g) || []).length;\n              ta.scrollTop = Math.max(0, lineNo * lh - lh * 2);\n            });\n          });\n        });\n      }\n\n      // Create a step row (key input + value input + remove button) and append to `list`.\n      // `baseName` is the field name, `keyVal` can be a string value or {key,val}.\n      function createStepRow(baseName, keyVal, container, list) {\n        const kv = { key: '', val: '' };\n        if (keyVal && typeof keyVal === 'object') {\n          kv.key = keyVal.key || '';\n          kv.val = keyVal.val || '';\n        } else if (typeof keyVal === 'string') {\n          kv.val = keyVal;\n        }\n\n        let defaultKey = kv.key || '';\n        if (!defaultKey && container && container.dataset) {\n          if (container.dataset.keyMode === 'numbered') {\n            const existing = qAll(list, `[name=\"${baseName}\"]`);\n            defaultKey = String(existing.length + 1) + '.';\n          } else if (container.dataset.keyMode === 'bullet') {\n            defaultKey = '-';\n          }\n        }\n\n        const keyInp = el('input', {\n          type: 'text',\n          name: baseName + '_key',\n          placeholder: 'key',\n          autocomplete: 'off',\n          value: defaultKey,\n          style: { width: '80px' },\n        });\n        const inp = el('input', {\n          type: 'text',\n          name: baseName,\n          id: baseName + '-' + ++dynamicIdCounter,\n          placeholder: 'Step',\n          autocomplete: 'off',\n          value: kv.val || '',\n        });\n        const row = el(\n          'div',\n          { style: { display: 'flex', gap: '8px', marginTop: '6px' } },\n          keyInp,\n          inp,\n          el('button', {\n            type: 'button',\n            className: 'btn ghost',\n            textContent: '-',\n            onclick: wrapHandler(() => row.remove()),\n          })\n        );\n        if (list) list.appendChild(row);\n        return inp;\n      }\n\n      function build() {\n        tabbar.innerHTML = '';\n        contents.innerHTML = '';\n        const clearDropMarks = () =>\n          qAll(tabbar, '.tab').forEach((t) =>\n            t.classList.remove('dragging', 'drop-before', 'drop-after')\n          );\n        formConfig.forEach((tab, i) => {\n          const tabEl = el('div', {\n            className: 'tab',\n            textContent: tab.title,\n            dataset: { index: i },\n            onclick: wrapHandler(() => activateTab(i)),\n          });\n          // Dev mode: drag a tab along the bar to reorder it. Dropping on the\n          // left half of a tab lands before it, the right half after it. (Touch\n          // screens do not fire these drag events \u2014 the Move left / Move right\n          // buttons beside Unload cover them, and keyboard users.)\n          if (devMode) {\n            tabEl.draggable = true;\n            tabEl.title = 'Drag to reorder';\n            const afterHalf = (ev) => {\n              const r = tabEl.getBoundingClientRect();\n              return ev.clientX > r.left + r.width / 2;\n            };\n            tabEl.addEventListener(\n              'dragstart',\n              wrapHandler((ev) => {\n                dragFrom = i;\n                if (ev.dataTransfer) {\n                  ev.dataTransfer.effectAllowed = 'move';\n                  safe(() => ev.dataTransfer.setData('text/plain', String(i)));\n                }\n                tabEl.classList.add('dragging');\n              })\n            );\n            tabEl.addEventListener(\n              'dragover',\n              wrapHandler((ev) => {\n                if (dragFrom === null) return; // not one of our tabs\n                ev.preventDefault();\n                if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';\n                const after = afterHalf(ev);\n                tabEl.classList.toggle('drop-after', after);\n                tabEl.classList.toggle('drop-before', !after);\n              })\n            );\n            tabEl.addEventListener(\n              'dragleave',\n              wrapHandler(() => tabEl.classList.remove('drop-before', 'drop-after'))\n            );\n            tabEl.addEventListener(\n              'drop',\n              wrapHandler((ev) => {\n                if (dragFrom === null) return;\n                ev.preventDefault();\n                const from = dragFrom;\n                dragFrom = null;\n                clearDropMarks();\n                let to = afterHalf(ev) ? i + 1 : i;\n                if (from < to) to -= 1; // the dragged tab leaves a gap behind it\n                moveTab(from, to);\n              })\n            );\n            tabEl.addEventListener(\n              'dragend',\n              wrapHandler(() => {\n                dragFrom = null;\n                clearDropMarks();\n              })\n            );\n          }\n          tabbar.appendChild(tabEl);\n\n          // subtabs: Form and Populate\n          const stForm = el('div', { className: 'subtab active', textContent: 'Form' });\n          const stPop = el('div', { className: 'subtab', textContent: 'Populate' });\n          const pane = el(\n            'div',\n            { className: 'tab-pane', dataset: { index: i }, style: { display: 'none' } },\n            el('div', { className: 'subtabs' }, stForm, stPop)\n          );\n\n          const formArea = el('div', { className: 'tab-content form-area' });\n          const populateArea = el('div', {\n            className: 'tab-content populate-area',\n            style: { display: 'none' },\n          });\n\n          // build form\n          const form = el('form', { className: 'generated-form', autocomplete: 'off' });\n          tab.fields.forEach((f) => {\n            const wrapper = document.createElement('div');\n            wrapper.className = 'field';\n            // inline/side-by-side support: if field specifies `inline: true`,\n            // render it as an inline-block and respect optional `width`.\n            if (f && f.inline) {\n              wrapper.className += ' field-inline';\n              safe(() => {\n                wrapper.style.width = f.width ? String(f.width) : '45%';\n              });\n            }\n            const label = document.createElement('label');\n            if (f.type !== 'header') {\n              label.textContent = f.label || f.name;\n              wrapper.appendChild(label);\n            }\n\n            // Support header type: render headings instead of inputs. Accept\n            // optional `level` (1-6) or `size` like 'h1'..'h6'. Default to h2.\n            if (f.type === 'header') {\n              try {\n                let tag = 'h2';\n                if (f && f.level && !Number.isNaN(Number(f.level))) {\n                  const lv = Math.max(1, Math.min(6, Number(f.level)));\n                  tag = 'h' + lv;\n                } else if (f && f.size && /^h[1-6]$/.test(String(f.size))) {\n                  tag = String(f.size);\n                }\n                const h = document.createElement(tag);\n                h.className = 'field-header';\n                h.textContent = f.label || f.name || '';\n                wrapper.appendChild(h);\n                form.appendChild(wrapper);\n                return; // skip input creation\n              } catch (e) {}\n            }\n            let input;\n            if (f.type === 'textarea') {\n              input = document.createElement('textarea');\n              input.rows = 4;\n              input.autocomplete = 'off';\n            } else if (f.type === 'select') {\n              input = document.createElement('select');\n              (f.options || []).forEach((opt) => {\n                const o = document.createElement('option');\n                o.value = opt.value ?? opt;\n                o.textContent = opt.label ?? opt;\n                input.appendChild(o);\n              });\n              input.autocomplete = 'off';\n            } else {\n              input = document.createElement('input');\n              input.type = f.type || 'text';\n              input.autocomplete = 'off';\n            }\n            input.name = f.name;\n            input.placeholder = f.placeholder || '';\n            if (f.default) input.value = f.default;\n            wrapper.appendChild(input);\n            // Special handling for steps type: build dynamic list UI\n            if (f.type === 'steps') {\n              // Rename the top input to be the combined input so it does not\n              // conflict with the per-step inputs below (which share the base name).\n              input.name = f.name + '_combined';\n              input.placeholder =\n                f.placeholder && String(f.placeholder).trim()\n                  ? String(f.placeholder)\n                  : 'Step 1 > Step 2 > Step 3';\n              input.style.width = '70%';\n              input.style.display = 'inline-block';\n\n              const parseBtnTop = document.createElement('button');\n              parseBtnTop.type = 'button';\n              parseBtnTop.className = 'btn ghost';\n              parseBtnTop.textContent = 'Parse';\n              parseBtnTop.style.marginLeft = '8px';\n              // place the combined input and button inside a row\n              const combinedRow = document.createElement('div');\n              combinedRow.style.display = 'flex';\n              combinedRow.style.alignItems = 'center';\n              combinedRow.style.gap = '8px';\n              combinedRow.appendChild(input);\n              combinedRow.appendChild(parseBtnTop);\n              // If the field defines a default combined steps string, prefill and parse it\n              if (f.default && typeof f.default === 'string' && f.default.trim()) {\n                input.value = f.default;\n              }\n              wrapper.appendChild(combinedRow);\n              if (f.default && typeof f.default === 'string' && f.default.trim()) {\n                // trigger parse to populate individual step rows\n                parseBtnTop.click();\n              }\n              // default key behavior selector (none | numbered)\n              const controlRow = document.createElement('div');\n              controlRow.style.display = 'flex';\n              controlRow.style.alignItems = 'center';\n              controlRow.style.gap = '8px';\n              controlRow.style.marginTop = '8px';\n              const modeLabel = document.createElement('div');\n              modeLabel.className = 'meta';\n              modeLabel.textContent = 'Default key:';\n              const modeSelect = document.createElement('select');\n              const oNone = document.createElement('option');\n              oNone.value = 'none';\n              oNone.textContent = 'None (blank)';\n              const oNum = document.createElement('option');\n              oNum.value = 'numbered';\n              oNum.textContent = 'Numbered';\n              const oBullet = document.createElement('option');\n              oBullet.value = 'bullet';\n              oBullet.textContent = 'Bullet (-)';\n              modeSelect.appendChild(oNone);\n              modeSelect.appendChild(oNum);\n              modeSelect.appendChild(oBullet);\n              // Allow step fields to declare a default key mode via `keyMode` in the field definition\n              // Supported values: 'none' | 'numbered' | 'bullet'\n              try {\n                modeSelect.value = f && f.keyMode ? String(f.keyMode) : 'none';\n              } catch (e) {\n                modeSelect.value = 'none';\n              }\n              modeSelect.autocomplete = 'off';\n              modeSelect.addEventListener(\n                'change',\n                wrapHandler(() => {\n                  container.dataset.keyMode = modeSelect.value;\n                })\n              );\n              controlRow.appendChild(modeLabel);\n              controlRow.appendChild(modeSelect);\n              wrapper.appendChild(controlRow);\n              const container = document.createElement('div');\n              container.className = 'steps-container';\n              container.dataset.name = f.name;\n              // initialize key mode on the container after it's created\n              container.dataset.keyMode = modeSelect.value;\n\n              const list = document.createElement('div');\n              list.className = 'steps-list';\n\n              const addBtn = document.createElement('button');\n              addBtn.type = 'button';\n              addBtn.className = 'btn';\n              addBtn.textContent = '+ Add';\n              addBtn.style.marginLeft = '8px';\n\n              function addPathItem(val) {\n                // val can be a string value or an object { key, val }\n                const keyVal = { key: '', val: '' };\n                if (val && typeof val === 'object') {\n                  keyVal.key = val.key || '';\n                  keyVal.val = val.val || '';\n                } else if (typeof val === 'string') {\n                  keyVal.val = val;\n                }\n                return createStepRow(f.name, keyVal, container, list);\n              }\n\n              // ensure at least one item exists so scanPopulate can detect the name\n              addPathItem('');\n\n              addBtn.addEventListener(\n                'click',\n                wrapHandler(() => addPathItem(''))\n              );\n              // parse top combined input into steps\n              parseBtnTop.addEventListener(\n                'click',\n                wrapHandler(() => {\n                  const parts = splitSteps(input.value);\n                  list.innerHTML = '';\n                  if (parts.length === 0) {\n                    addPathItem('');\n                  } else {\n                    parts.forEach((p) => {\n                      const kv = parseStepPart(p);\n                      // A bare numeric key from a combined string (\"1\") gets a\n                      // period so the per-step key field shows the numbered style.\n                      if (kv.key && /^\\d+$/.test(kv.key)) kv.key += '.';\n                      addPathItem(kv.key ? kv : kv.val);\n                    });\n                  }\n                })\n              );\n              wrapper.appendChild(container);\n              container.appendChild(list);\n              container.appendChild(addBtn);\n              form.appendChild(wrapper);\n            } else {\n              form.appendChild(wrapper);\n            }\n          });\n\n          // New and Duplicate buttons: create new tab blank or copy of current values\n          const newBtn = document.createElement('button');\n          newBtn.className = 'btn';\n          newBtn.type = 'button';\n          newBtn.textContent = 'New';\n          newBtn.style.marginLeft = '8px';\n          newBtn.addEventListener(\n            'click',\n            wrapHandler(() => {\n              const allPrev = captureAllFormValues();\n              safe(() => {\n                const newForm = {\n                  title: (tab && tab.title ? tab.title : 'New') + ' (new)',\n                  fields: JSON.parse(JSON.stringify(tab.fields || [])).map((f) => {\n                    const nf = JSON.parse(JSON.stringify(f));\n                    if (nf.hasOwnProperty('default')) delete nf.default;\n                    return nf;\n                  }),\n                  _templateId:\n                    formConfig[i] && formConfig[i]._templateId\n                      ? formConfig[i]._templateId\n                      : undefined,\n                  // A tab made on the fly has no form definition behind it, but\n                  // it still needs an identity: typed values follow tabs by it,\n                  // and the saved tab list is reloaded by it.\n                  _formId: uid('adhoc'),\n                };\n                formConfig.push(newForm);\n                safe(() => persistFormMap());\n                safe(() => build());\n                safe(() => restoreAllFormValues(allPrev));\n                safe(() => activateTab(formConfig.length - 1));\n              });\n            })\n          );\n\n          const dupBtn = document.createElement('button');\n          dupBtn.className = 'btn';\n          dupBtn.type = 'button';\n          dupBtn.textContent = 'Duplicate';\n          dupBtn.style.marginLeft = '8px';\n          dupBtn.addEventListener(\n            'click',\n            wrapHandler(() => {\n              const allPrev = captureAllFormValues();\n              safe(() => {\n                // capture current form values\n                const vals = formValues(form);\n\n                const newFields = (tab.fields || []).map((f) => {\n                  const nf = JSON.parse(JSON.stringify(f));\n                  if (f.type === 'steps') {\n                    // prefer combined input if present\n                    if (\n                      Object.prototype.hasOwnProperty.call(vals, f.name + '_combined') &&\n                      vals[f.name + '_combined']\n                    ) {\n                      nf.default = vals[f.name + '_combined'];\n                    } else if (Object.prototype.hasOwnProperty.call(vals, f.name)) {\n                      const v = vals[f.name];\n                      nf.default = Array.isArray(v) ? v.join(' > ') : v;\n                    } else {\n                      if (nf.hasOwnProperty('default')) delete nf.default;\n                    }\n                  } else {\n                    if (Object.prototype.hasOwnProperty.call(vals, f.name))\n                      nf.default = vals[f.name];\n                    else if (nf.hasOwnProperty('default')) delete nf.default;\n                  }\n                  return nf;\n                });\n\n                const newForm = {\n                  title: (tab && tab.title ? tab.title : 'Copy') + ' (copy)',\n                  format: tab && tab.format ? JSON.parse(JSON.stringify(tab.format)) : null,\n                  fields: newFields,\n                  _templateId:\n                    formConfig[i] && formConfig[i]._templateId\n                      ? formConfig[i]._templateId\n                      : undefined,\n                  // A tab made on the fly has no form definition behind it, but\n                  // it still needs an identity: typed values follow tabs by it,\n                  // and the saved tab list is reloaded by it.\n                  _formId: uid('adhoc'),\n                };\n                formConfig.push(newForm);\n                safe(() => persistFormMap());\n                safe(() => build());\n                safe(() => restoreAllFormValues(allPrev));\n                safe(() => activateTab(formConfig.length - 1));\n              });\n            })\n          );\n\n          // top-of-page clear button for this tab's form\n          const topClear = document.createElement('button');\n          topClear.className = 'btn warn';\n          topClear.type = 'button';\n          topClear.textContent = 'Clear';\n          topClear.style.marginLeft = '8px';\n          topClear.addEventListener(\n            'click',\n            wrapHandler(() => {\n              Array.from(form.elements).forEach((e) => {\n                if (!e.name) return;\n                if (e.type === 'checkbox' || e.type === 'radio') e.checked = false;\n                else e.value = '';\n              });\n            })\n          );\n\n          formArea.appendChild(newBtn);\n          formArea.appendChild(dupBtn);\n          formArea.appendChild(topClear);\n\n          // give the last appended control spacing before the form\n          safe(() => {\n            const last = formArea.lastElementChild;\n            if (last && last.style) last.style.marginBottom = '8px';\n          });\n\n          formArea.appendChild(form);\n\n          // template selector\n          const tplRow = document.createElement('div');\n          tplRow.style.display = 'flex';\n          tplRow.style.alignItems = 'center';\n          tplRow.style.gap = '8px';\n          tplRow.style.marginTop = '6px';\n          const tplLabel = document.createElement('div');\n          tplLabel.className = 'meta';\n          tplLabel.textContent = 'Template:';\n          const tplSelect = document.createElement('select');\n          tplSelect.autocomplete = 'off';\n          tplSelect.style.padding = '6px';\n          tplSelect.style.borderRadius = '6px';\n          tplSelect.style.border = '1px solid var(--border)';\n          forms.forEach((tpl) => {\n            const o = document.createElement('option');\n            o.value = tpl.id;\n            o.textContent = tpl.label;\n\n            tplSelect.appendChild(o);\n          });\n          // default to this tab's configured template if present\n          if (formConfig[i] && formConfig[i]._templateId)\n            tplSelect.value = formConfig[i]._templateId;\n          // when a template is selected, only update this tab's output format\n          // and mapping. Changing the generate-template dropdown must never\n          // alter the form's fields or trigger a DOM rebuild.\n          tplSelect.addEventListener(\n            'change',\n            wrapHandler(() => {\n              const sel = tplSelect.value || '__json__';\n              const tpl = formsMap[sel];\n              if (!tpl) return;\n              safe(() => {\n                // Only apply format when the template explicitly defines `cfg`.\n                // A null/blank cfg clears prior formats; absence of `cfg` means\n                // the template should not change the output formatting.\n                if (Object.prototype.hasOwnProperty.call(tpl, 'cfg')) {\n                  formConfig[i].format = tpl.cfg ? JSON.parse(JSON.stringify(tpl.cfg)) : null;\n                }\n                formConfig[i]._templateId = sel;\n                persistFormMap();\n              });\n              // Do NOT call build(), do NOT change formConfig[i].fields, and\n              // do NOT activate tabs \u2014 selection only affects generation output.\n            })\n          );\n          tplRow.appendChild(tplLabel);\n          tplRow.appendChild(tplSelect);\n          // if dev mode is enabled, expose an Unload button for this form\n          if (devMode) {\n            const unloadBtn = document.createElement('button');\n            unloadBtn.type = 'button';\n            unloadBtn.className = 'btn warn';\n            unloadBtn.textContent = 'Unload';\n            unloadBtn.style.marginLeft = '8px';\n            unloadBtn.title =\n              'Remove this tab. Its form definition stays in the Forms pane, so Load brings it back.';\n            unloadBtn.addEventListener(\n              'click',\n              wrapHandler(() => {\n                // Any tab can be unloaded. This used to refuse every built-in\n                // (`tpl-N`) tab \u2014 which is every tab of an exported file \u2014 and\n                // decided it from the Template dropdown's current selection, so\n                // unloadability depended on which output format was picked.\n                // Unloading removes the TAB only; its definition stays in\n                // `forms`, so the Forms pane can Load it straight back.\n                const allPrev = captureValuesByForm();\n                formConfig.splice(i, 1);\n                safe(() => persistFormMap());\n                safe(() => build());\n                safe(() => restoreValuesByForm(allPrev));\n                safe(() => activateTab(Math.max(0, i - 1)));\n              })\n            );\n            // Reorder without dragging \u2014 for keyboard and touch, where the tab\n            // bar's drag-and-drop does not reach.\n            const moveLeft = el('button', {\n              type: 'button',\n              className: 'btn ghost',\n              text: '\u2190 Left',\n              'aria-label': 'Move this tab one place to the left',\n              title: 'Move this tab one place to the left',\n              dataset: { move: 'left' },\n              disabled: i === 0,\n              // The Template select takes the row's spare width; without these\n              // the buttons shrank and wrapped onto two or three lines.\n              style: { marginLeft: '8px', whiteSpace: 'nowrap', flexShrink: '0' },\n              onclick: wrapHandler(() => moveTab(i, i - 1, 'left')),\n            });\n            const moveRight = el('button', {\n              type: 'button',\n              className: 'btn ghost',\n              text: 'Right \u2192',\n              'aria-label': 'Move this tab one place to the right',\n              title: 'Move this tab one place to the right',\n              dataset: { move: 'right' },\n              disabled: i === formConfig.length - 1,\n              style: { marginLeft: '4px', whiteSpace: 'nowrap', flexShrink: '0' },\n              onclick: wrapHandler(() => moveTab(i, i + 1, 'right')),\n            });\n            tplRow.appendChild(moveLeft);\n            tplRow.appendChild(moveRight);\n            tplRow.appendChild(unloadBtn);\n          }\n          formArea.appendChild(tplRow);\n\n          // --- Generate UI: button + output area\n          const genWrapper = document.createElement('div');\n          genWrapper.style.marginTop = '12px';\n          const genBtn = document.createElement('button');\n          genBtn.className = 'btn';\n          genBtn.type = 'button';\n          genBtn.textContent = 'Generate';\n          const copyBtn = document.createElement('button');\n          copyBtn.className = 'btn ghost';\n          copyBtn.type = 'button';\n          copyBtn.textContent = 'Copy';\n          copyBtn.style.marginLeft = '8px';\n          const clearOutBtn = document.createElement('button');\n          clearOutBtn.className = 'btn ghost';\n          clearOutBtn.type = 'button';\n          clearOutBtn.textContent = 'Clear';\n          clearOutBtn.style.marginLeft = '8px';\n          const out = document.createElement('textarea');\n          out.readOnly = true;\n          out.rows = 10;\n          out.autocomplete = 'off';\n          out.style.width = '100%';\n          out.style.marginTop = '8px';\n          out.style.padding = '8px';\n          out.style.borderRadius = '6px';\n          out.style.border = '1px solid #eee';\n          genWrapper.appendChild(genBtn);\n          genWrapper.appendChild(copyBtn);\n          genWrapper.appendChild(clearOutBtn);\n          genWrapper.appendChild(out);\n          formArea.appendChild(genWrapper);\n\n          genBtn.addEventListener(\n            'click',\n            wrapHandler(() => {\n              const values = {};\n              Array.from(form.elements).forEach((e) => {\n                if (!e.name) return;\n                const v = e.value !== undefined ? e.value : '';\n                if (Object.prototype.hasOwnProperty.call(values, e.name)) {\n                  if (!Array.isArray(values[e.name])) values[e.name] = [values[e.name]];\n                  values[e.name].push(v);\n                } else {\n                  values[e.name] = v;\n                }\n              });\n              // Combine key=>value pairs for fields that have an associated _key input\n              Object.keys(values).forEach((k) => {\n                if (!k.endsWith('_key')) return;\n                const base = k.slice(0, -4);\n                if (!Object.prototype.hasOwnProperty.call(values, base)) return;\n                const keys = Array.isArray(values[k]) ? values[k] : [values[k]];\n                const vals = Array.isArray(values[base]) ? values[base] : [values[base]];\n                const combined = vals.map((v, i) => {\n                  const keyRaw = keys[i] || '';\n                  let prefix = '';\n                  // Do not automatically append a period to numeric keys here;\n                  // only preserve what the user entered. If the key already\n                  // contains a period, it will be preserved.\n                  prefix = keyRaw ? keyRaw + ' ' : '';\n                  return prefix + v;\n                });\n                values[base] = combined.length === 1 ? combined[0] : combined;\n                // optionally remove the keys entry\n                delete values[k];\n              });\n              const sel = tplSelect.value || '__json__';\n              const cfg = formsMap[sel] && formsMap[sel].cfg ? formsMap[sel].cfg : null;\n              out.value = generateOutput(cfg, values);\n              // Auto-resize the output textarea to fit the generated content\n              safe(() => {\n                out.style.height = 'auto';\n                out.style.overflow = 'hidden';\n                out.style.height = out.scrollHeight + 'px';\n              });\n            })\n          );\n          copyBtn.addEventListener(\n            'click',\n            wrapHandler(async () => {\n              const text = out.value || '';\n              try {\n                if (navigator.clipboard && navigator.clipboard.writeText) {\n                  await navigator.clipboard.writeText(text);\n                } else {\n                  out.select();\n                  document.execCommand('copy');\n                }\n                alert('Copied:\\n' + text);\n              } catch (err) {\n                try {\n                  out.select();\n                  document.execCommand('copy');\n                  alert('Copied:\\n' + text);\n                } catch (e) {\n                  alert('Copy failed');\n                }\n              }\n            })\n          );\n          clearOutBtn.addEventListener(\n            'click',\n            wrapHandler(() => {\n              out.value = '';\n              safe(() => autosizeTextarea(out));\n            })\n          );\n\n          // populate area UI\n          const info = document.createElement('div');\n          info.className = 'meta';\n          info.textContent = 'Scan other tabs for values with matching field names.';\n          const scanBtn = document.createElement('button');\n          scanBtn.className = 'btn ghost';\n          scanBtn.type = 'button';\n          scanBtn.textContent = 'Scan';\n          const autoBtn = document.createElement('button');\n          autoBtn.className = 'btn';\n          autoBtn.type = 'button';\n          autoBtn.style.marginLeft = '8px';\n          autoBtn.textContent = 'Auto Apply All';\n          const preview = document.createElement('div');\n          preview.className = 'preview-list';\n          preview.style.marginTop = '12px';\n\n          populateArea.appendChild(info);\n          populateArea.appendChild(scanBtn);\n          populateArea.appendChild(autoBtn);\n          populateArea.appendChild(preview);\n\n          pane.appendChild(formArea);\n          pane.appendChild(populateArea);\n          contents.appendChild(pane);\n\n          // subtabs switching\n          stForm.addEventListener(\n            'click',\n            wrapHandler(() => {\n              stForm.classList.add('active');\n              stPop.classList.remove('active');\n              formArea.style.display = 'block';\n              populateArea.style.display = 'none';\n            })\n          );\n          stPop.addEventListener(\n            'click',\n            wrapHandler(() => {\n              stPop.classList.add('active');\n              stForm.classList.remove('active');\n              formArea.style.display = 'none';\n              populateArea.style.display = 'block';\n              scanPopulate(i, preview);\n            })\n          );\n\n          // actions\n          scanBtn.addEventListener(\n            'click',\n            wrapHandler(() => scanPopulate(i, preview))\n          );\n          autoBtn.addEventListener(\n            'click',\n            wrapHandler(() => {\n              const items = scanPopulate(i, preview);\n              const selections = [];\n              items.forEach((it) => {\n                if (it.candidates && it.candidates.length > 0) {\n                  const c = it.candidates[0];\n                  selections.push({ name: it.name, value: c.value });\n                }\n              });\n              applyPreviewSelections(i, selections);\n            })\n          );\n        });\n\n        // Add a dedicated 'Outputs' tab where outputs (generation formats + fields) can be edited.\n        // Only add when devMode is enabled.\n        (function addOutputsTab() {\n          if (!devMode) return;\n          const outIndex = formConfig.length;\n          const outTab = document.createElement('div');\n          outTab.className = 'tab right';\n          outTab.textContent = 'Outputs';\n          outTab.dataset.index = outIndex;\n          outTab.addEventListener(\n            'click',\n            wrapHandler(() => activateTab(outIndex))\n          );\n          tabbar.appendChild(outTab);\n\n          const outPane = document.createElement('div');\n          outPane.className = 'tab-pane';\n          outPane.style.display = 'none';\n          outPane.dataset.index = outIndex;\n\n          const outContent = document.createElement('div');\n          outContent.className = 'tab-content';\n          const outLabel = document.createElement('label');\n          outLabel.textContent = 'Outputs';\n          outContent.appendChild(outLabel);\n\n          const helpOut = document.createElement('div');\n          helpOut.className = 'meta';\n          helpOut.style.marginTop = '8px';\n          helpOut.textContent =\n            'Create and edit Outputs (format + fields). Outputs can be used as the basis for Forms.';\n          outContent.appendChild(helpOut);\n\n          const selectorRow = document.createElement('div');\n          selectorRow.style.display = 'flex';\n          selectorRow.style.alignItems = 'center';\n          selectorRow.style.gap = '8px';\n          selectorRow.style.marginTop = '8px';\n          const outList = document.createElement('select');\n          outList.autocomplete = 'off';\n          outList.style.flex = '1';\n          const outNewBtn = document.createElement('button');\n          outNewBtn.type = 'button';\n          outNewBtn.className = 'btn';\n          outNewBtn.textContent = '+ New';\n          selectorRow.appendChild(outList);\n          selectorRow.appendChild(outNewBtn);\n          outContent.appendChild(selectorRow);\n\n          const lblRow = document.createElement('div');\n          lblRow.style.marginTop = '8px';\n          const lblLbl = document.createElement('label');\n          lblLbl.textContent = 'Label';\n          const lblIn = document.createElement('input');\n          lblIn.type = 'text';\n          lblIn.style.width = '100%';\n          lblIn.autocomplete = 'off';\n          lblRow.appendChild(lblLbl);\n          lblRow.appendChild(lblIn);\n          outContent.appendChild(lblRow);\n\n          const cfgLbl = document.createElement('label');\n          cfgLbl.textContent = 'Template';\n          cfgLbl.style.marginTop = '8px';\n          // advanced toggle for Outputs: hide/show resolved JSON + resolve button\n          const advRowOut = document.createElement('div');\n          advRowOut.style.display = 'flex';\n          advRowOut.style.alignItems = 'center';\n          advRowOut.style.gap = '8px';\n          advRowOut.style.marginTop = '6px';\n          const advChkOut = document.createElement('input');\n          advChkOut.type = 'checkbox';\n          advChkOut.autocomplete = 'off';\n          const advLblOut = document.createElement('div');\n          advLblOut.className = 'meta';\n          advLblOut.textContent = 'Advanced (raw JSON)';\n          advRowOut.appendChild(advChkOut);\n          advRowOut.appendChild(advLblOut);\n          // simple template input where user can type a template string\n          const cfgSimpleOut = document.createElement('textarea');\n          cfgSimpleOut.rows = 2;\n          cfgSimpleOut.style.width = '100%';\n          cfgSimpleOut.placeholder = 'Hello {firstName}';\n          cfgSimpleOut.autocomplete = 'off';\n          // button to resolve the simple template into editable JSON\n          const resolveBtn = document.createElement('button');\n          resolveBtn.type = 'button';\n          resolveBtn.className = 'btn ghost';\n          resolveBtn.textContent = 'Resolve to JSON';\n          resolveBtn.style.marginTop = '6px';\n          // raw JSON textarea (editable resolved JSON)\n          const cfgTaOut = document.createElement('textarea');\n          cfgTaOut.rows = 6;\n          cfgTaOut.style.width = '100%';\n          cfgTaOut.placeholder = '{ \"type\": \"template\", \"template\": \"Hello {firstName}\" }';\n          cfgTaOut.autocomplete = 'off';\n          outContent.appendChild(cfgLbl);\n          outContent.appendChild(advRowOut);\n          outContent.appendChild(cfgSimpleOut);\n          outContent.appendChild(resolveBtn);\n          outContent.appendChild(cfgTaOut);\n          // default to simple view: hide resolved JSON textarea and resolve button\n          cfgTaOut.style.display = 'none';\n          resolveBtn.style.display = 'none';\n          advChkOut.addEventListener(\n            'change',\n            wrapHandler(() => {\n              if (advChkOut.checked) {\n                cfgTaOut.style.display = '';\n                resolveBtn.style.display = '';\n              } else {\n                cfgTaOut.style.display = 'none';\n                resolveBtn.style.display = 'none';\n              }\n            })\n          );\n          resolveBtn.addEventListener(\n            'click',\n            wrapHandler(() => {\n              const raw = String(cfgSimpleOut.value || '').trim();\n              if (!raw) {\n                cfgTaOut.value = '';\n                autosizeTextarea(cfgTaOut);\n                return;\n              }\n              if (raw[0] === '{' || raw[0] === '[') {\n                try {\n                  const parsed = JSON.parse(raw);\n                  cfgTaOut.value = JSON.stringify(parsed, null, 2);\n                  autosizeTextarea(cfgTaOut);\n                } catch (e) {\n                  // not valid JSON, treat as template string\n                  cfgTaOut.value = JSON.stringify({ type: 'template', template: raw }, null, 2);\n                  autosizeTextarea(cfgTaOut);\n                }\n              } else {\n                cfgTaOut.value = JSON.stringify({ type: 'template', template: raw }, null, 2);\n                autosizeTextarea(cfgTaOut);\n              }\n            })\n          );\n\n          const fieldsLblOut = document.createElement('label');\n          fieldsLblOut.textContent = 'Fields (JSON array)';\n          fieldsLblOut.style.marginTop = '8px';\n          const fieldsTaOut = document.createElement('textarea');\n          fieldsTaOut.rows = 8;\n          fieldsTaOut.style.width = '100%';\n          fieldsTaOut.placeholder = '[ { \"label\": \"Name\", \"name\": \"firstName\", \"type\": \"text\" } ]';\n          fieldsTaOut.autocomplete = 'off';\n          outContent.appendChild(fieldsLblOut);\n          outContent.appendChild(fieldsTaOut);\n\n          const saveOutBtn = document.createElement('button');\n          saveOutBtn.className = 'btn';\n          saveOutBtn.type = 'button';\n          saveOutBtn.textContent = 'Save';\n          const genOutBtn = document.createElement('button');\n          genOutBtn.className = 'btn ghost';\n          genOutBtn.type = 'button';\n          genOutBtn.textContent = 'Generate Fields From Output';\n          genOutBtn.style.marginLeft = '8px';\n          const delOutBtn = document.createElement('button');\n          delOutBtn.className = 'btn warn';\n          delOutBtn.type = 'button';\n          delOutBtn.textContent = 'Delete';\n          delOutBtn.style.marginLeft = '8px';\n          const createFormBtn = document.createElement('button');\n          createFormBtn.className = 'btn ghost';\n          createFormBtn.type = 'button';\n          createFormBtn.textContent = 'Create Form from Output';\n          createFormBtn.style.marginLeft = '8px';\n          outContent.appendChild(saveOutBtn);\n          outContent.appendChild(genOutBtn);\n          outContent.appendChild(delOutBtn);\n          outContent.appendChild(createFormBtn);\n\n          function refreshOutList() {\n            outList.innerHTML = '';\n            outputs.forEach((o) => {\n              const op = document.createElement('option');\n              op.value = o.id;\n              op.textContent = o.label || o.id;\n              outList.appendChild(op);\n            });\n          }\n          refreshOutList();\n\n          function loadOut() {\n            const id = outList.value;\n            const o = outputs.find((x) => x.id === id);\n            if (!o) {\n              lblIn.value = '';\n              safe(() => {\n                cfgSimpleOut.value = '';\n                autosizeTextarea(cfgSimpleOut);\n              });\n              cfgTaOut.value = '';\n              autosizeTextarea(cfgTaOut);\n              advChkOut.checked = false;\n              cfgTaOut.style.display = 'none';\n              resolveBtn.style.display = 'none';\n              fieldsTaOut.value = '';\n              autosizeTextarea(fieldsTaOut);\n              return;\n            }\n            lblIn.value = o.label || '';\n            try {\n              if (\n                o.cfg &&\n                typeof o.cfg === 'object' &&\n                o.cfg.type === 'template' &&\n                typeof o.cfg.template === 'string'\n              ) {\n                cfgSimpleOut.value = o.cfg.template;\n                autosizeTextarea(cfgSimpleOut);\n                cfgTaOut.value = JSON.stringify(o.cfg, null, 2);\n                autosizeTextarea(cfgTaOut);\n                advChkOut.checked = false;\n                cfgTaOut.style.display = 'none';\n                resolveBtn.style.display = 'none';\n              } else {\n                cfgSimpleOut.value = '';\n                autosizeTextarea(cfgSimpleOut);\n                cfgTaOut.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';\n                autosizeTextarea(cfgTaOut);\n                advChkOut.checked = true;\n                cfgTaOut.style.display = '';\n                resolveBtn.style.display = '';\n              }\n            } catch (e) {\n              cfgTaOut.value = '';\n              autosizeTextarea(cfgTaOut);\n            }\n            try {\n              fieldsTaOut.value = o.fields ? JSON.stringify(o.fields, null, 2) : '';\n              autosizeTextarea(fieldsTaOut);\n            } catch (e) {\n              fieldsTaOut.value = '';\n              autosizeTextarea(fieldsTaOut);\n            }\n          }\n          outList.addEventListener('change', loadOut);\n          loadOut();\n\n          outNewBtn.addEventListener(\n            'click',\n            wrapHandler(() => {\n              const id = `out-${Date.now()}`;\n              const no = { id, label: id, cfg: null, fields: [] };\n              outputs.push(no);\n              outputsMap = rebuildMap(outputs);\n              storageSet(outputsKey, outputs);\n\n              refreshOutList();\n              outList.value = id;\n              loadOut();\n              refreshOutputsSelectors();\n            })\n          );\n\n          saveOutBtn.addEventListener(\n            'click',\n            wrapHandler(() => {\n              const id = outList.value;\n              const o = outputs.find((x) => x.id === id);\n              if (!o) return;\n              o.label = lblIn.value || o.label || o.id;\n              try {\n                const jsonRaw = String(cfgTaOut.value || '').trim();\n                const simpleRaw = String(cfgSimpleOut.value || '').trim();\n                if (jsonRaw) {\n                  try {\n                    o.cfg = JSON.parse(jsonRaw);\n                  } catch (e) {\n                    // If the user edited the resolved JSON but it's not valid JSON\n                    // and it doesn't look like JSON, treat it as a plain template\n                    // string to preserve backwards compatibility.\n                    if (jsonRaw[0] === '{' || jsonRaw[0] === '[') throw e;\n                    o.cfg = { type: 'template', template: jsonRaw };\n                  }\n                } else if (simpleRaw) {\n                  o.cfg = { type: 'template', template: simpleRaw };\n                } else {\n                  o.cfg = null;\n                }\n              } catch (e) {\n                safe(() => highlightJsonError(cfgTaOut, e));\n                alert('Invalid output JSON: ' + e.message);\n                return;\n              }\n              try {\n                const parsedF = fieldsTaOut.value.trim() ? JSON.parse(fieldsTaOut.value) : [];\n                if (!Array.isArray(parsedF)) throw new Error('Fields must be an array');\n                // Do not auto-generate fields from the template when saving \u2014 respect\n                // whatever the user has entered in the Fields textarea. Only validate\n                // that it's a JSON array and then save it.\n                o.fields = parsedF;\n              } catch (e) {\n                safe(() => highlightJsonError(fieldsTaOut, e));\n                alert('Invalid fields JSON: ' + e.message);\n                return;\n              }\n              outputsMap = rebuildMap(outputs);\n              // persist outputs so Templates can reference them later\n              storageSet(outputsKey, outputs);\n              refreshOutList();\n              loadOut();\n              refreshOutputsSelectors();\n            })\n          );\n\n          // Populate the Fields textarea by extracting placeholder variables\n          // from the output `template` string (preview only, does not save).\n          genOutBtn.addEventListener(\n            'click',\n            wrapHandler(() => {\n              try {\n                let parsed = null;\n                const jsonRaw = String(cfgTaOut.value || '').trim();\n                const simpleRaw = String(cfgSimpleOut.value || '').trim();\n                if (jsonRaw) {\n                  try {\n                    parsed = JSON.parse(jsonRaw);\n                  } catch (e) {\n                    // fallback to treating as template string\n                    parsed = { type: 'template', template: jsonRaw };\n                  }\n                } else if (simpleRaw) {\n                  parsed = { type: 'template', template: simpleRaw };\n                }\n                const gen = [];\n                if (parsed && typeof parsed.template === 'string') {\n                  const tpl = parsed.template;\n                  const re = /\\{([a-zA-Z0-9_]+)\\}/g;\n                  const seen = new Set();\n                  let m;\n                  while ((m = re.exec(tpl)) !== null) {\n                    const name = m[1];\n                    if (seen.has(name)) continue;\n                    seen.add(name);\n                    const label =\n                      name === 'steps' ? 'Steps' : name.charAt(0).toUpperCase() + name.slice(1);\n                    const type = name === 'steps' ? 'steps' : 'text';\n                    const fld = { label, name, type, placeholder: '' };\n                    if (type === 'steps') fld.keyMode = '';\n                    gen.push(fld);\n                  }\n                }\n                fieldsTaOut.value = JSON.stringify(gen, null, 2);\n                autosizeTextarea(fieldsTaOut);\n              } catch (e) {\n                safe(() => highlightJsonError(cfgTaOut, e));\n                alert('Invalid output JSON: ' + e.message);\n              }\n            })\n          );\n\n          delOutBtn.addEventListener(\n            'click',\n            wrapHandler(() => {\n              let _proceed = true;\n              safe(\n                () => {\n                  if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) {\n                    _proceed = true; // auto-accept in test/jsdom environment\n                  } else if (typeof window.confirm === 'function') {\n                    _proceed = !!window.confirm(\n                      'Delete this output? This action cannot be undone.'\n                    );\n                  }\n                },\n                undefined,\n                () => {\n                  _proceed = true;\n                }\n              );\n              if (!_proceed) return;\n              const id = outList.value;\n              outputs = outputs.filter((x) => x.id !== id);\n              outputsMap = rebuildMap(outputs);\n              storageSet(outputsKey, outputs);\n              refreshOutList();\n              loadOut();\n              refreshOutputsSelectors();\n            })\n          );\n\n          // The original \"Create Form from Output\" action is intentionally\n          // disabled \u2014 outputs are intended to define generation formats and\n          // their inferred fields, not to implicitly create form tabs.\n          safe(() => {\n            if (createFormBtn) createFormBtn.style.display = 'none';\n          });\n\n          outPane.appendChild(outContent);\n          contents.appendChild(outPane);\n        })();\n\n        // Add a dedicated 'Templates' tab where the templates JSON can be edited.\n        // Only add when devMode is enabled.\n        (function addTemplatesTab() {\n          if (!devMode) return;\n          const tplIndex = formConfig.length + 1;\n          const tplTab = document.createElement('div');\n          tplTab.className = 'tab right';\n          tplTab.textContent = 'Forms';\n          tplTab.dataset.index = tplIndex;\n          tplTab.dataset.templates = 'true';\n          tplTab.addEventListener(\n            'click',\n            wrapHandler(() => activateTab(tplIndex))\n          );\n          tabbar.appendChild(tplTab);\n\n          const tplPane = document.createElement('div');\n          tplPane.className = 'tab-pane';\n          tplPane.style.display = 'none';\n          tplPane.dataset.index = tplIndex;\n          tplPane.dataset.templates = 'true';\n\n          const paneContent = document.createElement('div');\n          paneContent.className = 'tab-content';\n          const label = document.createElement('label');\n          label.textContent = 'Forms';\n          paneContent.appendChild(label);\n\n          // Inline help explaining how to edit templates\n          const help = document.createElement('div');\n          help.className = 'meta';\n          help.style.marginTop = '8px';\n          help.innerHTML = `\n            <strong>How to edit forms:</strong>\n            <ul style=\"margin:6px 0 0 18px;padding:0;\">\n              <li>Select an existing form-definition or click <em>+ New</em> to create one.</li>\n              <li><em>Label</em>: a friendly name shown in selects.</li>\n              <li>\n                <em>Template</em>: a JSON object that controls output formatting. Common forms:\n                <ul>\n                  <li><strong>type: \"template\"</strong> \u2014 use placeholders like <code>{firstName}</code>. When a field exposes a combined input (see <em>Fields</em> below), you can reference the combined value as <code>{fieldName_combined}</code> or the explicit per-field value as <code>{fieldName}</code>.</li>\n                  <li><strong>type: \"sprintf\"</strong> \u2014 use Python-style tokens like <code>%(firstName)s</code>.</li>\n                  <li><strong>Blank/JSON fallback</strong> \u2014 leave the template blank to output raw JSON.</li>\n                </ul>\n              </li>\n              <li>\n                <em>Fields</em>: a JSON array of field definitions. Example:\n                <code>[ { \"label\": \"Name\", \"name\": \"firstName\", \"type\": \"text\" } ]</code>.\n                For step-like fields use <code>\"type\":\"steps\"</code>. A steps field provides:\n                <ul>\n                  <li>a top combined input named <code>FIELD_combined</code> (e.g. <code>tasks_combined</code>) where users enter values like <code>Step 1 &gt; Step 2</code>;</li>\n                  <li>and per-step inputs named <code>FIELD</code> (plus optional <code>FIELD_key</code>) created when parsing the combined string.</li>\n                </ul>\n                The generator prefers the combined input when present (use <code>{FIELD_combined}</code> in templates), but form-definitions can also handle arrays or combined strings \u2014 the runtime will format arrays as numbered lists when appropriate.\n                <p>To include headings inside the form, add a field with <code>\"type\":\"header\"</code>. Use <code>label</code> for the heading text and optionally <code>level</code> (1-6) or <code>size</code> (<code>h1</code>.. <code>h6</code>) to control the heading element.</p>\n                <p>To layout fields side-by-side, set a field's <code>inline</code> property to <code>true</code> and optionally provide <code>width</code> (e.g. <code>\"45%\"</code> or <code>\"200px\"</code>); default width is <code>45%</code>.</p>\n                <p>Fields support an optional <code>placeholder</code> property. When generating fields from a template, placeholders default to an empty string.</p>\n                <p><strong>Steps fields:</strong> step-like fields (<code>\"type\":\"steps\"</code>) now support a <code>keyMode</code> property to control the default per-step key style. Supported values:\n                <code>\"none\"</code> (no key), <code>\"numbered\"</code> (1., 2., ...), or <code>\"bullet\"</code> (-). Example field definition:\n                <pre style=\"background:#f4f7fb;padding:8px;border-radius:6px;margin:6px 0;\">{ \"label\": \"Tasks\", \"name\": \"tasks\", \"type\": \"steps\", \"keyMode\": \"numbered\" }</pre>\n                When a form defines <code>keyMode</code> the steps UI will initialize the Default key selector accordingly so parsed or added step rows inherit that style.</p>\n              </li>\n              <li>Click <em>Save</em> to apply \u2014 left-side form tabs update immediately and form definitions are persisted to localStorage (only form definitions are saved; user-entered form values are never persisted).</li>\n            </ul>`;\n          paneContent.appendChild(help);\n          // Add brief export instructions to the Forms pane so users know how to\n          // generate an HTML export of the configuration.\n          const exportHelp = document.createElement('div');\n          exportHelp.className = 'meta';\n          exportHelp.style.marginTop = '8px';\n          exportHelp.textContent =\n            'To export the current forms and outputs, use the Export HTML button in the header \u2014 you can save to a file or copy the exported HTML to your clipboard.';\n          paneContent.appendChild(exportHelp);\n\n          // (Outputs selector moved below so Templates select remains the first select in the pane)\n\n          const tplSelectorRow = document.createElement('div');\n          tplSelectorRow.style.display = 'flex';\n          tplSelectorRow.style.alignItems = 'center';\n          tplSelectorRow.style.gap = '8px';\n          tplSelectorRow.style.marginTop = '8px';\n          const tplSelect = document.createElement('select');\n          tplSelect.autocomplete = 'off';\n          tplSelect.style.flex = '1';\n          const addBtn = document.createElement('button');\n          addBtn.type = 'button';\n          addBtn.className = 'btn';\n          addBtn.textContent = '+ New';\n          tplSelectorRow.appendChild(tplSelect);\n          tplSelectorRow.appendChild(addBtn);\n          paneContent.appendChild(tplSelectorRow);\n\n          // Outputs selector for choosing an existing output before creating a template\n          const outSelectorRow = document.createElement('div');\n          outSelectorRow.style.display = 'flex';\n          outSelectorRow.style.alignItems = 'center';\n          outSelectorRow.style.gap = '8px';\n          outSelectorRow.style.marginTop = '8px';\n          const outSelect = document.createElement('select');\n          outSelect.autocomplete = 'off';\n          outSelect.style.flex = '1';\n          outSelect.dataset.outputsSelector = 'true';\n          function refreshOutSelect() {\n            outSelect.innerHTML = '';\n            outputs.forEach((o) => {\n              const op = document.createElement('option');\n              op.value = o.id;\n              op.textContent = o.label || o.id;\n              outSelect.appendChild(op);\n            });\n          }\n          refreshOutSelect();\n          // When an Output is selected in the Forms pane, populate the\n          // Template (JSON) and Fields textareas with that Output's data.\n          function loadSelectedOutput() {\n            const id = outSelect.value;\n            const o = outputsMap[id] || outputs.find((x) => x.id === id) || null;\n            if (!o) {\n              safe(() => {\n                if (cfgTa) cfgTa.value = '';\n              });\n              safe(() => {\n                if (fieldsTa) fieldsTa.value = '';\n              });\n              return;\n            }\n            try {\n              if (\n                o.cfg &&\n                typeof o.cfg === 'object' &&\n                o.cfg.type === 'template' &&\n                typeof o.cfg.template === 'string'\n              ) {\n                try {\n                  if (typeof cfgSimple !== 'undefined' && typeof advChk !== 'undefined') {\n                    cfgSimple.value = o.cfg.template;\n                    cfgTa.value = JSON.stringify(o.cfg, null, 2);\n                    autosizeTextarea(cfgSimple);\n                    autosizeTextarea(cfgTa);\n                    advChk.checked = false;\n                    cfgTa.style.display = 'none';\n                    cfgSimple.style.display = '';\n                  } else {\n                    cfgTa.value = o.cfg.template;\n                  }\n                } catch (e) {\n                  cfgTa.value = o.cfg.template;\n                }\n              } else {\n                try {\n                  if (typeof cfgSimple !== 'undefined' && typeof advChk !== 'undefined') {\n                    cfgTa.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';\n                    cfgSimple.value = '';\n                    autosizeTextarea(cfgSimple);\n                    autosizeTextarea(cfgTa);\n                    advChk.checked = true;\n                    cfgTa.style.display = '';\n                    cfgSimple.style.display = 'none';\n                  } else {\n                    cfgTa.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';\n                    autosizeTextarea(cfgTa);\n                  }\n                } catch (e) {\n                  cfgTa.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';\n                  autosizeTextarea(cfgTa);\n                }\n              }\n            } catch (e) {\n              cfgTa.value = '';\n              autosizeTextarea(cfgTa);\n            }\n            try {\n              fieldsTa.value = o.fields ? JSON.stringify(o.fields, null, 2) : '';\n              autosizeTextarea(fieldsTa);\n            } catch (e) {\n              fieldsTa.value = '';\n              autosizeTextarea(fieldsTa);\n            }\n          }\n          outSelect.addEventListener('change', wrapHandler(loadSelectedOutput));\n          // initialize the panes with the selected output (if any)\n          safe(() => loadSelectedOutput());\n          const outLabel = document.createElement('div');\n          outLabel.className = 'meta';\n          outLabel.textContent = 'Output:';\n          outSelectorRow.appendChild(outLabel);\n          outSelectorRow.appendChild(outSelect);\n          paneContent.appendChild(outSelectorRow);\n\n          const labelRow = document.createElement('div');\n          labelRow.style.marginTop = '8px';\n          const lblLabel = document.createElement('label');\n          lblLabel.textContent = 'Label';\n          const lblInput = document.createElement('input');\n          lblInput.type = 'text';\n          lblInput.style.width = '100%';\n          lblInput.autocomplete = 'off';\n          labelRow.appendChild(lblLabel);\n          labelRow.appendChild(lblInput);\n          paneContent.appendChild(labelRow);\n\n          const cfgLabel = document.createElement('label');\n          cfgLabel.textContent = 'Template (JSON)';\n          cfgLabel.style.marginTop = '8px';\n          // raw JSON textarea (advanced)\n          const cfgTa = document.createElement('textarea');\n          cfgTa.rows = 6;\n          cfgTa.style.width = '100%';\n          cfgTa.placeholder = '{ \"type\": \"template\", \"template\": \"Hello {firstName}\" }';\n          cfgTa.autocomplete = 'off';\n          // simple template input for non-advanced users\n          const cfgSimple = document.createElement('textarea');\n          cfgSimple.rows = 2;\n          cfgSimple.style.width = '100%';\n          cfgSimple.placeholder = 'Hello {firstName}';\n          cfgSimple.autocomplete = 'off';\n          // advanced toggle\n          const advRow = document.createElement('div');\n          advRow.style.display = 'flex';\n          advRow.style.alignItems = 'center';\n          advRow.style.gap = '8px';\n          advRow.style.marginTop = '6px';\n          const advChk = document.createElement('input');\n          advChk.type = 'checkbox';\n          advChk.autocomplete = 'off';\n          const advLbl = document.createElement('div');\n          advLbl.className = 'meta';\n          advLbl.textContent = 'Advanced (raw JSON)';\n          advRow.appendChild(advChk);\n          advRow.appendChild(advLbl);\n          paneContent.appendChild(cfgLabel);\n          paneContent.appendChild(advRow);\n          paneContent.appendChild(cfgTa);\n          // default to simple view\n          cfgTa.style.display = 'none';\n          advChk.addEventListener(\n            'change',\n            wrapHandler(() => {\n              if (advChk.checked) {\n                cfgTa.style.display = '';\n                cfgSimple.style.display = 'none';\n              } else {\n                cfgTa.style.display = 'none';\n                cfgSimple.style.display = '';\n              }\n            })\n          );\n\n          const fieldsLabel = document.createElement('label');\n          fieldsLabel.textContent = 'Fields (JSON array)';\n          fieldsLabel.style.marginTop = '8px';\n          const fieldsTa = document.createElement('textarea');\n          fieldsTa.rows = 8;\n          fieldsTa.style.width = '100%';\n          fieldsTa.placeholder = '[ { \"label\": \"Name\", \"name\": \"firstName\", \"type\": \"text\" } ]';\n          fieldsTa.autocomplete = 'off';\n          paneContent.appendChild(fieldsLabel);\n          paneContent.appendChild(fieldsTa);\n          // append the simple template textarea after the fields textarea so\n          // existing tests that index textareas continue to work (fields textarea\n          // remains the second textarea)\n          paneContent.appendChild(cfgSimple);\n\n          const saveBtn = document.createElement('button');\n          saveBtn.className = 'btn';\n          saveBtn.type = 'button';\n          saveBtn.textContent = 'Save';\n          const loadBtn = document.createElement('button');\n          loadBtn.className = 'btn';\n          loadBtn.type = 'button';\n          loadBtn.textContent = 'Load';\n          loadBtn.style.marginLeft = '8px';\n          const delBtn = document.createElement('button');\n          delBtn.className = 'btn warn';\n          delBtn.type = 'button';\n          delBtn.textContent = 'Delete';\n          delBtn.style.marginLeft = '8px';\n          const resetBtn = document.createElement('button');\n          resetBtn.className = 'btn warn';\n          resetBtn.type = 'button';\n          resetBtn.textContent = 'Reset to defaults';\n          resetBtn.style.marginLeft = '8px';\n          paneContent.appendChild(saveBtn);\n          paneContent.appendChild(loadBtn);\n          paneContent.appendChild(delBtn);\n          paneContent.appendChild(resetBtn);\n\n          // helper: populate selector\n          function refreshTplSelect() {\n            tplSelect.innerHTML = '';\n            forms.forEach((t) => {\n              const o = document.createElement('option');\n              o.value = t.id;\n              o.textContent = t.label || t.id;\n              tplSelect.appendChild(o);\n            });\n          }\n          refreshTplSelect();\n          // Default the forms select to the most-recent form so reopening\n          // the pane shows the last-created form by default.\n          safe(() => {\n            if (forms && forms.length) tplSelect.value = forms[forms.length - 1].id;\n          });\n\n          function loadSelected() {\n            const id = tplSelect.value;\n            const t = forms.find((x) => x.id === id);\n            if (!t) {\n              lblInput.value = '';\n              cfgTa.value = '';\n              fieldsTa.value = '';\n              return;\n            }\n            lblInput.value = t.label || '';\n            try {\n              const json = t.cfg ? JSON.stringify(t.cfg, null, 2) : '';\n              if (typeof cfgSimple !== 'undefined' && typeof advChk !== 'undefined') {\n                // If this template is a simple template object, prefer showing\n                // the simple textarea; otherwise show the raw JSON in advanced.\n                if (\n                  t.cfg &&\n                  typeof t.cfg === 'object' &&\n                  t.cfg.type === 'template' &&\n                  typeof t.cfg.template === 'string'\n                ) {\n                  cfgSimple.value = t.cfg.template;\n                  cfgTa.value = json;\n                  advChk.checked = false;\n                  cfgTa.style.display = 'none';\n                  cfgSimple.style.display = '';\n                } else {\n                  cfgTa.value = json;\n                  cfgSimple.value = '';\n                  advChk.checked = true;\n                  cfgTa.style.display = '';\n                  cfgSimple.style.display = 'none';\n                }\n              } else {\n                cfgTa.value = json;\n              }\n            } catch (e) {\n              cfgTa.value = '';\n            }\n            try {\n              fieldsTa.value = t.fields ? JSON.stringify(t.fields, null, 2) : '';\n            } catch (e) {\n              fieldsTa.value = '';\n            }\n          }\n          tplSelect.addEventListener('change', wrapHandler(loadSelected));\n          loadSelected();\n\n          addBtn.addEventListener(\n            'click',\n            wrapHandler(() => {\n              // Require an existing Output to be selected before creating a Template\n              const outId = outSelect && outSelect.value ? outSelect.value : null;\n              if (!outId) {\n                alert('Please select an existing Output first.');\n                return;\n              }\n              const baseOut = outputsMap[outId] || null;\n              // Auto-populate the Label input with the selected Output's displayed name (option text)\n              if (lblInput && (!lblInput.value || String(lblInput.value).trim() === '')) {\n                let displayLabel = null;\n                if (\n                  outSelect &&\n                  typeof outSelect.selectedIndex === 'number' &&\n                  outSelect.options &&\n                  outSelect.options.length\n                ) {\n                  displayLabel = outSelect.options[outSelect.selectedIndex].textContent || null;\n                }\n                if (!displayLabel && baseOut && baseOut.label) displayLabel = baseOut.label;\n                if (displayLabel) lblInput.value = displayLabel;\n              }\n              const id = `custom-${Date.now()}`;\n              let baseCfg = null;\n              try {\n                if (baseOut && baseOut.cfg) {\n                  if (typeof baseOut.cfg === 'string')\n                    baseCfg = { type: 'template', template: baseOut.cfg };\n                  else baseCfg = JSON.parse(JSON.stringify(baseOut.cfg));\n                }\n              } catch (e) {\n                baseCfg = null;\n              }\n              const nt = {\n                id,\n                label: lblInput.value || (baseOut && baseOut.label) || id,\n                cfg: baseCfg,\n                fields: baseOut && baseOut.fields ? JSON.parse(JSON.stringify(baseOut.fields)) : [],\n                outputId: outId,\n              };\n              forms.push(nt);\n              formsMap = rebuildMap(forms);\n              storageSet(KEYS.forms, forms);\n              refreshTplSelect();\n              tplSelect.value = id;\n              loadSelected();\n              // Also add this template as an option to existing form panes' template selects\n              addTemplateOptionToFormPanes(id, nt.label || id);\n              // Do NOT auto-create a form tab; templates now reference outputs separately.\n            })\n          );\n\n          // Load: create a form tab for the selected template if none exists\n          loadBtn.addEventListener(\n            'click',\n            wrapHandler(() => {\n              const id = tplSelect.value;\n              if (!id) return;\n              // Preserve current form values across the DOM rebuild so loading\n              // a template doesn't clear data entered in other tabs.\n              const allPrev = captureValuesByForm();\n\n              safe(() => {\n                const t = forms.find((x) => x.id === id) || formsMap[id];\n                if (!t) return;\n                const cfgCopy = t.cfg\n                  ? typeof t.cfg === 'string'\n                    ? { type: 'template', template: t.cfg }\n                    : deepCopy(t.cfg)\n                  : null;\n                // Found by WHAT the tab is (`_formId`), not by its current\n                // Template selection. An existing tab is RELOADED in place from\n                // the saved definition \u2014 this used to be a silent no-op, so a\n                // tab that could not be unloaded could not be refreshed either,\n                // and \"edit \u2192 reload \u2192 export\" had no working path.\n                let at = formConfig.findIndex((x) => x && x._formId === id);\n                if (at >= 0) {\n                  formConfig[at].fields = deepCopy(t.fields || []);\n                  if (formConfig[at]._templateId === id) formConfig[at].format = cfgCopy;\n                } else {\n                  formConfig.push({\n                    title: t.label || id,\n                    format: cfgCopy,\n                    fields: deepCopy(t.fields || []),\n                    _formId: id,\n                    _templateId: id,\n                  });\n                  at = formConfig.length - 1;\n                }\n                formsMap = rebuildMap(forms);\n                safe(() => persistFormMap());\n                build();\n                safe(() => restoreValuesByForm(allPrev));\n                safe(() => activateTab(at));\n              });\n              // keep templates pane active: after `build()` the templates tab\n              // element was recreated and its dataset.index may have changed.\n              // Re-query the current templates tab (.tab.right) and activate it.\n              try {\n                const newTplTab = q(tabbar, '.tab.right[data-templates=\"true\"]');\n                if (newTplTab) activateTab(Number(newTplTab.dataset.index));\n              } catch (e) {}\n            })\n          );\n\n          // Unload button handled elsewhere in templates pane; per-form Unload exists below when devMode enabled.\n\n          saveBtn.addEventListener(\n            'click',\n            wrapHandler(() => {\n              // debug removed\n              const id = tplSelect.value;\n              // debug special removed\n              // debug removed\n              const t = forms.find((x) => x.id === id);\n              if (!t) return;\n              t.label = lblInput.value || t.label || t.id;\n              try {\n                const raw = String(\n                  typeof advChk !== 'undefined' && advChk.checked\n                    ? cfgTa.value || ''\n                    : typeof cfgSimple !== 'undefined'\n                    ? cfgSimple.value\n                    : cfgTa.value || ''\n                ).trim();\n                if (!raw) {\n                  t.cfg = null;\n                } else {\n                  if (raw[0] === '{' || raw[0] === '[') {\n                    t.cfg = JSON.parse(raw);\n                  } else {\n                    t.cfg = { type: 'template', template: raw };\n                  }\n                }\n              } catch (e) {\n                try {\n                  // If advanced view is enabled, highlight cfgTa, otherwise cfgSimple\n                  try {\n                    if (typeof advChk !== 'undefined' && advChk.checked)\n                      highlightJsonError(cfgTa, e);\n                    else highlightJsonError(cfgSimple, e);\n                  } catch (ex) {}\n                } catch (ex) {}\n                alert('Invalid template config JSON: ' + e.message);\n                return;\n              }\n              try {\n                const parsedFields = fieldsTa.value.trim() ? JSON.parse(fieldsTa.value) : [];\n                if (!Array.isArray(parsedFields)) throw new Error('Fields must be an array');\n                t.fields = parsedFields;\n              } catch (e) {\n                safe(() => highlightJsonError(fieldsTa, e));\n                alert('Invalid fields JSON: ' + e.message);\n                return;\n              }\n              // Associate the template with the currently selected Output (if any)\n              if (outSelect && outSelect.value) t.outputId = outSelect.value;\n              // Apply the saved definition to the tabs that use it, found by\n              // identity rather than position:\n              //   fields \u2192 every tab that IS this form        (_formId)\n              //   format \u2192 every tab that has it SELECTED     (_templateId)\n              // Two faults lived here. Built-in forms wrote to `formConfig[N]`\n              // parsed out of `tpl-N` \u2014 wrong the moment an Unload shifted the\n              // tabs. And custom forms skipped any tab the user had typed into,\n              // so an edit silently never reached it (the reason unload-and-\n              // reload was needed at all). Typed values survive the rebuild\n              // below by field name, so there is nothing to protect here.\n              safe(() => {\n                const fmt = t.cfg\n                  ? typeof t.cfg === 'string'\n                    ? { type: 'template', template: t.cfg }\n                    : deepCopy(t.cfg)\n                  : null;\n                formConfig.forEach((tab) => {\n                  if (!tab) return;\n                  if (tab._formId === t.id) {\n                    tab.fields = deepCopy(t.fields || []);\n                    // A loaded form's tab is titled by its label; a built-in\n                    // keeps its own title (its label may be a format label).\n                    if (!/^tpl-\\d+$/.test(t.id)) tab.title = t.label || tab.title;\n                  }\n                  if (tab._templateId === t.id) tab.format = fmt;\n                });\n              });\n              formsMap = rebuildMap(forms);\n              storageSet(KEYS.forms, forms);\n              // persist any mapping changes made by save\n              safe(() => persistFormMap());\n              // preserve templates tab and selection after rebuild\n              const preserveIndex = tplPane.dataset.index;\n              const preserveId = t.id;\n              const allPrev = captureAllFormValues();\n              safe(() => build());\n              safe(() => restoreAllFormValues(allPrev));\n              safe(() => {\n                activateTab(Number(preserveIndex));\n                const newPane = q(contents, `.tab-pane[data-index='${preserveIndex}']`);\n                if (newPane) {\n                  const newSelect = q(newPane, 'select');\n                  if (newSelect) {\n                    newSelect.value = preserveId;\n                    newSelect.dispatchEvent(new Event('change'));\n                  }\n                  // status appended after applying to form panes below\n                }\n              });\n              // Also trigger change on any form panes that currently have this template selected\n              try {\n                suppressTabActivation = true;\n                for (let fi = 0; fi < formConfig.length; fi++) {\n                  const formPane = q(contents, `.tab-pane[data-index='${fi}']`);\n                  if (!formPane) continue;\n                  const formTpl = q(formPane, 'select');\n                  if (!formTpl) continue;\n                  if (formTpl.value === preserveId) {\n                    formTpl.dispatchEvent(new Event('change'));\n                  }\n                }\n              } finally {\n                suppressTabActivation = false;\n              }\n              // re-activate templates tab and show saved status (after form panes updated)\n              safe(() => {\n                activateTab(Number(preserveIndex));\n                const tplPane = q(contents, `.tab-pane[data-index='${preserveIndex}']`);\n                if (tplPane) {\n                  const status = document.createElement('div');\n                  status.className = 'meta';\n                  status.textContent = 'Saved';\n                  status.style.marginTop = '8px';\n                  const tplPaneContent = q(tplPane, '.tab-content');\n                  if (tplPaneContent) tplPaneContent.appendChild(status);\n                  setTimeout(() => status.remove(), 1800);\n                }\n              });\n            })\n          );\n\n          delBtn.addEventListener(\n            'click',\n            wrapHandler(() => {\n              let _proceed2 = true;\n              safe(\n                () => {\n                  if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) {\n                    _proceed2 = true; // auto-accept in test/jsdom environment\n                  } else if (typeof window.confirm === 'function') {\n                    _proceed2 = !!window.confirm(\n                      'Delete this form/template? This action cannot be undone.'\n                    );\n                  }\n                },\n                undefined,\n                () => {\n                  _proceed2 = true;\n                }\n              );\n              if (!_proceed2) return;\n              const id = tplSelect.value;\n              // debug removed\n              const preserveIndex = tplPane.dataset.index;\n              forms = forms.filter((x) => x.id !== id);\n              formsMap = rebuildMap(forms);\n              storageSet(KEYS.forms, forms);\n              // update persisted mapping after deletion\n              safe(() => persistFormMap());\n              refreshTplSelect();\n              loadSelected();\n              // A deleted custom form takes its tab with it \u2014 the tab that IS it\n              // (`_formId`), not whichever tab merely has it selected as an\n              // output template. Capture values first, keyed by tab, so the\n              // tabs that shift down keep their own.\n              const allPrev = captureValuesByForm();\n              safe(() => {\n                if (id && id.startsWith('custom-')) {\n                  for (let j = formConfig.length - 1; j >= 0; j--) {\n                    if (formConfig[j] && formConfig[j]._formId === id) formConfig.splice(j, 1);\n                  }\n                }\n                // A tab left pointing at the deleted template falls back to its own.\n                formConfig.forEach((tab) => {\n                  if (tab && tab._templateId === id) tab._templateId = tab._formId;\n                });\n              });\n              safe(() => persistFormMap());\n              safe(() => build());\n              safe(() => restoreValuesByForm(allPrev));\n              // pick first available template in the templates pane (no status yet)\n              safe(() => {\n                activateTab(Number(preserveIndex));\n                const newPane = q(contents, `.tab-pane[data-index='${preserveIndex}']`);\n                if (newPane) {\n                  const newSelect = q(newPane, 'select');\n                  if (newSelect && newSelect.options.length) newSelect.selectedIndex = 0;\n                }\n              });\n\n              // If any form panes used the deleted template, remove the option\n              // and ensure panes update via the centralized helper.\n              removeTemplateOptionFromFormPanes(id);\n\n              // finally re-activate templates tab and show Deleted status\n              safe(() => {\n                const newTplTab = q(tabbar, '.tab.right[data-templates=\"true\"]');\n                if (newTplTab) {\n                  activateTab(Number(newTplTab.dataset.index));\n                  const finalPane = q(\n                    contents,\n                    `.tab-pane[data-index='${newTplTab.dataset.index}']`\n                  );\n                  if (finalPane) {\n                    const status = document.createElement('div');\n                    status.className = 'meta';\n                    status.textContent = 'Deleted';\n                    status.style.marginTop = '8px';\n                    const finalPaneContent = q(finalPane, '.tab-content');\n                    if (finalPaneContent) finalPaneContent.appendChild(status);\n                    setTimeout(() => status.remove(), 1800);\n                  }\n                }\n              });\n            })\n          );\n\n          resetBtn.addEventListener(\n            'click',\n            wrapHandler(() => {\n              const preserveIndex = tplPane.dataset.index;\n              localStorage.removeItem(KEYS.forms);\n              // remove persisted per-tab form mapping as well\n              safe(() => {\n                localStorage.removeItem(formMapKey);\n                // \u2026and the saved tab list, so a refresh after Reset shows the\n                // original tabs rather than the set that was just reset.\n                localStorage.removeItem(KEYS.tabs);\n                formMap = {};\n              });\n              forms = deepCopy(defaultTemplates);\n              formsMap = rebuildMap(forms);\n              refreshTplSelect();\n              loadSelected();\n              // Restore the original SET of tabs \u2014 unloaded ones come back,\n              // loaded ones go \u2014 rather than pasting originals over whatever\n              // now sits at each position. By index, one Unload earlier meant\n              // every later tab received its neighbour's original fields.\n              const allPrev = captureValuesByForm();\n              safe(() => {\n                const fresh = deepCopy(originalFormConfig) || [];\n                fresh.forEach((t, idx) => {\n                  t._formId = `tpl-${idx}`;\n                  t._templateId = `tpl-${idx}`;\n                });\n                formConfig.splice(0, formConfig.length, ...fresh);\n              });\n              safe(() => build());\n              safe(() => restoreValuesByForm(allPrev));\n              safe(() => {\n                const newTplTab = q(tabbar, '.tab.right[data-templates=\"true\"]');\n                if (newTplTab) {\n                  activateTab(Number(newTplTab.dataset.index));\n                  const newPane = q(contents, `.tab-pane[data-index='${newTplTab.dataset.index}']`);\n                  if (newPane) {\n                    const newSelect = q(newPane, 'select');\n                    if (newSelect) {\n                      if (newSelect.options.length) newSelect.selectedIndex = 0;\n                      newSelect.dispatchEvent(new Event('change'));\n                    }\n                    // re-query the pane after dispatch in case the DOM was rebuilt\n                    const freshPane = q(\n                      contents,\n                      `.tab-pane[data-index='${newTplTab.dataset.index}']`\n                    );\n                    const targetPane = freshPane || newPane;\n                    // Do not append status here \u2014 the DOM may be rebuilt by subsequent\n                    // programmatic change events. Status will be appended after all\n                    // programmatic updates complete.\n                  }\n                }\n              });\n              // After reset, ensure form panes point to a valid template and trigger change\n              try {\n                suppressTabActivation = true;\n                for (let fi = 0; fi < formConfig.length; fi++) {\n                  const formPane = q(contents, `.tab-pane[data-index='${fi}']`);\n                  if (!formPane) continue;\n                  const formTpl = q(formPane, 'select');\n                  if (!formTpl) continue;\n                  // if the currently selected option is no longer present, select first\n                  if (!q(formTpl, `option[value=\"${formTpl.value}\"]`)) {\n                    if (formTpl.options.length) {\n                      formTpl.selectedIndex = 0;\n                      formTpl.dispatchEvent(new Event('change'));\n                    }\n                  }\n                }\n              } finally {\n                suppressTabActivation = false;\n              }\n              // Ensure Templates tab remains active after programmatic changes\n              safe(() => {\n                const newTplTab = q(tabbar, '.tab.right[data-templates=\"true\"]');\n                if (newTplTab) {\n                  activateTab(Number(newTplTab.dataset.index));\n                  // append status after final activation so it isn't removed by rebuild\n                  safe(() => {\n                    const finalPane = q(\n                      contents,\n                      `.tab-pane[data-index='${newTplTab.dataset.index}']`\n                    );\n                    if (finalPane) {\n                      const status = document.createElement('div');\n                      status.className = 'meta';\n                      status.textContent = 'Reset to defaults';\n                      status.style.marginTop = '8px';\n                      const container = q(finalPane, '.tab-content');\n                      if (container) container.appendChild(status);\n                      setTimeout(() => status.remove(), 1800);\n                    }\n                  });\n                }\n              });\n            })\n          );\n\n          tplPane.appendChild(paneContent);\n          contents.appendChild(tplPane);\n        })();\n\n        activateTab(0);\n      }\n\n      function activateTab(index) {\n        Array.from(tabbar.children).forEach((t) =>\n          t.classList.toggle('active', Number(t.dataset.index) === index)\n        );\n        Array.from(contents.children).forEach(\n          (p) => (p.style.display = Number(p.dataset.index) === index ? '' : 'none')\n        );\n      }\n\n      // Scans other tabs for values matching field names in target tab.\n      // Returns array of items {name, value, fromTabIndex, fromTabTitle, found}\n      function scanPopulate(targetIndex, previewContainer) {\n        const targetPane = q(contents, `.tab-pane[data-index='${targetIndex}']`);\n        const targetForm = q(targetPane, 'form.generated-form');\n        const targetNames = Array.from(targetForm.elements)\n          .map((e) => e.name)\n          .filter(Boolean)\n          .filter((n) => !n.endsWith('_key') && !n.endsWith('_combined'));\n        const items = targetNames.map((n) => ({ name: n, candidates: [] }));\n\n        formConfig.forEach((tab, ti) => {\n          if (ti === targetIndex) return;\n          const pane = q(contents, `.tab-pane[data-index='${ti}']`);\n          if (!pane) return;\n          const form = q(pane, 'form.generated-form');\n          if (!form) return;\n          targetNames.forEach((name, idx) => {\n            // consider both normal inputs and a possible combined input from other tabs\n            const combinedName = name + '_combined';\n            const els = qAll(\n              form,\n              `[name=\"${CSS.escape(name)}\"], [name=\"${CSS.escape(combinedName)}\"]`\n            );\n            if (!els || els.length === 0) return;\n            // Prefer a combined input if present in the source form; this\n            // ensures pre-parsed values (e.g. \"steps_combined\") are offered\n            // as candidates instead of individual per-step inputs.\n            const combinedEl = els.find((e) => e.name === combinedName);\n            if (combinedEl) {\n              const v = combinedEl.value !== undefined ? combinedEl.value : '';\n              if (String(v).trim() !== '')\n                items[idx].candidates.push({ value: v, fromTab: ti, fromTitle: tab.title });\n              return;\n            }\n            // collect candidate(s) from this tab for normal inputs\n            if (els[0].type === 'radio') {\n              const checked = els.find((e) => e.checked);\n              if (checked)\n                items[idx].candidates.push({\n                  value: checked.value || '',\n                  fromTab: ti,\n                  fromTitle: tab.title,\n                });\n            } else if (els[0].type === 'checkbox') {\n              const checked = els.find((e) => e.checked);\n              if (checked)\n                items[idx].candidates.push({\n                  value: checked.value || 'on',\n                  fromTab: ti,\n                  fromTitle: tab.title,\n                });\n            } else {\n              // prefer first non-empty value among matching elements\n              for (const e of els) {\n                if (e.value !== undefined && String(e.value).trim() !== '') {\n                  items[idx].candidates.push({ value: e.value, fromTab: ti, fromTitle: tab.title });\n                  break;\n                }\n              }\n            }\n          });\n        });\n\n        // render preview with multiple candidate choices per field\n        previewContainer.innerHTML = '';\n        items.forEach((it) => {\n          const row = document.createElement('div');\n          row.className = 'preview-item';\n          const label = document.createElement('div');\n          label.style.flex = '1';\n          const name = document.createElement('div');\n          name.className = 'small';\n          name.textContent = it.name;\n          label.appendChild(name);\n\n          if (it.candidates.length === 0) {\n            const none = document.createElement('div');\n            none.className = 'meta';\n            none.textContent = 'no value found';\n            label.appendChild(none);\n          } else {\n            const list = document.createElement('div');\n            // add keep-current option first (default) and show the current value\n            const keepOpt = document.createElement('div');\n            keepOpt.style.display = 'flex';\n            keepOpt.style.alignItems = 'center';\n            keepOpt.style.gap = '8px';\n            keepOpt.style.padding = '2px 0';\n            const keepRadio = document.createElement('input');\n            keepRadio.type = 'radio';\n            keepRadio.autocomplete = 'off';\n            keepRadio.name = `choose-${targetIndex}-${it.name}`;\n            keepRadio.value = '__keep__';\n            keepRadio.checked = true;\n            // determine current value from the target form\n            const currentVal = safe(() => {\n              const currentEls = qAll(targetForm, `[name=\"${CSS.escape(it.name)}\"]`);\n              if (currentEls && currentEls.length) {\n                if (currentEls[0].type === 'radio') {\n                  const c = currentEls.find((e) => e.checked);\n                  if (c) return c.value || '';\n                } else if (currentEls[0].type === 'checkbox') {\n                  const c = currentEls.find((e) => e.checked);\n                  if (c) return c.value || 'on';\n                } else {\n                  return currentEls[0].value || '';\n                }\n              }\n              return '';\n            }, '');\n            const keepTxt = document.createElement('div');\n            keepTxt.className = 'meta';\n            keepTxt.textContent = `${currentVal || ''} (Keep current)`;\n            keepOpt.appendChild(keepRadio);\n            keepOpt.appendChild(keepTxt);\n            list.appendChild(keepOpt);\n\n            it.candidates.forEach((c, ci) => {\n              const opt = document.createElement('div');\n              opt.style.display = 'flex';\n              opt.style.alignItems = 'center';\n              opt.style.gap = '8px';\n              opt.style.padding = '2px 0';\n              const r = document.createElement('input');\n              r.type = 'radio';\n              r.autocomplete = 'off';\n              r.name = `choose-${targetIndex}-${it.name}`;\n              r.value = String(ci);\n              const txt = document.createElement('div');\n              txt.className = 'meta';\n              txt.textContent = `${c.value} (from ${c.fromTitle})`;\n              opt.appendChild(r);\n              opt.appendChild(txt);\n              list.appendChild(opt);\n            });\n            label.appendChild(list);\n          }\n\n          row.appendChild(label);\n          previewContainer.appendChild(row);\n          it._candidates = it.candidates; // store for later\n        });\n\n        // Apply selected button\n        const applyBtn = document.createElement('button');\n        applyBtn.className = 'btn';\n        applyBtn.type = 'button';\n        applyBtn.textContent = 'Apply Selected';\n        applyBtn.style.marginTop = '8px';\n        applyBtn.addEventListener(\n          'click',\n          wrapHandler(() => {\n            const selections = [];\n            items.forEach((it) => {\n              const radios = qAll(\n                previewContainer,\n                `input[name=\"choose-${targetIndex}-${it.name}\"]`\n              );\n              if (!radios || radios.length === 0) return;\n              const checked = Array.from(radios).find((r) => r.checked);\n              if (!checked) return;\n              const ci = Number(checked.value);\n              const cand = it._candidates && it._candidates[ci];\n              if (cand) selections.push({ name: it.name, value: cand.value });\n            });\n            applyPreviewSelections(targetIndex, selections);\n          })\n        );\n        previewContainer.appendChild(applyBtn);\n\n        return items;\n      }\n\n      // Resolve one \"{name}\" token for a `type: \"template\"` output.\n      //  - an explicit value (even \"\") is returned as-is (arrays joined by \\n)\n      //  - otherwise the \"<name>_combined\" value is used, formatted as a\n      //    numbered list when it is an array or a \">\"-separated string\n      function formatTemplateToken(name, values) {\n        const hasExplicit = values && Object.prototype.hasOwnProperty.call(values, name);\n        if (hasExplicit) {\n          const val = values[name];\n          if (Array.isArray(val)) return val.join('\\n');\n          return val !== undefined && val !== null ? String(val) : '';\n        }\n        let val;\n        if (values && Object.prototype.hasOwnProperty.call(values, name + '_combined')) {\n          val = values[name + '_combined'];\n        }\n        if (Array.isArray(val)) return toNumberedList(val);\n        if (typeof val === 'string' && val.includes('>')) return toNumberedList(splitSteps(val));\n        return val !== undefined && val !== null ? String(val) : '';\n      }\n\n      const fillNamedTokens = (tpl, values) =>\n        String(tpl || '').replace(/\\{([^}]+)\\}/g, (_, name) =>\n          values && values[name] !== undefined ? values[name] : ''\n        );\n\n      // Generate output based on format configuration and values object\n      function generateOutput(formatCfg, values) {\n        if (!formatCfg) return JSON.stringify(values, null, 2);\n        if (typeof formatCfg === 'string') return fillNamedTokens(formatCfg, values);\n        const tpl = formatCfg.template || '';\n        if (formatCfg.type === 'template') {\n          return tpl.replace(/\\{([^}]+)\\}/g, (_, name) => formatTemplateToken(name, values));\n        }\n        if (formatCfg.type === 'sprintf') {\n          // support Python-style named tokens: %(name)s\n          return tpl.replace(/%\\(([^)]+)\\)s/g, (_, name) =>\n            values[name] !== undefined ? values[name] : ''\n          );\n        }\n        return JSON.stringify(values, null, 2);\n      }\n\n      function applyPreviewSelections(targetIndex, selections) {\n        const targetPane = q(contents, `.tab-pane[data-index='${targetIndex}']`);\n        const targetForm = q(targetPane, 'form.generated-form');\n        selections.forEach((sel) => {\n          // resolve field config for this target tab + field name\n          const fieldCfg =\n            formConfig[targetIndex] && formConfig[targetIndex].fields\n              ? formConfig[targetIndex].fields.find((f) => f.name === sel.name)\n              : null;\n          // find the combined input for steps fields (if any) so we can\n          // mirror combined values into the top input when applying selections\n          const combinedInput = q(targetForm, `[name=\"${CSS.escape(sel.name + '_combined')}\"]`);\n          // If this field's type is 'steps' and there are no inputs yet, create items\n          if (fieldCfg && fieldCfg.type === 'steps') {\n            const parts = splitSteps(sel.value);\n            const existing = qAll(targetForm, `[name=\"${CSS.escape(sel.name)}\"]`);\n            const container = q(targetForm, `.steps-container[data-name=\"${sel.name}\"]`);\n            const list = container && q(container, '.steps-list');\n            if (parts.length > 1) {\n              // clear existing list\n              if (list) list.innerHTML = '';\n              // create inputs per part\n              parts.forEach((p) => {\n                if (list) createStepRow(sel.name, parseStepPart(p), container, list);\n              });\n              // Also update the combined input so the combined representation\n              // is visible to the user after applying the selection.\n              safe(() => {\n                if (combinedInput) combinedInput.value = sel.value;\n              });\n            }\n          }\n\n          const els = qAll(targetForm, `[name=\"${CSS.escape(sel.name)}\"]`);\n          if (!els || els.length === 0) return;\n          // radios\n          if (els[0].type === 'radio') {\n            els.forEach((r) => {\n              r.checked = r.value == sel.value;\n            });\n            return;\n          }\n          // checkboxes\n          if (els[0].type === 'checkbox') {\n            els.forEach((c) => {\n              c.checked = !!sel.value && String(sel.value) !== 'false' && String(sel.value) !== '0';\n            });\n            return;\n          }\n          // For steps fields, if sel.value contains '>' distribute values\n          if (fieldCfg && fieldCfg.type === 'steps' && String(sel.value || '').includes('>')) {\n            const parts = splitSteps(sel.value);\n            // locate container/list up-front so it's available to the entire block\n            const container = q(targetForm, `.steps-container[data-name=\"${sel.name}\"]`);\n            const list = container && q(container, '.steps-list');\n            // ensure we have enough inputs\n            if (parts.length > els.length) {\n              for (let i = els.length; i < parts.length; i++) {\n                if (list) createStepRow(sel.name, '', container, list);\n              }\n            }\n            const newEls = qAll(targetForm, `[name=\"${CSS.escape(sel.name)}\"]`);\n            const newKeys = qAll(targetForm, `[name=\"${CSS.escape(sel.name + '_key')}\"]`);\n            parts.forEach((p, idx) => {\n              const { key, val } = parseStepPart(p);\n              if (newEls[idx]) newEls[idx].value = val;\n              if (newKeys[idx]) {\n                if (key) newKeys[idx].value = key;\n                else if (container && container.dataset) {\n                  newKeys[idx].value =\n                    container.dataset.keyMode === 'numbered'\n                      ? String(idx + 1)\n                      : container.dataset.keyMode === 'bullet'\n                      ? '-'\n                      : newKeys[idx].value;\n                }\n              }\n            });\n            // mirror the combined string into the top combined input if present\n            safe(() => {\n              if (combinedInput) combinedInput.value = sel.value;\n            });\n            return;\n          }\n\n          // text/select/textarea - set first element's value\n          const e = els[0];\n          e.value = sel.value;\n          // if this is a steps field, also update the combined input\n          if (fieldCfg && fieldCfg.type === 'steps' && combinedInput)\n            combinedInput.value = sel.value;\n        });\n      }\n\n      // initial build\n      build();\n\n      // Theme handling: toggle dark mode and persist choice\n      (function () {\n        const key = KEYS.theme;\n        const btn = document.getElementById('themeToggle');\n        function applyTheme(t) {\n          if (t === 'dark') document.documentElement.classList.add('dark');\n          else document.documentElement.classList.remove('dark');\n          if (btn) btn.textContent = t === 'dark' ? 'Light' : 'Dark';\n        }\n        const saved =\n          storageGet(key) ||\n          (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches\n            ? 'dark'\n            : 'light');\n        applyTheme(saved);\n        if (btn)\n          btn.addEventListener(\n            'click',\n            wrapHandler(() => {\n              const isDark = document.documentElement.classList.toggle('dark');\n              const next = isDark ? 'dark' : 'light';\n              storageSet(key, next);\n              if (btn) btn.textContent = isDark ? 'Light' : 'Dark';\n            })\n          );\n      })();\n    <\/script>\n  </body>\n</html>\n";
+    module2.exports = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Note Form Generator</title>
+    <style>
+      :root {
+        --bg: #f7f9fc;
+        --card: #ffffff;
+        --text: #111216;
+        --accent: #2b8cff;
+        --muted: #666666;
+        --border: #e9eef6;
+        --panel: #fbfdff;
+      }
+      .dark {
+        --bg: #0b1220;
+        --card: #0f1724;
+        --text: #e6eef8;
+        --accent: #4aa3ff;
+        --muted: #94a9c2;
+        --border: #253244;
+        --panel: #071226;
+      }
+      body {
+        font-family: Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        transition: background 0.18s, color 0.18s;
+      }
+      .container {
+        max-width: 960px;
+        margin: 28px auto;
+        padding: 18px;
+        background: var(--card);
+        border-radius: 8px;
+        box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .top {
+        /* keep the header stable and prevent reflow when tabs change */
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        padding-bottom: 8px;
+      }
+      .top h1 {
+        flex: 0 0 auto;
+      }
+      .top-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0;
+      }
+      .tabs {
+        display: flex;
+        gap: 6px;
+        margin-top: 14px;
+        border-bottom: 1px solid var(--border);
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+      }
+      .tab {
+        padding: 10px 14px;
+        cursor: pointer;
+        border-radius: 6px 6px 0 0;
+        color: var(--muted);
+        flex: 0 0 auto;
+      }
+      .tab.right {
+        margin-left: auto;
+      }
+      .tab.active {
+        background: linear-gradient(180deg, #fff, #f4f8ff);
+        color: var(--accent);
+        box-shadow: 0 -4px 12px rgba(43, 140, 255, 0.06);
+        border-bottom: 2px solid #fff;
+      }
+      /* Reordering (dev mode): drag a tab, or use Move left / Move right. */
+      .tab[draggable='true'] {
+        cursor: grab;
+      }
+      .tab.dragging {
+        opacity: 0.45;
+      }
+      .tab.drop-before {
+        box-shadow: inset 3px 0 0 var(--accent);
+      }
+      .tab.drop-after {
+        box-shadow: inset -3px 0 0 var(--accent);
+      }
+      .tab-content {
+        padding: 18px;
+      }
+      .field {
+        margin-bottom: 12px;
+      }
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 600;
+      }
+      input[type='text'],
+      input[type='number'],
+      select,
+      textarea {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--text);
+      }
+      .subtabs {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      .subtab {
+        padding: 6px 10px;
+        border-radius: 6px;
+        background: transparent;
+        border: 1px solid var(--border);
+        cursor: pointer;
+        color: var(--muted);
+      }
+      .subtab.active {
+        background: var(--accent);
+        color: #fff;
+      }
+      .btn {
+        display: inline-block;
+        padding: 8px 12px;
+        border-radius: 6px;
+        background: var(--accent);
+        color: #fff;
+        border: 0;
+        cursor: pointer;
+      }
+      .btn.warn {
+        background: #e05252;
+        color: #fff;
+        border: 0;
+      }
+      .btn.ghost {
+        background: #f2f6ff;
+        color: var(--accent);
+        border: 1px solid #d7e7ff;
+      }
+      /* A disabled button must look it \u2014 e.g. "\u2190 Left" on the first tab. */
+      .btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .btn-warn {
+        background: #e05252;
+        color: #fff;
+        border: 0;
+      }
+      .btn-warn.ghost {
+        background: #fff5f5;
+        color: #e05252;
+        border: 1px solid #ffd6d6;
+      }
+      .meta {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .preview-list {
+        border: 1px solid var(--border);
+        padding: 10px;
+        border-radius: 6px;
+        background: var(--panel);
+      }
+      .field-header {
+        margin: 8px 0;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .preview-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 0;
+        border-bottom: 1px dashed #f0f4fb;
+      }
+      .preview-item:last-child {
+        border-bottom: none;
+      }
+      .field-inline {
+        display: inline-block;
+        vertical-align: top;
+        margin-right: 4%;
+        box-sizing: border-box;
+        max-width: 100%;
+      }
+      .small {
+        font-size: 13px;
+        color: #333;
+      }
+      /* Dev toggle switch */
+      .switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: 6px;
+      }
+      .switch input {
+        display: none;
+      }
+      .switch .knob {
+        width: 40px;
+        height: 20px;
+        background: #d7dbe0;
+        border-radius: 20px;
+        position: relative;
+        transition: background 0.15s;
+        box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.03);
+      }
+      .switch .knob::after {
+        content: '';
+        position: absolute;
+        left: 3px;
+        top: 3px;
+        width: 14px;
+        height: 14px;
+        background: #fff;
+        border-radius: 50%;
+        transition: left 0.15s;
+        box-shadow: 0 1px 2px rgba(2, 6, 23, 0.08);
+      }
+      .switch input:checked + .knob {
+        background: var(--accent);
+      }
+      .switch input:checked + .knob::after {
+        left: 23px;
+      }
+      .switch .label {
+        font-size: 13px;
+        color: var(--muted);
+        user-select: none;
+      }
+      .footer {
+        margin-top: 12px;
+        border-top: 1px solid var(--border);
+        padding-top: 10px;
+        text-align: center;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .footer-inner {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 0 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="top">
+        <h1>Note Form Generator</h1>
+        <div class="top-controls">
+          <button id="themeToggle" class="btn ghost" type="button" aria-label="Toggle dark mode">
+            Dark
+          </button>
+        </div>
+      </div>
+
+      <div id="tabbar" class="tabs"></div>
+      <div id="contents"></div>
+    </div>
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="meta">Copyright \xA9\uFE0F 2026 Valithor Obsidion &lt;valithor@discordphp.org&gt;</div>
+      </div>
+    </footer>
+
+    <script>
+      const formConfig =
+        window.formConfig && Array.isArray(window.formConfig) ? window.formConfig : [];
+
+      // Keep a pristine copy of the original formConfig so we can restore defaults
+      const originalFormConfig = JSON.parse(JSON.stringify(formConfig));
+
+      // A short, stable fingerprint of the tabs this page was SHIPPED with. The
+      // saved tab list only applies to the page it was saved from: if the
+      // original tabs change \u2014 a new export, or an embedding page that updates
+      // its built-in tabs \u2014 the saved list is stale (its built-in ids are
+      // positions in the OLD list) and the page's own tabs win instead.
+      const seedPrint = (() => {
+        const s = JSON.stringify(originalFormConfig);
+        let h = 5381;
+        for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+        return (h >>> 0).toString(36) + '.' + s.length.toString(36);
+      })();
+      // Unique id for tabs made on the fly (New / Duplicate).
+      const uid = (prefix) =>
+        prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+      const tabbar = document.getElementById('tabbar');
+      const contents = document.getElementById('contents');
+
+      // Small safety helpers to reduce repetitive try/catch boilerplate
+      const DEBUG = false;
+      const safe = (fn, fallback = undefined, onError) => {
+        try {
+          return fn();
+        } catch (e) {
+          try {
+            if (onError) onError(e);
+            else if (DEBUG && console && console.error) console.error(e);
+          } catch (ex) {}
+          return fallback;
+        }
+      };
+      const safeParse = (s, fallback = null) => {
+        if (s === undefined || s === null) return fallback;
+        return safe(() => JSON.parse(s), fallback);
+      };
+      const q = (root, sel) => safe(() => (root || document).querySelector(sel), null);
+      const qAll = (root, sel) =>
+        safe(() => Array.from((root || document).querySelectorAll(sel)), []);
+      const storageGet = (k, fallback = null) =>
+        safe(() => safeParse(localStorage.getItem(k), fallback), fallback);
+      const storageSet = (k, v) =>
+        safe(() => localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)));
+      const wrapHandler = (fn) => (ev) => {
+        try {
+          const res = fn(ev);
+          if (res && typeof res.then === 'function') {
+            res.catch((e) => {
+              try {
+                if (DEBUG && console && console.error) console.error(e);
+              } catch (ex) {}
+            });
+          }
+        } catch (e) {
+          try {
+            if (DEBUG && console && console.error) console.error(e);
+          } catch (ex) {}
+        }
+      };
+      const safeJson = (obj) =>
+        safe(
+          () =>
+            JSON.stringify(obj)
+              .replace(/</g, '\\\\u003c')
+              .replace(/\\u2028/g, '\\\\u2028')
+              .replace(/\\u2029/g, '\\\\u2029'),
+          'null'
+        );
+
+      // localStorage keys \\u2014 one place so the export seed and the runtime agree.
+      const KEYS = {
+        forms: 'nfg-forms',
+        outputs: 'nfg-outputs',
+        formMap: 'nfg-form-map',
+        devMode: 'nfg-dev-mode',
+        theme: 'nfg-theme',
+        // the tab list itself \u2014 which tabs are open, in order (see persistFormMap)
+        tabs: 'nfg-tabs',
+        // which export last seeded this browser's storage (see Export)
+        seed: 'nfg-seed',
+      };
+
+      // \`id -> item\` lookup for a list; rebuilt wherever the list changes so the
+      // array and its index never drift apart.
+      function rebuildMap(arr) {
+        return Object.fromEntries((arr || []).map((x) => [x && x.id, x]));
+      }
+
+      // Declarative element builder. Replaces the createElement + property/style
+      // /listener sequences that made up most of the DOM code.
+      //   el('button', { className: 'btn', type: 'button', text: 'Save',
+      //                  style: { marginLeft: '8px' }, onclick: fn }, childNode)
+      function el(tag, props, ...children) {
+        const node = document.createElement(tag);
+        if (props) {
+          Object.keys(props).forEach((k) => {
+            const v = props[k];
+            if (v == null) return;
+            if (k === 'style' && typeof v === 'object') Object.assign(node.style, v);
+            else if (k === 'dataset' && typeof v === 'object') Object.assign(node.dataset, v);
+            else if (k === 'class' || k === 'className') node.className = v;
+            else if (k === 'text' || k === 'textContent') node.textContent = v;
+            else if (k === 'html' || k === 'innerHTML') node.innerHTML = v;
+            else if (k.slice(0, 2) === 'on' && typeof v === 'function')
+              node.addEventListener(k.slice(2).toLowerCase(), v);
+            else if (k in node) node[k] = v;
+            else node.setAttribute(k, v);
+          });
+        }
+        children.flat().forEach((c) => {
+          if (c == null || c === false) return;
+          node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+        });
+        return node;
+      }
+
+      // --- steps parsing / numbered-list formatting -------------------------
+      // Shared by the steps UI, value restore, the populate flow and output
+      // generation, which each used to re-inline these three operations.
+
+      // "A > B > C" -> ['A', 'B', 'C']  (blank segments dropped)
+      function splitSteps(str) {
+        return String(str == null ? '' : str)
+          .split('>')
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+
+      // "key => value" -> { key: 'key', val: 'value' };  "plain" -> { key: '', val: 'plain' }
+      function parseStepPart(part) {
+        const p = String(part == null ? '' : part);
+        if (p.includes('=>')) {
+          const [k, ...rest] = p.split('=>');
+          return { key: k.trim(), val: rest.join('=>').trim() };
+        }
+        return { key: '', val: p.trim() };
+      }
+
+      // Drop a leading "1. ", "2) ", "- ", "* " or bullet so re-numbering is clean.
+      function stripListPrefix(s) {
+        return String(s == null ? '' : s)
+          .replace(/^\\s*(?:\\d+[.)]\\s*)?(?:[-*\\u2022]\\s*)?/, '')
+          .trim();
+      }
+
+      // ['A','1. B'] -> "\\n 1. A\\n 2. B"  (leading newline, one space indent)
+      function toNumberedList(items) {
+        const cleaned = (items || []).map(stripListPrefix);
+        if (cleaned.length === 0) return '';
+        return '\\n' + cleaned.map((v, i) => \` \${i + 1}. \${v}\`).join('\\n');
+      }
+
+      // --- form value capture / restore -----------------------------------
+      // One implementation of "read every named control into a map" and "write
+      // a map back", used by the rebuild-preserving flows (New / Duplicate /
+      // dev toggle / Load) and the top-level capture/restore helpers.
+
+      function formValues(form) {
+        const map = {};
+        if (!form) return map;
+        Array.from(form.elements).forEach((e) => {
+          if (!e.name) return;
+          const val = e.type === 'checkbox' ? (e.checked ? e.value || 'on' : '') : e.value;
+          if (Object.prototype.hasOwnProperty.call(map, e.name)) {
+            if (!Array.isArray(map[e.name])) map[e.name] = [map[e.name]];
+            map[e.name].push(val);
+          } else {
+            map[e.name] = val;
+          }
+        });
+        return map;
+      }
+
+      // When a "<field>_combined" value is restored, rebuild the per-step rows
+      // so the steps UI matches (click the adjacent Parse button if present,
+      // otherwise populate the list directly).
+      function maybeRestoreCombinedSteps(form, nm, pv) {
+        if (typeof nm !== 'string' || !nm.endsWith('_combined')) return;
+        if (typeof pv !== 'string' || !pv.trim()) return;
+        const base = nm.slice(0, -9);
+        const first = q(form, \`[name="\${CSS.escape(nm)}"]\`);
+        if (!first) return;
+        const parseBtn = first.nextElementSibling;
+        if (parseBtn && parseBtn.textContent && /Parse/.test(parseBtn.textContent)) {
+          parseBtn.click();
+          return;
+        }
+        const container = q(form, \`.steps-container[data-name="\${CSS.escape(base)}"]\`);
+        const list = container && q(container, '.steps-list');
+        if (!list) return;
+        list.innerHTML = '';
+        splitSteps(pv).forEach((p) => createStepRow(base, parseStepPart(p), container, list));
+      }
+
+      function applyValues(form, prev) {
+        if (!form || !prev) return;
+        Object.keys(prev).forEach((nm) => {
+          safe(() => {
+            const els = qAll(form, \`[name="\${CSS.escape(nm)}"]\`);
+            if (!els || els.length === 0) return;
+            const pv = prev[nm];
+            if (els[0].type === 'radio') {
+              els.forEach((r) => (r.checked = r.value == pv));
+              return;
+            }
+            if (els[0].type === 'checkbox') {
+              els.forEach((c) => {
+                c.checked = Array.isArray(pv)
+                  ? pv.includes(c.value)
+                  : !!pv && String(pv) !== 'false' && String(pv) !== '0';
+              });
+              return;
+            }
+            if (Array.isArray(pv)) {
+              for (let k = 0; k < els.length && k < pv.length; k++) els[k].value = pv[k];
+            } else {
+              els[0].value = pv;
+              safe(() => maybeRestoreCombinedSteps(form, nm, pv));
+            }
+          });
+        });
+      }
+
+      // Helper to download a string as a file (used by export flow)
+      function downloadFile(content, filename = 'nfg-export.html', type = 'text/html') {
+        safe(() => {
+          const blob = new Blob([content], { type });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+        });
+      }
+
+      // Small DOM helpers for option population and select syncing
+      function createOption(value, text) {
+        return safe(() => {
+          const o = document.createElement('option');
+          o.value = value;
+          o.textContent = text;
+          return o;
+        });
+      }
+
+      function refreshOutputsSelectors() {
+        safe(() => {
+          const sels = qAll(document, 'select[data-outputs-selector="true"]');
+          sels.forEach((sel) => {
+            sel.innerHTML = '';
+            outputs.forEach((o) => sel.appendChild(createOption(o.id, o.label || o.id)));
+          });
+        });
+      }
+
+      function addTemplateOptionToFormPanes(id, label) {
+        safe(() => {
+          for (let fi = 0; fi < formConfig.length; fi++) {
+            const paneEl = q(contents, \`.tab-pane[data-index='\${fi}']\`);
+            if (!paneEl) continue;
+            const sel = q(paneEl, 'select');
+            if (!sel) continue;
+            if (!q(sel, \`option[value="\${id}"]\`)) sel.appendChild(createOption(id, label || id));
+          }
+        });
+      }
+
+      // Remove a template option from all per-form template selects.
+      // If a select had the removed option selected, pick the first option
+      // and dispatch a change event so the pane updates. Suppress tab
+      // activation while making programmatic changes to avoid side-effects.
+      function removeTemplateOptionFromFormPanes(id) {
+        safe(() => {
+          try {
+            suppressTabActivation = true;
+            for (let fi = 0; fi < formConfig.length; fi++) {
+              const paneEl = q(contents, \`.tab-pane[data-index='\${fi}']\`);
+              if (!paneEl) continue;
+              const sel = q(paneEl, 'select');
+              if (!sel) continue;
+              const opt = q(sel, \`option[value="\${id}"]\`);
+              if (!opt) continue;
+              const wasSelected = String(sel.value) === String(id);
+              safe(() => opt.remove());
+              if (wasSelected) {
+                safe(() => {
+                  if (sel.options.length) {
+                    sel.selectedIndex = 0;
+                    sel.dispatchEvent(new Event('change'));
+                  }
+                });
+              }
+            }
+          } finally {
+            suppressTabActivation = false;
+          }
+        });
+      }
+
+      // Dev mode toggle: when true, Templates pane and per-form Unload buttons are visible.
+      // Persisted in localStorage key 'nfg-dev-mode'. Default is false to preserve current behavior.
+      const devKey = KEYS.devMode;
+      let devMode = false;
+      const s = storageGet(devKey);
+      if (s !== null) devMode = s === 'true' || s === true;
+
+      // create a small Dev toggle switch next to theme toggle
+      (function addDevToggleBtn() {
+        safe(() => {
+          const header = q(document, '.top > div');
+          if (!header) return;
+          const wrapper = document.createElement('label');
+          wrapper.className = 'switch';
+          wrapper.dataset.devToggle = 'true';
+          wrapper.style.marginLeft = '6px';
+          // inner structure: checkbox + knob + label
+          wrapper.innerHTML = \`<input id="devToggle" type="checkbox" \${
+            devMode ? 'checked' : ''
+          }><span class="knob"></span><span class="label">\${devMode ? 'Dev On' : 'Dev Off'}</span>\`;
+          const checkbox = q(wrapper, 'input');
+          if (checkbox) checkbox.autocomplete = 'off';
+          const textLabel = q(wrapper, '.label');
+          // export button (visible only in dev mode)
+          const exportBtn = document.createElement('button');
+          exportBtn.type = 'button';
+          exportBtn.className = 'btn ghost';
+          exportBtn.textContent = 'Export HTML';
+          exportBtn.style.marginLeft = '8px';
+          exportBtn.style.display = devMode ? '' : 'none';
+          exportBtn.dataset.exportButton = 'true';
+          exportBtn.addEventListener(
+            'click',
+            wrapHandler(async () => {
+              try {
+                const seed = [];
+                // Safely serialize JSON for embedding inside a <script> tag.
+                // Uses top-level \`safeJson\` helper.
+                // The exported file rebuilds its built-in forms \`tpl-0..N\` from
+                // the tabs it is seeded with, BY POSITION. So after an Unload the
+                // old \`tpl-N\` definitions no longer line up: shipping them would
+                // hand tab 0 of the new file the definition of whatever used to
+                // be tab 0 in this one. Ship the tabs as they are now instead \u2014
+                // current fields, and the format of the form each tab IS \u2014 and
+                // let \`tpl-*\` regenerate from them. Custom forms are not
+                // positional and ship unchanged.
+                const isBuiltIn = (id) => id === '__json__' || /^tpl-\\d+$/.test(String(id));
+                const oldToNew = {};
+                const exportedTabs = formConfig.map((tab, ei) => {
+                  if (tab && tab._formId) oldToNew[tab._formId] = \`tpl-\${ei}\`;
+                  const def = tab && tab._formId ? formsMap[tab._formId] : null;
+                  let format = deepCopy(tab.format === undefined ? null : tab.format);
+                  if (def && Object.prototype.hasOwnProperty.call(def, 'cfg')) {
+                    format =
+                      typeof def.cfg === 'string'
+                        ? { type: 'template', template: def.cfg }
+                        : deepCopy(def.cfg);
+                  }
+                  return { title: tab.title, fields: deepCopy(tab.fields || []), format };
+                });
+                // The tab list lives in the page, not in storage \u2014 set it every load.
+                const tabsLine = 'window.formConfig = ' + safeJson(exportedTabs) + ';';
+                safe(() =>
+                  seed.push(
+                    "localStorage.setItem('nfg-forms', " +
+                      safeJson(forms.filter((f) => f && !isBuiltIn(f.id))) +
+                      ');'
+                  )
+                );
+                safe(() =>
+                  seed.push("localStorage.setItem('nfg-outputs', " + safeJson(outputs) + ');')
+                );
+                safe(() => {
+                  // Each tab's Template selection, renumbered: a \`tpl-*\` choice
+                  // follows its tab to that tab's new position (or is dropped
+                  // if that tab was not exported); a custom choice is kept.
+                  const exportMap = {};
+                  formConfig.forEach((tab, ei) => {
+                    const sel = tab && tab._templateId;
+                    if (!sel) return;
+                    if (isBuiltIn(sel)) {
+                      if (oldToNew[sel]) exportMap[ei] = oldToNew[sel];
+                    } else if (formsMap && formsMap[sel]) {
+                      exportMap[ei] = sel;
+                    }
+                  });
+                  seed.push("localStorage.setItem('nfg-form-map', " + safeJson(exportMap) + ');');
+                });
+                safe(() => seed.push("localStorage.setItem('nfg-dev-mode', 'false');"));
+                // Storage is seeded ONCE per export, not on every load. It used
+                // to run on every open, so anything edited inside an exported
+                // file \u2014 forms, template choices \u2014 was overwritten by the next
+                // refresh, and dev mode switched itself back off each time. The
+                // id marks which export last seeded this browser; a different
+                // export (or a fresh browser) still gets seeded.
+                const exportId =
+                  'nfg-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+                const idJson = safeJson(exportId);
+                const seedScript =
+                  \`<script data-nfg-seed>try{\${tabsLine}}catch(e){}\` +
+                  \`try{if(localStorage.getItem('\${KEYS.seed}')!==\${idJson}){\${seed.join('')}\` +
+                  \`localStorage.setItem('\${KEYS.seed}',\${idJson});}}catch(e){}<\\/script>\`;
+                // create a cleaned clone of the document and remove dev UI elements
+                const docClone = document.documentElement.cloneNode(true);
+                safe(() => {
+                  const toRemove = qAll(docClone, '[data-dev-toggle], [data-export-button]');
+                  toRemove.forEach((n) => n.remove());
+                  // Strip every EARLIER export's seed. Exporting an exported file
+                  // clones a document that still carries its old seed; the new one
+                  // went in ahead of it, so the old one ran last and won \u2014 a
+                  // re-export of a fixed file opened as the version before the fix.
+                  // Seeds from before the marker existed are recognised by their
+                  // opening statement.
+                  qAll(docClone, 'body script').forEach((n) => {
+                    if (
+                      n.hasAttribute('data-nfg-seed') ||
+                      /^\\s*try\\{\\s*window\\.formConfig\\s*=/.test(n.textContent || '')
+                    )
+                      n.remove();
+                  });
+                });
+                let html = '<!doctype html>\\n' + docClone.outerHTML;
+                html = html.replace(/<body([^>]*)>/i, (m, attrs) => \`<body\${attrs}>\${seedScript}\`);
+                // Ask user whether to copy to clipboard or save file. If clipboard
+                // isn't available, fall back to saving file.
+                let wantCopy = false;
+                safe(() => {
+                  if (typeof window.confirm === 'function') {
+                    wantCopy = window.confirm(
+                      'Copy exported HTML to clipboard? Press OK to copy, Cancel to save to a file.'
+                    );
+                  }
+                });
+
+                if (wantCopy && navigator.clipboard && navigator.clipboard.writeText) {
+                  try {
+                    await navigator.clipboard.writeText(html);
+                    alert('Exported HTML copied to clipboard');
+                  } catch (e) {
+                    // fallback to saving file if clipboard fails
+                    downloadFile(html);
+                  }
+                } else {
+                  downloadFile(html);
+                }
+              } catch (err) {
+                alert('Export failed: ' + (err && err.message));
+              }
+            })
+          );
+          function apply() {
+            storageSet(devKey, devMode ? 'true' : 'false');
+            if (checkbox) checkbox.checked = devMode;
+            if (textLabel) textLabel.textContent = 'Dev';
+            if (exportBtn) exportBtn.style.display = devMode ? '' : 'none';
+            // Preserve all current form values across the rebuild so toggling
+            // dev mode doesn't clear user input.
+            const allPrev = captureAllFormValues();
+            safe(() => build());
+            safe(() => restoreAllFormValues(allPrev));
+          }
+          checkbox.addEventListener(
+            'change',
+            wrapHandler(() => {
+              devMode = !!checkbox.checked;
+              apply();
+            })
+          );
+          // Place the Export button to the left of the theme toggle so enabling
+          // dev mode doesn't drastically shift layout. Insert before the
+          // \`#themeToggle\` button when present, otherwise append.
+          const themeBtnEl = q(header, '#themeToggle');
+          if (themeBtnEl) header.insertBefore(exportBtn, themeBtnEl);
+          else header.appendChild(exportBtn);
+          // Keep the dev toggle after the theme button (end of controls)
+          header.appendChild(wrapper);
+          apply();
+        });
+      })();
+
+      // A tab carries two ids that used to be one:
+      //   _formId     \u2014 WHICH form definition this tab is. Stable. Load, Unload,
+      //                 Save and Delete find a tab by this.
+      //   _templateId \u2014 which output template the tab has SELECTED in its
+      //                 Template dropdown. Changes freely; drives formatting only.
+      // Conflating them meant picking a different output template silently changed
+      // what the tab *was* \u2014 so whether Unload, Load or Save could find a tab
+      // depended on a dropdown.
+      const deepCopy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
+
+      // Build list of available templates (include JSON fallback)
+      const defaultTemplates = [{ id: '__json__', label: '__json__', cfg: null }];
+      // Create a default template entry for every tab so each tab has a template option
+      formConfig.forEach((t, idx) => {
+        const id = \`tpl-\${idx}\`;
+        const label = t.format && t.format.label ? t.format.label : \`\${t.title}\`;
+        const cfg = t.format ? deepCopy(t.format) : null;
+        // Built-in forms carry the tab's FIELDS. They used to be created without
+        // any, so opening a built-in tab in the Forms editor showed an empty
+        // Fields box \u2014 and saving it (even just to rename it) wrote that empty
+        // list back onto the tab, deleting every field.
+        defaultTemplates.push({ id, label, cfg, fields: deepCopy(t.fields || []) });
+        t._templateId = id;
+        t._formId = id;
+      });
+
+      // Load editable forms from localStorage if present, otherwise merge with defaults
+      let forms;
+      // Load persisted forms (parsed) via storageGet which handles safety
+      const parsedForms = storageGet(KEYS.forms, null);
+      if (Array.isArray(parsedForms)) {
+        // Copies, not the defaults themselves: Save edits a form object in
+        // place, and sharing them made every edit rewrite the "pristine"
+        // defaults \u2014 so Reset to defaults handed the edited versions back.
+        const map = Object.fromEntries(deepCopy(defaultTemplates).map((t) => [t.id, t]));
+        for (const s of parsedForms) {
+          if (s && s.id) map[s.id] = s;
+        }
+        forms = Object.values(map);
+      }
+      if (!forms) forms = deepCopy(defaultTemplates);
+
+      // map for quick lookup
+      let formsMap = rebuildMap(forms);
+
+      // Reopen the tabs as they were left, when they were saved from THIS page's
+      // original tabs (see \`seedPrint\`). Built-in ids were assigned from those
+      // original tabs just above, so a saved \`tpl-N\` still means the same tab.
+      // A tab whose form definition has since been deleted is dropped; tabs
+      // made on the fly (New / Duplicate) carry their own \`adhoc-\` identity.
+      safe(() => {
+        const saved = storageGet(KEYS.tabs, null);
+        if (!saved || saved.seed !== seedPrint || !Array.isArray(saved.tabs)) return;
+        const restored = saved.tabs
+          .filter(
+            (t) =>
+              t &&
+              Array.isArray(t.fields) &&
+              typeof t._formId === 'string' &&
+              (formsMap[t._formId] || t._formId.startsWith('adhoc-'))
+          )
+          .map((t) => {
+            const tab = deepCopy(t);
+            // A Template choice that no longer exists falls back to the tab's
+            // own form \u2014 or, for a tab made on the fly, to plain JSON output.
+            if (!tab._templateId || !formsMap[tab._templateId]) {
+              tab._templateId = formsMap[tab._formId] ? tab._formId : '__json__';
+            }
+            return tab;
+          });
+        formConfig.splice(0, formConfig.length, ...restored);
+      });
+
+      // A SAVED definition wins over the tab's own copy of its fields. Tabs
+      // render \`formConfig[i].fields\`, while the Forms editor saves to
+      // \`nfg-forms\` \u2014 two copies with nothing reconciling them on load, so a
+      // page refresh put the OLD fields back on the tab while the edit sat
+      // unused in storage (and an export after the refresh shipped the old ones).
+      // Only definitions that were actually saved apply; format stays with the
+      // tab's Template selection, which is restored from the form map below.
+      if (Array.isArray(parsedForms)) {
+        const saved = rebuildMap(parsedForms);
+        formConfig.forEach((t) => {
+          const def = t && t._formId ? saved[t._formId] : null;
+          if (def && Array.isArray(def.fields)) t.fields = deepCopy(def.fields);
+        });
+      }
+      // Outputs: separate persisted output definitions (format + fields)
+      const outputsKey = KEYS.outputs;
+      let outputs;
+      // Load persisted outputs via storageGet (returns parsed value)
+      const parsedOut = storageGet(outputsKey, null);
+      if (Array.isArray(parsedOut)) outputs = parsedOut;
+      // if no persisted outputs, derive defaults from formConfig
+      if (!outputs) {
+        outputs = [];
+        for (let i = 0; i < formConfig.length; i++) {
+          const f = formConfig[i];
+          outputs.push({
+            id: \`out-\${i}\`,
+            label: f.title || \`Output \${i}\`,
+            cfg: f.format ? JSON.parse(JSON.stringify(f.format)) : null,
+            fields: f.fields ? JSON.parse(JSON.stringify(f.fields)) : [],
+          });
+        }
+      }
+      let outputsMap = rebuildMap(outputs);
+      // key for persisting per-tab form selection (map index -> formId)
+      const formMapKey = KEYS.formMap;
+      let formMap = {};
+      // try to load saved mapping and apply to formConfig
+      // Load persisted per-tab form mapping using storageGet
+      const parsedMap = storageGet(formMapKey, null);
+      if (parsedMap && typeof parsedMap === 'object') {
+        formMap = parsedMap;
+        Object.keys(parsedMap).forEach((k) => {
+          const idx = Number(k);
+          const id = parsedMap[k];
+          if (!Number.isNaN(idx) && formConfig[idx] && formsMap[id]) {
+            formConfig[idx]._templateId = id;
+          }
+        });
+      }
+
+      function persistFormMap() {
+        const map = {};
+        for (let i = 0; i < formConfig.length; i++) {
+          if (formConfig[i] && formConfig[i]._templateId && formsMap[formConfig[i]._templateId]) {
+            map[i] = formConfig[i]._templateId;
+          }
+        }
+        formMap = map;
+        // use storageSet which handles JSON serialization and safety
+        storageSet(formMapKey, map);
+        // And the tab list itself. It used to live only in memory, so Unload,
+        // Load, New and Duplicate lasted until the next refresh: an unloaded tab
+        // came back, a loaded one vanished, and only an Export kept either.
+        // Typed values are deliberately NOT saved, as before.
+        storageSet(KEYS.tabs, {
+          seed: seedPrint,
+          tabs: formConfig.map((t) => ({
+            title: t.title,
+            fields: t.fields,
+            format: t.format === undefined ? null : t.format,
+            _formId: t._formId,
+            _templateId: t._templateId,
+          })),
+        });
+      }
+      // Capture all current form values across tabs. Returns an object
+      // mapping pane dataset.index -> { name: value | [values] }
+      function captureAllFormValues() {
+        const allPrev = {};
+        safe(() => {
+          qAll(contents, '.tab-pane').forEach((pane) => {
+            const form = q(pane, 'form.generated-form');
+            if (form) allPrev[pane.dataset.index] = formValues(form);
+          });
+        });
+        return allPrev;
+      }
+
+      // Restore values captured by \`captureAllFormValues\` into the rebuilt DOM.
+      function restoreAllFormValues(allPrev) {
+        safe(() => {
+          Object.keys(allPrev || {}).forEach((nameIdx) => {
+            const pane = q(contents, \`.tab-pane[data-index='\${nameIdx}']\`);
+            if (!pane) return;
+            applyValues(q(pane, 'form.generated-form'), allPrev[nameIdx] || {});
+          });
+        });
+      }
+      // The same pair keyed by the TAB (its \`_formId\`) instead of its position.
+      // Removing a tab shifts every later tab down one; restoring by index then
+      // poured each tab's typed values into its neighbour. Use these around any
+      // change that removes, inserts or reorders tabs.
+      function captureValuesByForm() {
+        const byIdx = captureAllFormValues();
+        const out = {};
+        Object.keys(byIdx).forEach((k) => {
+          const t = formConfig[Number(k)];
+          if (t && t._formId) out[t._formId] = byIdx[k];
+        });
+        return out;
+      }
+      function restoreValuesByForm(byForm) {
+        const byIdx = {};
+        formConfig.forEach((t, i) => {
+          if (t && t._formId && byForm && byForm[t._formId]) byIdx[i] = byForm[t._formId];
+        });
+        restoreAllFormValues(byIdx);
+      }
+      // Move the tab at \`from\` to position \`to\`. Typed values travel with their
+      // tab (keyed by identity, not position), the new order is saved with the
+      // tab list, and an Export ships it. \`refocus\` names the Move button to put
+      // focus back on, so holding a key to walk a tab along keeps working after
+      // the rebuild.
+      function moveTab(from, to, refocus) {
+        if (
+          from === to ||
+          from < 0 ||
+          to < 0 ||
+          from >= formConfig.length ||
+          to >= formConfig.length
+        )
+          return;
+        const allPrev = captureValuesByForm();
+        const [tab] = formConfig.splice(from, 1);
+        formConfig.splice(to, 0, tab);
+        safe(() => persistFormMap());
+        safe(() => build());
+        safe(() => restoreValuesByForm(allPrev));
+        safe(() => activateTab(to));
+        if (refocus) {
+          safe(() => {
+            const btn = q(contents, \`.tab-pane[data-index='\${to}'] [data-move='\${refocus}']\`);
+            if (btn && !btn.disabled) btn.focus();
+          });
+        }
+      }
+      // index of the tab being dragged in the tab bar, or null
+      let dragFrom = null;
+      // counter used to give generated dynamic inputs unique ids
+      let dynamicIdCounter = 0;
+      // when true, tpl select change handlers should not activate tabs (used during programmatic updates)
+      let suppressTabActivation = false;
+
+      // Auto-resize a textarea to fit its content
+      function autosizeTextarea(ta) {
+        if (!ta) return;
+        safe(() => {
+          ta.style.height = 'auto';
+          ta.style.overflow = 'hidden';
+          var newH = ta.scrollHeight;
+          // Ensure at least one line of height (use computed line-height or font-size as fallback)
+          safe(() => {
+            var cs = window.getComputedStyle(ta);
+            var lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) || 16;
+            var padTop = parseFloat(cs.paddingTop) || 0;
+            var padBottom = parseFloat(cs.paddingBottom) || 0;
+            var minH = Math.ceil(lh + padTop + padBottom);
+            if (!newH || newH < minH) newH = minH;
+          });
+          ta.style.height = newH + 'px';
+        });
+      }
+
+      // Highlight the character position reported by a JSON parse error inside a textarea
+      function highlightJsonError(ta, err) {
+        if (!ta || !err) return;
+        safe(() => {
+          const msg = String(err && err.message ? err.message : '');
+          // Look for common position indicators from JSON.parse errors
+          const m =
+            msg.match(/at position\\s*(\\d+)/i) ||
+            msg.match(/position\\s*(\\d+)/i) ||
+            msg.match(/column\\s*(\\d+)/i);
+          if (!m) return;
+          const pos = Number(m[1]);
+          if (Number.isNaN(pos)) return;
+          // Focus and select the offending character
+          safe(() => {
+            ta.focus();
+            if (typeof ta.setSelectionRange === 'function') {
+              // clamp pos to bounds
+              const idx = Math.max(0, Math.min(pos, (ta.value || '').length - 1));
+              ta.setSelectionRange(idx, idx + 1);
+            }
+            // Try to scroll the line into view roughly using line-height
+            safe(() => {
+              const cs = window.getComputedStyle(ta);
+              const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) || 16;
+              const before = (ta.value || '').slice(0, pos);
+              const lineNo = (before.match(/\\n/g) || []).length;
+              ta.scrollTop = Math.max(0, lineNo * lh - lh * 2);
+            });
+          });
+        });
+      }
+
+      // Create a step row (key input + value input + remove button) and append to \`list\`.
+      // \`baseName\` is the field name, \`keyVal\` can be a string value or {key,val}.
+      // In Numbered mode, re-number the steps after one is inserted or removed.
+      // Keys were only ever set once, from the count at creation \u2014 so removing
+      // step 2 of 3 left "1." "3.", and Generate writes keys verbatim ("3. \u2026"
+      // straight into the note). Only keys that still look auto-numbered
+      // ("N.") are touched: anything the user typed as a key is theirs.
+      function renumberSteps(baseName, container, list) {
+        if (!container || !list || container.dataset.keyMode !== 'numbered') return;
+        qAll(list, \`[name="\${baseName}_key"]\`).forEach((k, idx) => {
+          if (/^\\d+\\.$/.test(String(k.value).trim())) k.value = idx + 1 + '.';
+        });
+      }
+
+      // \`before\` (optional): insert the new row ahead of that node instead of at
+      // the end of the list \u2014 used by a row's own "+".
+      function createStepRow(baseName, keyVal, container, list, before) {
+        const kv = { key: '', val: '' };
+        if (keyVal && typeof keyVal === 'object') {
+          kv.key = keyVal.key || '';
+          kv.val = keyVal.val || '';
+        } else if (typeof keyVal === 'string') {
+          kv.val = keyVal;
+        }
+
+        let defaultKey = kv.key || '';
+        if (!defaultKey && container && container.dataset) {
+          if (container.dataset.keyMode === 'numbered') {
+            const existing = qAll(list, \`[name="\${baseName}"]\`);
+            defaultKey = String(existing.length + 1) + '.';
+          } else if (container.dataset.keyMode === 'bullet') {
+            defaultKey = '-';
+          }
+        }
+
+        const keyInp = el('input', {
+          type: 'text',
+          name: baseName + '_key',
+          placeholder: 'key',
+          autocomplete: 'off',
+          value: defaultKey,
+          style: { width: '80px' },
+        });
+        const inp = el('input', {
+          type: 'text',
+          name: baseName,
+          id: baseName + '-' + ++dynamicIdCounter,
+          placeholder: 'Step',
+          autocomplete: 'off',
+          value: kv.val || '',
+        });
+        const row = el(
+          'div',
+          { className: 'step-row', style: { display: 'flex', gap: '8px', marginTop: '6px' } },
+          keyInp,
+          inp,
+          el('button', {
+            type: 'button',
+            className: 'btn ghost',
+            textContent: '-',
+            title: 'Remove this step',
+            'aria-label': 'Remove this step',
+            dataset: { step: 'remove' },
+            onclick: wrapHandler(() => {
+              row.remove();
+              renumberSteps(baseName, container, list);
+            }),
+          }),
+          // Insert a step directly below this one \u2014 "+ Add" only ever appended
+          // at the end, so a missed step meant retyping everything after it.
+          el('button', {
+            type: 'button',
+            className: 'btn ghost',
+            textContent: '+',
+            title: 'Insert a step below this one',
+            'aria-label': 'Insert a step below this one',
+            dataset: { step: 'insert' },
+            onclick: wrapHandler(() => {
+              const added = createStepRow(baseName, '', container, list, row.nextSibling);
+              renumberSteps(baseName, container, list);
+              safe(() => added.focus());
+            }),
+          })
+        );
+        if (list) list.insertBefore(row, before || null);
+        return inp;
+      }
+
+      function build() {
+        tabbar.innerHTML = '';
+        contents.innerHTML = '';
+        const clearDropMarks = () =>
+          qAll(tabbar, '.tab').forEach((t) =>
+            t.classList.remove('dragging', 'drop-before', 'drop-after')
+          );
+        formConfig.forEach((tab, i) => {
+          const tabEl = el('div', {
+            className: 'tab',
+            textContent: tab.title,
+            dataset: { index: i },
+            onclick: wrapHandler(() => activateTab(i)),
+          });
+          // Dev mode: drag a tab along the bar to reorder it. Dropping on the
+          // left half of a tab lands before it, the right half after it. (Touch
+          // screens do not fire these drag events \u2014 the Move left / Move right
+          // buttons beside Unload cover them, and keyboard users.)
+          if (devMode) {
+            tabEl.draggable = true;
+            tabEl.title = 'Drag to reorder';
+            const afterHalf = (ev) => {
+              const r = tabEl.getBoundingClientRect();
+              return ev.clientX > r.left + r.width / 2;
+            };
+            tabEl.addEventListener(
+              'dragstart',
+              wrapHandler((ev) => {
+                dragFrom = i;
+                if (ev.dataTransfer) {
+                  ev.dataTransfer.effectAllowed = 'move';
+                  safe(() => ev.dataTransfer.setData('text/plain', String(i)));
+                }
+                tabEl.classList.add('dragging');
+              })
+            );
+            tabEl.addEventListener(
+              'dragover',
+              wrapHandler((ev) => {
+                if (dragFrom === null) return; // not one of our tabs
+                ev.preventDefault();
+                if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';
+                const after = afterHalf(ev);
+                tabEl.classList.toggle('drop-after', after);
+                tabEl.classList.toggle('drop-before', !after);
+              })
+            );
+            tabEl.addEventListener(
+              'dragleave',
+              wrapHandler(() => tabEl.classList.remove('drop-before', 'drop-after'))
+            );
+            tabEl.addEventListener(
+              'drop',
+              wrapHandler((ev) => {
+                if (dragFrom === null) return;
+                ev.preventDefault();
+                const from = dragFrom;
+                dragFrom = null;
+                clearDropMarks();
+                let to = afterHalf(ev) ? i + 1 : i;
+                if (from < to) to -= 1; // the dragged tab leaves a gap behind it
+                moveTab(from, to);
+              })
+            );
+            tabEl.addEventListener(
+              'dragend',
+              wrapHandler(() => {
+                dragFrom = null;
+                clearDropMarks();
+              })
+            );
+          }
+          tabbar.appendChild(tabEl);
+
+          // subtabs: Form and Populate
+          const stForm = el('div', { className: 'subtab active', textContent: 'Form' });
+          const stPop = el('div', { className: 'subtab', textContent: 'Populate' });
+          const pane = el(
+            'div',
+            { className: 'tab-pane', dataset: { index: i }, style: { display: 'none' } },
+            el('div', { className: 'subtabs' }, stForm, stPop)
+          );
+
+          const formArea = el('div', { className: 'tab-content form-area' });
+          const populateArea = el('div', {
+            className: 'tab-content populate-area',
+            style: { display: 'none' },
+          });
+
+          // build form
+          const form = el('form', { className: 'generated-form', autocomplete: 'off' });
+          tab.fields.forEach((f) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'field';
+            // inline/side-by-side support: if field specifies \`inline: true\`,
+            // render it as an inline-block and respect optional \`width\`.
+            if (f && f.inline) {
+              wrapper.className += ' field-inline';
+              safe(() => {
+                wrapper.style.width = f.width ? String(f.width) : '45%';
+              });
+            }
+            const label = document.createElement('label');
+            if (f.type !== 'header') {
+              label.textContent = f.label || f.name;
+              wrapper.appendChild(label);
+            }
+
+            // Support header type: render headings instead of inputs. Accept
+            // optional \`level\` (1-6) or \`size\` like 'h1'..'h6'. Default to h2.
+            if (f.type === 'header') {
+              try {
+                let tag = 'h2';
+                if (f && f.level && !Number.isNaN(Number(f.level))) {
+                  const lv = Math.max(1, Math.min(6, Number(f.level)));
+                  tag = 'h' + lv;
+                } else if (f && f.size && /^h[1-6]$/.test(String(f.size))) {
+                  tag = String(f.size);
+                }
+                const h = document.createElement(tag);
+                h.className = 'field-header';
+                h.textContent = f.label || f.name || '';
+                wrapper.appendChild(h);
+                form.appendChild(wrapper);
+                return; // skip input creation
+              } catch (e) {}
+            }
+            let input;
+            if (f.type === 'textarea') {
+              input = document.createElement('textarea');
+              input.rows = 4;
+              input.autocomplete = 'off';
+            } else if (f.type === 'select') {
+              input = document.createElement('select');
+              (f.options || []).forEach((opt) => {
+                const o = document.createElement('option');
+                o.value = opt.value ?? opt;
+                o.textContent = opt.label ?? opt;
+                input.appendChild(o);
+              });
+              input.autocomplete = 'off';
+            } else {
+              input = document.createElement('input');
+              input.type = f.type || 'text';
+              input.autocomplete = 'off';
+            }
+            input.name = f.name;
+            input.placeholder = f.placeholder || '';
+            if (f.default) input.value = f.default;
+            wrapper.appendChild(input);
+            // Special handling for steps type: build dynamic list UI
+            if (f.type === 'steps') {
+              // Rename the top input to be the combined input so it does not
+              // conflict with the per-step inputs below (which share the base name).
+              input.name = f.name + '_combined';
+              input.placeholder =
+                f.placeholder && String(f.placeholder).trim()
+                  ? String(f.placeholder)
+                  : 'Step 1 > Step 2 > Step 3';
+              input.style.width = '70%';
+              input.style.display = 'inline-block';
+
+              const parseBtnTop = document.createElement('button');
+              parseBtnTop.type = 'button';
+              parseBtnTop.className = 'btn ghost';
+              parseBtnTop.textContent = 'Parse';
+              parseBtnTop.style.marginLeft = '8px';
+              // place the combined input and button inside a row
+              const combinedRow = document.createElement('div');
+              combinedRow.style.display = 'flex';
+              combinedRow.style.alignItems = 'center';
+              combinedRow.style.gap = '8px';
+              combinedRow.appendChild(input);
+              combinedRow.appendChild(parseBtnTop);
+              // If the field defines a default combined steps string, prefill and parse it
+              if (f.default && typeof f.default === 'string' && f.default.trim()) {
+                input.value = f.default;
+              }
+              wrapper.appendChild(combinedRow);
+              // default key behavior selector (none | numbered)
+              const controlRow = document.createElement('div');
+              controlRow.style.display = 'flex';
+              controlRow.style.alignItems = 'center';
+              controlRow.style.gap = '8px';
+              controlRow.style.marginTop = '8px';
+              const modeLabel = document.createElement('div');
+              modeLabel.className = 'meta';
+              modeLabel.textContent = 'Default key:';
+              const modeSelect = document.createElement('select');
+              const oNone = document.createElement('option');
+              oNone.value = 'none';
+              oNone.textContent = 'None (blank)';
+              const oNum = document.createElement('option');
+              oNum.value = 'numbered';
+              oNum.textContent = 'Numbered';
+              const oBullet = document.createElement('option');
+              oBullet.value = 'bullet';
+              oBullet.textContent = 'Bullet (-)';
+              modeSelect.appendChild(oNone);
+              modeSelect.appendChild(oNum);
+              modeSelect.appendChild(oBullet);
+              // Allow step fields to declare a default key mode via \`keyMode\` in the field definition
+              // Supported values: 'none' | 'numbered' | 'bullet'
+              try {
+                modeSelect.value = f && f.keyMode ? String(f.keyMode) : 'none';
+              } catch (e) {
+                modeSelect.value = 'none';
+              }
+              modeSelect.autocomplete = 'off';
+              modeSelect.addEventListener(
+                'change',
+                wrapHandler(() => {
+                  container.dataset.keyMode = modeSelect.value;
+                })
+              );
+              controlRow.appendChild(modeLabel);
+              controlRow.appendChild(modeSelect);
+              wrapper.appendChild(controlRow);
+              const container = document.createElement('div');
+              container.className = 'steps-container';
+              container.dataset.name = f.name;
+              // initialize key mode on the container after it's created
+              container.dataset.keyMode = modeSelect.value;
+
+              const list = document.createElement('div');
+              list.className = 'steps-list';
+
+              const addBtn = document.createElement('button');
+              addBtn.type = 'button';
+              addBtn.className = 'btn';
+              addBtn.textContent = '+ Add';
+              addBtn.style.marginLeft = '8px';
+
+              function addPathItem(val) {
+                // val can be a string value or an object { key, val }
+                const keyVal = { key: '', val: '' };
+                if (val && typeof val === 'object') {
+                  keyVal.key = val.key || '';
+                  keyVal.val = val.val || '';
+                } else if (typeof val === 'string') {
+                  keyVal.val = val;
+                }
+                return createStepRow(f.name, keyVal, container, list);
+              }
+
+              // ensure at least one item exists so scanPopulate can detect the name
+              addPathItem('');
+
+              addBtn.addEventListener(
+                'click',
+                wrapHandler(() => addPathItem(''))
+              );
+              // parse top combined input into steps
+              parseBtnTop.addEventListener(
+                'click',
+                wrapHandler(() => {
+                  const parts = splitSteps(input.value);
+                  list.innerHTML = '';
+                  if (parts.length === 0) {
+                    addPathItem('');
+                  } else {
+                    parts.forEach((p) => {
+                      const kv = parseStepPart(p);
+                      // A bare numeric key from a combined string ("1") gets a
+                      // period so the per-step key field shows the numbered style.
+                      if (kv.key && /^\\d+$/.test(kv.key)) kv.key += '.';
+                      addPathItem(kv.key ? kv : kv.val);
+                    });
+                  }
+                })
+              );
+              wrapper.appendChild(container);
+              container.appendChild(list);
+              container.appendChild(addBtn);
+              // Split a default combined string into step rows. This used to
+              // click Parse before Parse had a click handler \u2014 so a field's
+              // \`default\` (and every Duplicate, which copies steps as one)
+              // showed its steps in the combined box but only one blank row.
+              if (f.default && typeof f.default === 'string' && f.default.trim()) {
+                parseBtnTop.click();
+              }
+              form.appendChild(wrapper);
+            } else {
+              form.appendChild(wrapper);
+            }
+          });
+
+          // New and Duplicate buttons: create new tab blank or copy of current values
+          const newBtn = document.createElement('button');
+          newBtn.className = 'btn';
+          newBtn.type = 'button';
+          newBtn.textContent = 'New';
+          newBtn.style.marginLeft = '8px';
+          newBtn.addEventListener(
+            'click',
+            wrapHandler(() => {
+              const allPrev = captureAllFormValues();
+              safe(() => {
+                const newForm = {
+                  title: (tab && tab.title ? tab.title : 'New') + ' (new)',
+                  fields: JSON.parse(JSON.stringify(tab.fields || [])).map((f) => {
+                    const nf = JSON.parse(JSON.stringify(f));
+                    if (nf.hasOwnProperty('default')) delete nf.default;
+                    return nf;
+                  }),
+                  _templateId:
+                    formConfig[i] && formConfig[i]._templateId
+                      ? formConfig[i]._templateId
+                      : undefined,
+                  // A tab made on the fly has no form definition behind it, but
+                  // it still needs an identity: typed values follow tabs by it,
+                  // and the saved tab list is reloaded by it.
+                  _formId: uid('adhoc'),
+                };
+                formConfig.push(newForm);
+                safe(() => persistFormMap());
+                safe(() => build());
+                safe(() => restoreAllFormValues(allPrev));
+                safe(() => activateTab(formConfig.length - 1));
+              });
+            })
+          );
+
+          const dupBtn = document.createElement('button');
+          dupBtn.className = 'btn';
+          dupBtn.type = 'button';
+          dupBtn.textContent = 'Duplicate';
+          dupBtn.style.marginLeft = '8px';
+          dupBtn.addEventListener(
+            'click',
+            wrapHandler(() => {
+              const allPrev = captureAllFormValues();
+              safe(() => {
+                // capture current form values
+                const vals = formValues(form);
+
+                const newFields = (tab.fields || []).map((f) => {
+                  const nf = JSON.parse(JSON.stringify(f));
+                  if (f.type === 'steps') {
+                    // prefer combined input if present
+                    if (
+                      Object.prototype.hasOwnProperty.call(vals, f.name + '_combined') &&
+                      vals[f.name + '_combined']
+                    ) {
+                      nf.default = vals[f.name + '_combined'];
+                    } else if (Object.prototype.hasOwnProperty.call(vals, f.name)) {
+                      const v = vals[f.name];
+                      nf.default = Array.isArray(v) ? v.join(' > ') : v;
+                    } else {
+                      if (nf.hasOwnProperty('default')) delete nf.default;
+                    }
+                  } else {
+                    if (Object.prototype.hasOwnProperty.call(vals, f.name))
+                      nf.default = vals[f.name];
+                    else if (nf.hasOwnProperty('default')) delete nf.default;
+                  }
+                  return nf;
+                });
+
+                const newForm = {
+                  title: (tab && tab.title ? tab.title : 'Copy') + ' (copy)',
+                  format: tab && tab.format ? JSON.parse(JSON.stringify(tab.format)) : null,
+                  fields: newFields,
+                  _templateId:
+                    formConfig[i] && formConfig[i]._templateId
+                      ? formConfig[i]._templateId
+                      : undefined,
+                  // A tab made on the fly has no form definition behind it, but
+                  // it still needs an identity: typed values follow tabs by it,
+                  // and the saved tab list is reloaded by it.
+                  _formId: uid('adhoc'),
+                };
+                formConfig.push(newForm);
+                safe(() => persistFormMap());
+                safe(() => build());
+                safe(() => restoreAllFormValues(allPrev));
+                safe(() => activateTab(formConfig.length - 1));
+              });
+            })
+          );
+
+          // top-of-page clear button for this tab's form
+          const topClear = document.createElement('button');
+          topClear.className = 'btn warn';
+          topClear.type = 'button';
+          topClear.textContent = 'Clear';
+          topClear.style.marginLeft = '8px';
+          topClear.addEventListener(
+            'click',
+            wrapHandler(() => {
+              Array.from(form.elements).forEach((e) => {
+                if (!e.name) return;
+                if (e.type === 'checkbox' || e.type === 'radio') e.checked = false;
+                else e.value = '';
+              });
+            })
+          );
+
+          formArea.appendChild(newBtn);
+          formArea.appendChild(dupBtn);
+          formArea.appendChild(topClear);
+
+          // give the last appended control spacing before the form
+          safe(() => {
+            const last = formArea.lastElementChild;
+            if (last && last.style) last.style.marginBottom = '8px';
+          });
+
+          formArea.appendChild(form);
+
+          // template selector
+          const tplRow = document.createElement('div');
+          tplRow.style.display = 'flex';
+          tplRow.style.alignItems = 'center';
+          tplRow.style.gap = '8px';
+          tplRow.style.marginTop = '6px';
+          const tplLabel = document.createElement('div');
+          tplLabel.className = 'meta';
+          tplLabel.textContent = 'Template:';
+          const tplSelect = document.createElement('select');
+          tplSelect.autocomplete = 'off';
+          tplSelect.style.padding = '6px';
+          tplSelect.style.borderRadius = '6px';
+          tplSelect.style.border = '1px solid var(--border)';
+          forms.forEach((tpl) => {
+            const o = document.createElement('option');
+            o.value = tpl.id;
+            o.textContent = tpl.label;
+
+            tplSelect.appendChild(o);
+          });
+          // default to this tab's configured template if present
+          if (formConfig[i] && formConfig[i]._templateId)
+            tplSelect.value = formConfig[i]._templateId;
+          // when a template is selected, only update this tab's output format
+          // and mapping. Changing the generate-template dropdown must never
+          // alter the form's fields or trigger a DOM rebuild.
+          tplSelect.addEventListener(
+            'change',
+            wrapHandler(() => {
+              const sel = tplSelect.value || '__json__';
+              const tpl = formsMap[sel];
+              if (!tpl) return;
+              safe(() => {
+                // Only apply format when the template explicitly defines \`cfg\`.
+                // A null/blank cfg clears prior formats; absence of \`cfg\` means
+                // the template should not change the output formatting.
+                if (Object.prototype.hasOwnProperty.call(tpl, 'cfg')) {
+                  formConfig[i].format = tpl.cfg ? JSON.parse(JSON.stringify(tpl.cfg)) : null;
+                }
+                formConfig[i]._templateId = sel;
+                persistFormMap();
+              });
+              // Do NOT call build(), do NOT change formConfig[i].fields, and
+              // do NOT activate tabs \u2014 selection only affects generation output.
+            })
+          );
+          tplRow.appendChild(tplLabel);
+          tplRow.appendChild(tplSelect);
+          // if dev mode is enabled, expose an Unload button for this form
+          if (devMode) {
+            const unloadBtn = document.createElement('button');
+            unloadBtn.type = 'button';
+            unloadBtn.className = 'btn warn';
+            unloadBtn.textContent = 'Unload';
+            unloadBtn.style.marginLeft = '8px';
+            unloadBtn.title =
+              'Remove this tab. Its form definition stays in the Forms pane, so Load brings it back.';
+            unloadBtn.addEventListener(
+              'click',
+              wrapHandler(() => {
+                // Any tab can be unloaded. This used to refuse every built-in
+                // (\`tpl-N\`) tab \u2014 which is every tab of an exported file \u2014 and
+                // decided it from the Template dropdown's current selection, so
+                // unloadability depended on which output format was picked.
+                // Unloading removes the TAB only; its definition stays in
+                // \`forms\`, so the Forms pane can Load it straight back.
+                const allPrev = captureValuesByForm();
+                formConfig.splice(i, 1);
+                safe(() => persistFormMap());
+                safe(() => build());
+                safe(() => restoreValuesByForm(allPrev));
+                safe(() => activateTab(Math.max(0, i - 1)));
+              })
+            );
+            // Reorder without dragging \u2014 for keyboard and touch, where the tab
+            // bar's drag-and-drop does not reach.
+            const moveLeft = el('button', {
+              type: 'button',
+              className: 'btn ghost',
+              text: '\u2190 Left',
+              'aria-label': 'Move this tab one place to the left',
+              title: 'Move this tab one place to the left',
+              dataset: { move: 'left' },
+              disabled: i === 0,
+              // The Template select takes the row's spare width; without these
+              // the buttons shrank and wrapped onto two or three lines.
+              style: { marginLeft: '8px', whiteSpace: 'nowrap', flexShrink: '0' },
+              onclick: wrapHandler(() => moveTab(i, i - 1, 'left')),
+            });
+            const moveRight = el('button', {
+              type: 'button',
+              className: 'btn ghost',
+              text: 'Right \u2192',
+              'aria-label': 'Move this tab one place to the right',
+              title: 'Move this tab one place to the right',
+              dataset: { move: 'right' },
+              disabled: i === formConfig.length - 1,
+              style: { marginLeft: '4px', whiteSpace: 'nowrap', flexShrink: '0' },
+              onclick: wrapHandler(() => moveTab(i, i + 1, 'right')),
+            });
+            tplRow.appendChild(moveLeft);
+            tplRow.appendChild(moveRight);
+            tplRow.appendChild(unloadBtn);
+          }
+          formArea.appendChild(tplRow);
+
+          // --- Generate UI: button + output area
+          const genWrapper = document.createElement('div');
+          genWrapper.style.marginTop = '12px';
+          const genBtn = document.createElement('button');
+          genBtn.className = 'btn';
+          genBtn.type = 'button';
+          genBtn.textContent = 'Generate';
+          const copyBtn = document.createElement('button');
+          copyBtn.className = 'btn ghost';
+          copyBtn.type = 'button';
+          copyBtn.textContent = 'Copy';
+          copyBtn.style.marginLeft = '8px';
+          const clearOutBtn = document.createElement('button');
+          clearOutBtn.className = 'btn ghost';
+          clearOutBtn.type = 'button';
+          clearOutBtn.textContent = 'Clear';
+          clearOutBtn.style.marginLeft = '8px';
+          const out = document.createElement('textarea');
+          out.readOnly = true;
+          out.rows = 10;
+          out.autocomplete = 'off';
+          out.style.width = '100%';
+          out.style.marginTop = '8px';
+          out.style.padding = '8px';
+          out.style.borderRadius = '6px';
+          out.style.border = '1px solid #eee';
+          genWrapper.appendChild(genBtn);
+          genWrapper.appendChild(copyBtn);
+          genWrapper.appendChild(clearOutBtn);
+          genWrapper.appendChild(out);
+          formArea.appendChild(genWrapper);
+
+          genBtn.addEventListener(
+            'click',
+            wrapHandler(() => {
+              const values = {};
+              Array.from(form.elements).forEach((e) => {
+                if (!e.name) return;
+                const v = e.value !== undefined ? e.value : '';
+                if (Object.prototype.hasOwnProperty.call(values, e.name)) {
+                  if (!Array.isArray(values[e.name])) values[e.name] = [values[e.name]];
+                  values[e.name].push(v);
+                } else {
+                  values[e.name] = v;
+                }
+              });
+              // Combine key=>value pairs for fields that have an associated _key input
+              Object.keys(values).forEach((k) => {
+                if (!k.endsWith('_key')) return;
+                const base = k.slice(0, -4);
+                if (!Object.prototype.hasOwnProperty.call(values, base)) return;
+                const keys = Array.isArray(values[k]) ? values[k] : [values[k]];
+                const vals = Array.isArray(values[base]) ? values[base] : [values[base]];
+                const combined = vals.map((v, i) => {
+                  const keyRaw = keys[i] || '';
+                  let prefix = '';
+                  // Do not automatically append a period to numeric keys here;
+                  // only preserve what the user entered. If the key already
+                  // contains a period, it will be preserved.
+                  prefix = keyRaw ? keyRaw + ' ' : '';
+                  return prefix + v;
+                });
+                values[base] = combined.length === 1 ? combined[0] : combined;
+                // optionally remove the keys entry
+                delete values[k];
+              });
+              const sel = tplSelect.value || '__json__';
+              const cfg = formsMap[sel] && formsMap[sel].cfg ? formsMap[sel].cfg : null;
+              out.value = generateOutput(cfg, values);
+              // Auto-resize the output textarea to fit the generated content
+              safe(() => {
+                out.style.height = 'auto';
+                out.style.overflow = 'hidden';
+                out.style.height = out.scrollHeight + 'px';
+              });
+            })
+          );
+          copyBtn.addEventListener(
+            'click',
+            wrapHandler(async () => {
+              const text = out.value || '';
+              try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  await navigator.clipboard.writeText(text);
+                } else {
+                  out.select();
+                  document.execCommand('copy');
+                }
+                alert('Copied:\\n' + text);
+              } catch (err) {
+                try {
+                  out.select();
+                  document.execCommand('copy');
+                  alert('Copied:\\n' + text);
+                } catch (e) {
+                  alert('Copy failed');
+                }
+              }
+            })
+          );
+          clearOutBtn.addEventListener(
+            'click',
+            wrapHandler(() => {
+              out.value = '';
+              safe(() => autosizeTextarea(out));
+            })
+          );
+
+          // populate area UI
+          const info = document.createElement('div');
+          info.className = 'meta';
+          info.textContent = 'Scan other tabs for values with matching field names.';
+          const scanBtn = document.createElement('button');
+          scanBtn.className = 'btn ghost';
+          scanBtn.type = 'button';
+          scanBtn.textContent = 'Scan';
+          const autoBtn = document.createElement('button');
+          autoBtn.className = 'btn';
+          autoBtn.type = 'button';
+          autoBtn.style.marginLeft = '8px';
+          autoBtn.textContent = 'Auto Apply All';
+          const preview = document.createElement('div');
+          preview.className = 'preview-list';
+          preview.style.marginTop = '12px';
+
+          populateArea.appendChild(info);
+          populateArea.appendChild(scanBtn);
+          populateArea.appendChild(autoBtn);
+          populateArea.appendChild(preview);
+
+          pane.appendChild(formArea);
+          pane.appendChild(populateArea);
+          contents.appendChild(pane);
+
+          // subtabs switching
+          stForm.addEventListener(
+            'click',
+            wrapHandler(() => {
+              stForm.classList.add('active');
+              stPop.classList.remove('active');
+              formArea.style.display = 'block';
+              populateArea.style.display = 'none';
+            })
+          );
+          stPop.addEventListener(
+            'click',
+            wrapHandler(() => {
+              stPop.classList.add('active');
+              stForm.classList.remove('active');
+              formArea.style.display = 'none';
+              populateArea.style.display = 'block';
+              scanPopulate(i, preview);
+            })
+          );
+
+          // actions
+          scanBtn.addEventListener(
+            'click',
+            wrapHandler(() => scanPopulate(i, preview))
+          );
+          autoBtn.addEventListener(
+            'click',
+            wrapHandler(() => {
+              const items = scanPopulate(i, preview);
+              const selections = [];
+              items.forEach((it) => {
+                if (it.candidates && it.candidates.length > 0) {
+                  const c = it.candidates[0];
+                  selections.push({ name: it.name, value: c.value });
+                }
+              });
+              applyPreviewSelections(i, selections);
+            })
+          );
+        });
+
+        // Add a dedicated 'Outputs' tab where outputs (generation formats + fields) can be edited.
+        // Only add when devMode is enabled.
+        (function addOutputsTab() {
+          if (!devMode) return;
+          const outIndex = formConfig.length;
+          const outTab = document.createElement('div');
+          outTab.className = 'tab right';
+          outTab.textContent = 'Outputs';
+          outTab.dataset.index = outIndex;
+          outTab.addEventListener(
+            'click',
+            wrapHandler(() => activateTab(outIndex))
+          );
+          tabbar.appendChild(outTab);
+
+          const outPane = document.createElement('div');
+          outPane.className = 'tab-pane';
+          outPane.style.display = 'none';
+          outPane.dataset.index = outIndex;
+
+          const outContent = document.createElement('div');
+          outContent.className = 'tab-content';
+          const outLabel = document.createElement('label');
+          outLabel.textContent = 'Outputs';
+          outContent.appendChild(outLabel);
+
+          const helpOut = document.createElement('div');
+          helpOut.className = 'meta';
+          helpOut.style.marginTop = '8px';
+          helpOut.textContent =
+            'Create and edit Outputs (format + fields). Outputs can be used as the basis for Forms.';
+          outContent.appendChild(helpOut);
+
+          const selectorRow = document.createElement('div');
+          selectorRow.style.display = 'flex';
+          selectorRow.style.alignItems = 'center';
+          selectorRow.style.gap = '8px';
+          selectorRow.style.marginTop = '8px';
+          const outList = document.createElement('select');
+          outList.autocomplete = 'off';
+          outList.style.flex = '1';
+          const outNewBtn = document.createElement('button');
+          outNewBtn.type = 'button';
+          outNewBtn.className = 'btn';
+          outNewBtn.textContent = '+ New';
+          selectorRow.appendChild(outList);
+          selectorRow.appendChild(outNewBtn);
+          outContent.appendChild(selectorRow);
+
+          const lblRow = document.createElement('div');
+          lblRow.style.marginTop = '8px';
+          const lblLbl = document.createElement('label');
+          lblLbl.textContent = 'Label';
+          const lblIn = document.createElement('input');
+          lblIn.type = 'text';
+          lblIn.style.width = '100%';
+          lblIn.autocomplete = 'off';
+          lblRow.appendChild(lblLbl);
+          lblRow.appendChild(lblIn);
+          outContent.appendChild(lblRow);
+
+          const cfgLbl = document.createElement('label');
+          cfgLbl.textContent = 'Template';
+          cfgLbl.style.marginTop = '8px';
+          // advanced toggle for Outputs: hide/show resolved JSON + resolve button
+          const advRowOut = document.createElement('div');
+          advRowOut.style.display = 'flex';
+          advRowOut.style.alignItems = 'center';
+          advRowOut.style.gap = '8px';
+          advRowOut.style.marginTop = '6px';
+          const advChkOut = document.createElement('input');
+          advChkOut.type = 'checkbox';
+          advChkOut.autocomplete = 'off';
+          const advLblOut = document.createElement('div');
+          advLblOut.className = 'meta';
+          advLblOut.textContent = 'Advanced (raw JSON)';
+          advRowOut.appendChild(advChkOut);
+          advRowOut.appendChild(advLblOut);
+          // simple template input where user can type a template string
+          const cfgSimpleOut = document.createElement('textarea');
+          cfgSimpleOut.rows = 2;
+          cfgSimpleOut.style.width = '100%';
+          cfgSimpleOut.placeholder = 'Hello {firstName}';
+          cfgSimpleOut.autocomplete = 'off';
+          // button to resolve the simple template into editable JSON
+          const resolveBtn = document.createElement('button');
+          resolveBtn.type = 'button';
+          resolveBtn.className = 'btn ghost';
+          resolveBtn.textContent = 'Resolve to JSON';
+          resolveBtn.style.marginTop = '6px';
+          // raw JSON textarea (editable resolved JSON)
+          const cfgTaOut = document.createElement('textarea');
+          cfgTaOut.rows = 6;
+          cfgTaOut.style.width = '100%';
+          cfgTaOut.placeholder = '{ "type": "template", "template": "Hello {firstName}" }';
+          cfgTaOut.autocomplete = 'off';
+          outContent.appendChild(cfgLbl);
+          outContent.appendChild(advRowOut);
+          outContent.appendChild(cfgSimpleOut);
+          outContent.appendChild(resolveBtn);
+          outContent.appendChild(cfgTaOut);
+          // default to simple view: hide resolved JSON textarea and resolve button
+          cfgTaOut.style.display = 'none';
+          resolveBtn.style.display = 'none';
+          advChkOut.addEventListener(
+            'change',
+            wrapHandler(() => {
+              if (advChkOut.checked) {
+                cfgTaOut.style.display = '';
+                resolveBtn.style.display = '';
+              } else {
+                cfgTaOut.style.display = 'none';
+                resolveBtn.style.display = 'none';
+              }
+            })
+          );
+          resolveBtn.addEventListener(
+            'click',
+            wrapHandler(() => {
+              const raw = String(cfgSimpleOut.value || '').trim();
+              if (!raw) {
+                cfgTaOut.value = '';
+                autosizeTextarea(cfgTaOut);
+                return;
+              }
+              if (raw[0] === '{' || raw[0] === '[') {
+                try {
+                  const parsed = JSON.parse(raw);
+                  cfgTaOut.value = JSON.stringify(parsed, null, 2);
+                  autosizeTextarea(cfgTaOut);
+                } catch (e) {
+                  // not valid JSON, treat as template string
+                  cfgTaOut.value = JSON.stringify({ type: 'template', template: raw }, null, 2);
+                  autosizeTextarea(cfgTaOut);
+                }
+              } else {
+                cfgTaOut.value = JSON.stringify({ type: 'template', template: raw }, null, 2);
+                autosizeTextarea(cfgTaOut);
+              }
+            })
+          );
+
+          const fieldsLblOut = document.createElement('label');
+          fieldsLblOut.textContent = 'Fields (JSON array)';
+          fieldsLblOut.style.marginTop = '8px';
+          const fieldsTaOut = document.createElement('textarea');
+          fieldsTaOut.rows = 8;
+          fieldsTaOut.style.width = '100%';
+          fieldsTaOut.placeholder = '[ { "label": "Name", "name": "firstName", "type": "text" } ]';
+          fieldsTaOut.autocomplete = 'off';
+          outContent.appendChild(fieldsLblOut);
+          outContent.appendChild(fieldsTaOut);
+
+          const saveOutBtn = document.createElement('button');
+          saveOutBtn.className = 'btn';
+          saveOutBtn.type = 'button';
+          saveOutBtn.textContent = 'Save';
+          const genOutBtn = document.createElement('button');
+          genOutBtn.className = 'btn ghost';
+          genOutBtn.type = 'button';
+          genOutBtn.textContent = 'Generate Fields From Output';
+          genOutBtn.style.marginLeft = '8px';
+          const delOutBtn = document.createElement('button');
+          delOutBtn.className = 'btn warn';
+          delOutBtn.type = 'button';
+          delOutBtn.textContent = 'Delete';
+          delOutBtn.style.marginLeft = '8px';
+          const createFormBtn = document.createElement('button');
+          createFormBtn.className = 'btn ghost';
+          createFormBtn.type = 'button';
+          createFormBtn.textContent = 'Create Form from Output';
+          createFormBtn.style.marginLeft = '8px';
+          outContent.appendChild(saveOutBtn);
+          outContent.appendChild(genOutBtn);
+          outContent.appendChild(delOutBtn);
+          outContent.appendChild(createFormBtn);
+
+          function refreshOutList() {
+            outList.innerHTML = '';
+            outputs.forEach((o) => {
+              const op = document.createElement('option');
+              op.value = o.id;
+              op.textContent = o.label || o.id;
+              outList.appendChild(op);
+            });
+          }
+          refreshOutList();
+
+          function loadOut() {
+            const id = outList.value;
+            const o = outputs.find((x) => x.id === id);
+            if (!o) {
+              lblIn.value = '';
+              safe(() => {
+                cfgSimpleOut.value = '';
+                autosizeTextarea(cfgSimpleOut);
+              });
+              cfgTaOut.value = '';
+              autosizeTextarea(cfgTaOut);
+              advChkOut.checked = false;
+              cfgTaOut.style.display = 'none';
+              resolveBtn.style.display = 'none';
+              fieldsTaOut.value = '';
+              autosizeTextarea(fieldsTaOut);
+              return;
+            }
+            lblIn.value = o.label || '';
+            try {
+              if (
+                o.cfg &&
+                typeof o.cfg === 'object' &&
+                o.cfg.type === 'template' &&
+                typeof o.cfg.template === 'string'
+              ) {
+                cfgSimpleOut.value = o.cfg.template;
+                autosizeTextarea(cfgSimpleOut);
+                cfgTaOut.value = JSON.stringify(o.cfg, null, 2);
+                autosizeTextarea(cfgTaOut);
+                advChkOut.checked = false;
+                cfgTaOut.style.display = 'none';
+                resolveBtn.style.display = 'none';
+              } else {
+                cfgSimpleOut.value = '';
+                autosizeTextarea(cfgSimpleOut);
+                cfgTaOut.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';
+                autosizeTextarea(cfgTaOut);
+                advChkOut.checked = true;
+                cfgTaOut.style.display = '';
+                resolveBtn.style.display = '';
+              }
+            } catch (e) {
+              cfgTaOut.value = '';
+              autosizeTextarea(cfgTaOut);
+            }
+            try {
+              fieldsTaOut.value = o.fields ? JSON.stringify(o.fields, null, 2) : '';
+              autosizeTextarea(fieldsTaOut);
+            } catch (e) {
+              fieldsTaOut.value = '';
+              autosizeTextarea(fieldsTaOut);
+            }
+          }
+          outList.addEventListener('change', loadOut);
+          loadOut();
+
+          outNewBtn.addEventListener(
+            'click',
+            wrapHandler(() => {
+              const id = \`out-\${Date.now()}\`;
+              const no = { id, label: id, cfg: null, fields: [] };
+              outputs.push(no);
+              outputsMap = rebuildMap(outputs);
+              storageSet(outputsKey, outputs);
+
+              refreshOutList();
+              outList.value = id;
+              loadOut();
+              refreshOutputsSelectors();
+            })
+          );
+
+          saveOutBtn.addEventListener(
+            'click',
+            wrapHandler(() => {
+              const id = outList.value;
+              const o = outputs.find((x) => x.id === id);
+              if (!o) return;
+              o.label = lblIn.value || o.label || o.id;
+              try {
+                const jsonRaw = String(cfgTaOut.value || '').trim();
+                const simpleRaw = String(cfgSimpleOut.value || '').trim();
+                if (jsonRaw) {
+                  try {
+                    o.cfg = JSON.parse(jsonRaw);
+                  } catch (e) {
+                    // If the user edited the resolved JSON but it's not valid JSON
+                    // and it doesn't look like JSON, treat it as a plain template
+                    // string to preserve backwards compatibility.
+                    if (jsonRaw[0] === '{' || jsonRaw[0] === '[') throw e;
+                    o.cfg = { type: 'template', template: jsonRaw };
+                  }
+                } else if (simpleRaw) {
+                  o.cfg = { type: 'template', template: simpleRaw };
+                } else {
+                  o.cfg = null;
+                }
+              } catch (e) {
+                safe(() => highlightJsonError(cfgTaOut, e));
+                alert('Invalid output JSON: ' + e.message);
+                return;
+              }
+              try {
+                const parsedF = fieldsTaOut.value.trim() ? JSON.parse(fieldsTaOut.value) : [];
+                if (!Array.isArray(parsedF)) throw new Error('Fields must be an array');
+                // Do not auto-generate fields from the template when saving \u2014 respect
+                // whatever the user has entered in the Fields textarea. Only validate
+                // that it's a JSON array and then save it.
+                o.fields = parsedF;
+              } catch (e) {
+                safe(() => highlightJsonError(fieldsTaOut, e));
+                alert('Invalid fields JSON: ' + e.message);
+                return;
+              }
+              outputsMap = rebuildMap(outputs);
+              // persist outputs so Templates can reference them later
+              storageSet(outputsKey, outputs);
+              refreshOutList();
+              loadOut();
+              refreshOutputsSelectors();
+            })
+          );
+
+          // Populate the Fields textarea by extracting placeholder variables
+          // from the output \`template\` string (preview only, does not save).
+          genOutBtn.addEventListener(
+            'click',
+            wrapHandler(() => {
+              try {
+                let parsed = null;
+                const jsonRaw = String(cfgTaOut.value || '').trim();
+                const simpleRaw = String(cfgSimpleOut.value || '').trim();
+                if (jsonRaw) {
+                  try {
+                    parsed = JSON.parse(jsonRaw);
+                  } catch (e) {
+                    // fallback to treating as template string
+                    parsed = { type: 'template', template: jsonRaw };
+                  }
+                } else if (simpleRaw) {
+                  parsed = { type: 'template', template: simpleRaw };
+                }
+                const gen = [];
+                if (parsed && typeof parsed.template === 'string') {
+                  const tpl = parsed.template;
+                  const re = /\\{([a-zA-Z0-9_]+)\\}/g;
+                  const seen = new Set();
+                  let m;
+                  while ((m = re.exec(tpl)) !== null) {
+                    const name = m[1];
+                    if (seen.has(name)) continue;
+                    seen.add(name);
+                    const label =
+                      name === 'steps' ? 'Steps' : name.charAt(0).toUpperCase() + name.slice(1);
+                    const type = name === 'steps' ? 'steps' : 'text';
+                    const fld = { label, name, type, placeholder: '' };
+                    if (type === 'steps') fld.keyMode = '';
+                    gen.push(fld);
+                  }
+                }
+                fieldsTaOut.value = JSON.stringify(gen, null, 2);
+                autosizeTextarea(fieldsTaOut);
+              } catch (e) {
+                safe(() => highlightJsonError(cfgTaOut, e));
+                alert('Invalid output JSON: ' + e.message);
+              }
+            })
+          );
+
+          delOutBtn.addEventListener(
+            'click',
+            wrapHandler(() => {
+              let _proceed = true;
+              safe(
+                () => {
+                  if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) {
+                    _proceed = true; // auto-accept in test/jsdom environment
+                  } else if (typeof window.confirm === 'function') {
+                    _proceed = !!window.confirm(
+                      'Delete this output? This action cannot be undone.'
+                    );
+                  }
+                },
+                undefined,
+                () => {
+                  _proceed = true;
+                }
+              );
+              if (!_proceed) return;
+              const id = outList.value;
+              outputs = outputs.filter((x) => x.id !== id);
+              outputsMap = rebuildMap(outputs);
+              storageSet(outputsKey, outputs);
+              refreshOutList();
+              loadOut();
+              refreshOutputsSelectors();
+            })
+          );
+
+          // The original "Create Form from Output" action is intentionally
+          // disabled \u2014 outputs are intended to define generation formats and
+          // their inferred fields, not to implicitly create form tabs.
+          safe(() => {
+            if (createFormBtn) createFormBtn.style.display = 'none';
+          });
+
+          outPane.appendChild(outContent);
+          contents.appendChild(outPane);
+        })();
+
+        // Add a dedicated 'Templates' tab where the templates JSON can be edited.
+        // Only add when devMode is enabled.
+        (function addTemplatesTab() {
+          if (!devMode) return;
+          const tplIndex = formConfig.length + 1;
+          const tplTab = document.createElement('div');
+          tplTab.className = 'tab right';
+          tplTab.textContent = 'Forms';
+          tplTab.dataset.index = tplIndex;
+          tplTab.dataset.templates = 'true';
+          tplTab.addEventListener(
+            'click',
+            wrapHandler(() => activateTab(tplIndex))
+          );
+          tabbar.appendChild(tplTab);
+
+          const tplPane = document.createElement('div');
+          tplPane.className = 'tab-pane';
+          tplPane.style.display = 'none';
+          tplPane.dataset.index = tplIndex;
+          tplPane.dataset.templates = 'true';
+
+          const paneContent = document.createElement('div');
+          paneContent.className = 'tab-content';
+          const label = document.createElement('label');
+          label.textContent = 'Forms';
+          paneContent.appendChild(label);
+
+          // Inline help explaining how to edit templates
+          const help = document.createElement('div');
+          help.className = 'meta';
+          help.style.marginTop = '8px';
+          help.innerHTML = \`
+            <strong>How to edit forms:</strong>
+            <ul style="margin:6px 0 0 18px;padding:0;">
+              <li>Select an existing form-definition or click <em>+ New</em> to create one.</li>
+              <li><em>Label</em>: a friendly name shown in selects.</li>
+              <li>
+                <em>Template</em>: a JSON object that controls output formatting. Common forms:
+                <ul>
+                  <li><strong>type: "template"</strong> \u2014 use placeholders like <code>{firstName}</code>. When a field exposes a combined input (see <em>Fields</em> below), you can reference the combined value as <code>{fieldName_combined}</code> or the explicit per-field value as <code>{fieldName}</code>.</li>
+                  <li><strong>type: "sprintf"</strong> \u2014 use Python-style tokens like <code>%(firstName)s</code>.</li>
+                  <li><strong>Blank/JSON fallback</strong> \u2014 leave the template blank to output raw JSON.</li>
+                </ul>
+              </li>
+              <li>
+                <em>Fields</em>: a JSON array of field definitions. Example:
+                <code>[ { "label": "Name", "name": "firstName", "type": "text" } ]</code>.
+                For step-like fields use <code>"type":"steps"</code>. A steps field provides:
+                <ul>
+                  <li>a top combined input named <code>FIELD_combined</code> (e.g. <code>tasks_combined</code>) where users enter values like <code>Step 1 &gt; Step 2</code>;</li>
+                  <li>and per-step inputs named <code>FIELD</code> (plus optional <code>FIELD_key</code>) created when parsing the combined string.</li>
+                </ul>
+                The generator prefers the combined input when present (use <code>{FIELD_combined}</code> in templates), but form-definitions can also handle arrays or combined strings \u2014 the runtime will format arrays as numbered lists when appropriate.
+                <p>To include headings inside the form, add a field with <code>"type":"header"</code>. Use <code>label</code> for the heading text and optionally <code>level</code> (1-6) or <code>size</code> (<code>h1</code>.. <code>h6</code>) to control the heading element.</p>
+                <p>To layout fields side-by-side, set a field's <code>inline</code> property to <code>true</code> and optionally provide <code>width</code> (e.g. <code>"45%"</code> or <code>"200px"</code>); default width is <code>45%</code>.</p>
+                <p>Fields support an optional <code>placeholder</code> property. When generating fields from a template, placeholders default to an empty string.</p>
+                <p><strong>Steps fields:</strong> step-like fields (<code>"type":"steps"</code>) now support a <code>keyMode</code> property to control the default per-step key style. Supported values:
+                <code>"none"</code> (no key), <code>"numbered"</code> (1., 2., ...), or <code>"bullet"</code> (-). Example field definition:
+                <pre style="background:#f4f7fb;padding:8px;border-radius:6px;margin:6px 0;">{ "label": "Tasks", "name": "tasks", "type": "steps", "keyMode": "numbered" }</pre>
+                When a form defines <code>keyMode</code> the steps UI will initialize the Default key selector accordingly so parsed or added step rows inherit that style.</p>
+              </li>
+              <li>Click <em>Save</em> to apply \u2014 left-side form tabs update immediately and form definitions are persisted to localStorage (only form definitions are saved; user-entered form values are never persisted).</li>
+            </ul>\`;
+          paneContent.appendChild(help);
+          // Add brief export instructions to the Forms pane so users know how to
+          // generate an HTML export of the configuration.
+          const exportHelp = document.createElement('div');
+          exportHelp.className = 'meta';
+          exportHelp.style.marginTop = '8px';
+          exportHelp.textContent =
+            'To export the current forms and outputs, use the Export HTML button in the header \u2014 you can save to a file or copy the exported HTML to your clipboard.';
+          paneContent.appendChild(exportHelp);
+
+          // (Outputs selector moved below so Templates select remains the first select in the pane)
+
+          const tplSelectorRow = document.createElement('div');
+          tplSelectorRow.style.display = 'flex';
+          tplSelectorRow.style.alignItems = 'center';
+          tplSelectorRow.style.gap = '8px';
+          tplSelectorRow.style.marginTop = '8px';
+          const tplSelect = document.createElement('select');
+          tplSelect.autocomplete = 'off';
+          tplSelect.style.flex = '1';
+          const addBtn = document.createElement('button');
+          addBtn.type = 'button';
+          addBtn.className = 'btn';
+          addBtn.textContent = '+ New';
+          tplSelectorRow.appendChild(tplSelect);
+          tplSelectorRow.appendChild(addBtn);
+          paneContent.appendChild(tplSelectorRow);
+
+          // Outputs selector for choosing an existing output before creating a template
+          const outSelectorRow = document.createElement('div');
+          outSelectorRow.style.display = 'flex';
+          outSelectorRow.style.alignItems = 'center';
+          outSelectorRow.style.gap = '8px';
+          outSelectorRow.style.marginTop = '8px';
+          const outSelect = document.createElement('select');
+          outSelect.autocomplete = 'off';
+          outSelect.style.flex = '1';
+          outSelect.dataset.outputsSelector = 'true';
+          function refreshOutSelect() {
+            outSelect.innerHTML = '';
+            outputs.forEach((o) => {
+              const op = document.createElement('option');
+              op.value = o.id;
+              op.textContent = o.label || o.id;
+              outSelect.appendChild(op);
+            });
+          }
+          refreshOutSelect();
+          // When an Output is selected in the Forms pane, populate the
+          // Template (JSON) and Fields textareas with that Output's data.
+          function loadSelectedOutput() {
+            const id = outSelect.value;
+            const o = outputsMap[id] || outputs.find((x) => x.id === id) || null;
+            if (!o) {
+              safe(() => {
+                if (cfgTa) cfgTa.value = '';
+              });
+              safe(() => {
+                if (fieldsTa) fieldsTa.value = '';
+              });
+              return;
+            }
+            try {
+              if (
+                o.cfg &&
+                typeof o.cfg === 'object' &&
+                o.cfg.type === 'template' &&
+                typeof o.cfg.template === 'string'
+              ) {
+                try {
+                  if (typeof cfgSimple !== 'undefined' && typeof advChk !== 'undefined') {
+                    cfgSimple.value = o.cfg.template;
+                    cfgTa.value = JSON.stringify(o.cfg, null, 2);
+                    autosizeTextarea(cfgSimple);
+                    autosizeTextarea(cfgTa);
+                    advChk.checked = false;
+                    cfgTa.style.display = 'none';
+                    cfgSimple.style.display = '';
+                  } else {
+                    cfgTa.value = o.cfg.template;
+                  }
+                } catch (e) {
+                  cfgTa.value = o.cfg.template;
+                }
+              } else {
+                try {
+                  if (typeof cfgSimple !== 'undefined' && typeof advChk !== 'undefined') {
+                    cfgTa.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';
+                    cfgSimple.value = '';
+                    autosizeTextarea(cfgSimple);
+                    autosizeTextarea(cfgTa);
+                    advChk.checked = true;
+                    cfgTa.style.display = '';
+                    cfgSimple.style.display = 'none';
+                  } else {
+                    cfgTa.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';
+                    autosizeTextarea(cfgTa);
+                  }
+                } catch (e) {
+                  cfgTa.value = o.cfg ? JSON.stringify(o.cfg, null, 2) : '';
+                  autosizeTextarea(cfgTa);
+                }
+              }
+            } catch (e) {
+              cfgTa.value = '';
+              autosizeTextarea(cfgTa);
+            }
+            try {
+              fieldsTa.value = o.fields ? JSON.stringify(o.fields, null, 2) : '';
+              autosizeTextarea(fieldsTa);
+            } catch (e) {
+              fieldsTa.value = '';
+              autosizeTextarea(fieldsTa);
+            }
+          }
+          outSelect.addEventListener('change', wrapHandler(loadSelectedOutput));
+          // initialize the panes with the selected output (if any)
+          safe(() => loadSelectedOutput());
+          const outLabel = document.createElement('div');
+          outLabel.className = 'meta';
+          outLabel.textContent = 'Output:';
+          outSelectorRow.appendChild(outLabel);
+          outSelectorRow.appendChild(outSelect);
+          paneContent.appendChild(outSelectorRow);
+
+          const labelRow = document.createElement('div');
+          labelRow.style.marginTop = '8px';
+          const lblLabel = document.createElement('label');
+          lblLabel.textContent = 'Label';
+          const lblInput = document.createElement('input');
+          lblInput.type = 'text';
+          lblInput.style.width = '100%';
+          lblInput.autocomplete = 'off';
+          labelRow.appendChild(lblLabel);
+          labelRow.appendChild(lblInput);
+          paneContent.appendChild(labelRow);
+
+          const cfgLabel = document.createElement('label');
+          cfgLabel.textContent = 'Template (JSON)';
+          cfgLabel.style.marginTop = '8px';
+          // raw JSON textarea (advanced)
+          const cfgTa = document.createElement('textarea');
+          cfgTa.rows = 6;
+          cfgTa.style.width = '100%';
+          cfgTa.placeholder = '{ "type": "template", "template": "Hello {firstName}" }';
+          cfgTa.autocomplete = 'off';
+          // simple template input for non-advanced users
+          const cfgSimple = document.createElement('textarea');
+          cfgSimple.rows = 2;
+          cfgSimple.style.width = '100%';
+          cfgSimple.placeholder = 'Hello {firstName}';
+          cfgSimple.autocomplete = 'off';
+          // advanced toggle
+          const advRow = document.createElement('div');
+          advRow.style.display = 'flex';
+          advRow.style.alignItems = 'center';
+          advRow.style.gap = '8px';
+          advRow.style.marginTop = '6px';
+          const advChk = document.createElement('input');
+          advChk.type = 'checkbox';
+          advChk.autocomplete = 'off';
+          const advLbl = document.createElement('div');
+          advLbl.className = 'meta';
+          advLbl.textContent = 'Advanced (raw JSON)';
+          advRow.appendChild(advChk);
+          advRow.appendChild(advLbl);
+          paneContent.appendChild(cfgLabel);
+          paneContent.appendChild(advRow);
+          paneContent.appendChild(cfgTa);
+          // default to simple view
+          cfgTa.style.display = 'none';
+          advChk.addEventListener(
+            'change',
+            wrapHandler(() => {
+              if (advChk.checked) {
+                cfgTa.style.display = '';
+                cfgSimple.style.display = 'none';
+              } else {
+                cfgTa.style.display = 'none';
+                cfgSimple.style.display = '';
+              }
+            })
+          );
+
+          const fieldsLabel = document.createElement('label');
+          fieldsLabel.textContent = 'Fields (JSON array)';
+          fieldsLabel.style.marginTop = '8px';
+          const fieldsTa = document.createElement('textarea');
+          fieldsTa.rows = 8;
+          fieldsTa.style.width = '100%';
+          fieldsTa.placeholder = '[ { "label": "Name", "name": "firstName", "type": "text" } ]';
+          fieldsTa.autocomplete = 'off';
+          paneContent.appendChild(fieldsLabel);
+          paneContent.appendChild(fieldsTa);
+          // append the simple template textarea after the fields textarea so
+          // existing tests that index textareas continue to work (fields textarea
+          // remains the second textarea)
+          paneContent.appendChild(cfgSimple);
+
+          const saveBtn = document.createElement('button');
+          saveBtn.className = 'btn';
+          saveBtn.type = 'button';
+          saveBtn.textContent = 'Save';
+          const loadBtn = document.createElement('button');
+          loadBtn.className = 'btn';
+          loadBtn.type = 'button';
+          loadBtn.textContent = 'Load';
+          loadBtn.style.marginLeft = '8px';
+          const delBtn = document.createElement('button');
+          delBtn.className = 'btn warn';
+          delBtn.type = 'button';
+          delBtn.textContent = 'Delete';
+          delBtn.style.marginLeft = '8px';
+          const resetBtn = document.createElement('button');
+          resetBtn.className = 'btn warn';
+          resetBtn.type = 'button';
+          resetBtn.textContent = 'Reset to defaults';
+          resetBtn.style.marginLeft = '8px';
+          paneContent.appendChild(saveBtn);
+          paneContent.appendChild(loadBtn);
+          paneContent.appendChild(delBtn);
+          paneContent.appendChild(resetBtn);
+
+          // helper: populate selector
+          function refreshTplSelect() {
+            tplSelect.innerHTML = '';
+            forms.forEach((t) => {
+              const o = document.createElement('option');
+              o.value = t.id;
+              o.textContent = t.label || t.id;
+              tplSelect.appendChild(o);
+            });
+          }
+          refreshTplSelect();
+          // Default the forms select to the most-recent form so reopening
+          // the pane shows the last-created form by default.
+          safe(() => {
+            if (forms && forms.length) tplSelect.value = forms[forms.length - 1].id;
+          });
+
+          function loadSelected() {
+            const id = tplSelect.value;
+            const t = forms.find((x) => x.id === id);
+            if (!t) {
+              lblInput.value = '';
+              cfgTa.value = '';
+              fieldsTa.value = '';
+              return;
+            }
+            lblInput.value = t.label || '';
+            try {
+              const json = t.cfg ? JSON.stringify(t.cfg, null, 2) : '';
+              if (typeof cfgSimple !== 'undefined' && typeof advChk !== 'undefined') {
+                // If this template is a simple template object, prefer showing
+                // the simple textarea; otherwise show the raw JSON in advanced.
+                if (
+                  t.cfg &&
+                  typeof t.cfg === 'object' &&
+                  t.cfg.type === 'template' &&
+                  typeof t.cfg.template === 'string'
+                ) {
+                  cfgSimple.value = t.cfg.template;
+                  cfgTa.value = json;
+                  advChk.checked = false;
+                  cfgTa.style.display = 'none';
+                  cfgSimple.style.display = '';
+                } else {
+                  cfgTa.value = json;
+                  cfgSimple.value = '';
+                  advChk.checked = true;
+                  cfgTa.style.display = '';
+                  cfgSimple.style.display = 'none';
+                }
+              } else {
+                cfgTa.value = json;
+              }
+            } catch (e) {
+              cfgTa.value = '';
+            }
+            try {
+              fieldsTa.value = t.fields ? JSON.stringify(t.fields, null, 2) : '';
+            } catch (e) {
+              fieldsTa.value = '';
+            }
+          }
+          tplSelect.addEventListener('change', wrapHandler(loadSelected));
+          loadSelected();
+
+          addBtn.addEventListener(
+            'click',
+            wrapHandler(() => {
+              // Require an existing Output to be selected before creating a Template
+              const outId = outSelect && outSelect.value ? outSelect.value : null;
+              if (!outId) {
+                alert('Please select an existing Output first.');
+                return;
+              }
+              const baseOut = outputsMap[outId] || null;
+              // Auto-populate the Label input with the selected Output's displayed name (option text)
+              if (lblInput && (!lblInput.value || String(lblInput.value).trim() === '')) {
+                let displayLabel = null;
+                if (
+                  outSelect &&
+                  typeof outSelect.selectedIndex === 'number' &&
+                  outSelect.options &&
+                  outSelect.options.length
+                ) {
+                  displayLabel = outSelect.options[outSelect.selectedIndex].textContent || null;
+                }
+                if (!displayLabel && baseOut && baseOut.label) displayLabel = baseOut.label;
+                if (displayLabel) lblInput.value = displayLabel;
+              }
+              const id = \`custom-\${Date.now()}\`;
+              let baseCfg = null;
+              try {
+                if (baseOut && baseOut.cfg) {
+                  if (typeof baseOut.cfg === 'string')
+                    baseCfg = { type: 'template', template: baseOut.cfg };
+                  else baseCfg = JSON.parse(JSON.stringify(baseOut.cfg));
+                }
+              } catch (e) {
+                baseCfg = null;
+              }
+              const nt = {
+                id,
+                label: lblInput.value || (baseOut && baseOut.label) || id,
+                cfg: baseCfg,
+                fields: baseOut && baseOut.fields ? JSON.parse(JSON.stringify(baseOut.fields)) : [],
+                outputId: outId,
+              };
+              forms.push(nt);
+              formsMap = rebuildMap(forms);
+              storageSet(KEYS.forms, forms);
+              refreshTplSelect();
+              tplSelect.value = id;
+              loadSelected();
+              // Also add this template as an option to existing form panes' template selects
+              addTemplateOptionToFormPanes(id, nt.label || id);
+              // Do NOT auto-create a form tab; templates now reference outputs separately.
+            })
+          );
+
+          // Load: create a form tab for the selected template if none exists
+          loadBtn.addEventListener(
+            'click',
+            wrapHandler(() => {
+              const id = tplSelect.value;
+              if (!id) return;
+              // Preserve current form values across the DOM rebuild so loading
+              // a template doesn't clear data entered in other tabs.
+              const allPrev = captureValuesByForm();
+
+              safe(() => {
+                const t = forms.find((x) => x.id === id) || formsMap[id];
+                if (!t) return;
+                const cfgCopy = t.cfg
+                  ? typeof t.cfg === 'string'
+                    ? { type: 'template', template: t.cfg }
+                    : deepCopy(t.cfg)
+                  : null;
+                // Found by WHAT the tab is (\`_formId\`), not by its current
+                // Template selection. An existing tab is RELOADED in place from
+                // the saved definition \u2014 this used to be a silent no-op, so a
+                // tab that could not be unloaded could not be refreshed either,
+                // and "edit \u2192 reload \u2192 export" had no working path.
+                let at = formConfig.findIndex((x) => x && x._formId === id);
+                if (at >= 0) {
+                  formConfig[at].fields = deepCopy(t.fields || []);
+                  if (formConfig[at]._templateId === id) formConfig[at].format = cfgCopy;
+                } else {
+                  formConfig.push({
+                    title: t.label || id,
+                    format: cfgCopy,
+                    fields: deepCopy(t.fields || []),
+                    _formId: id,
+                    _templateId: id,
+                  });
+                  at = formConfig.length - 1;
+                }
+                formsMap = rebuildMap(forms);
+                safe(() => persistFormMap());
+                build();
+                safe(() => restoreValuesByForm(allPrev));
+                safe(() => activateTab(at));
+              });
+              // keep templates pane active: after \`build()\` the templates tab
+              // element was recreated and its dataset.index may have changed.
+              // Re-query the current templates tab (.tab.right) and activate it.
+              try {
+                const newTplTab = q(tabbar, '.tab.right[data-templates="true"]');
+                if (newTplTab) activateTab(Number(newTplTab.dataset.index));
+              } catch (e) {}
+            })
+          );
+
+          // Unload button handled elsewhere in templates pane; per-form Unload exists below when devMode enabled.
+
+          saveBtn.addEventListener(
+            'click',
+            wrapHandler(() => {
+              // debug removed
+              const id = tplSelect.value;
+              // debug special removed
+              // debug removed
+              const t = forms.find((x) => x.id === id);
+              if (!t) return;
+              t.label = lblInput.value || t.label || t.id;
+              try {
+                const raw = String(
+                  typeof advChk !== 'undefined' && advChk.checked
+                    ? cfgTa.value || ''
+                    : typeof cfgSimple !== 'undefined'
+                    ? cfgSimple.value
+                    : cfgTa.value || ''
+                ).trim();
+                if (!raw) {
+                  t.cfg = null;
+                } else {
+                  if (raw[0] === '{' || raw[0] === '[') {
+                    t.cfg = JSON.parse(raw);
+                  } else {
+                    t.cfg = { type: 'template', template: raw };
+                  }
+                }
+              } catch (e) {
+                try {
+                  // If advanced view is enabled, highlight cfgTa, otherwise cfgSimple
+                  try {
+                    if (typeof advChk !== 'undefined' && advChk.checked)
+                      highlightJsonError(cfgTa, e);
+                    else highlightJsonError(cfgSimple, e);
+                  } catch (ex) {}
+                } catch (ex) {}
+                alert('Invalid template config JSON: ' + e.message);
+                return;
+              }
+              try {
+                const parsedFields = fieldsTa.value.trim() ? JSON.parse(fieldsTa.value) : [];
+                if (!Array.isArray(parsedFields)) throw new Error('Fields must be an array');
+                t.fields = parsedFields;
+              } catch (e) {
+                safe(() => highlightJsonError(fieldsTa, e));
+                alert('Invalid fields JSON: ' + e.message);
+                return;
+              }
+              // Associate the template with the currently selected Output (if any)
+              if (outSelect && outSelect.value) t.outputId = outSelect.value;
+              // Apply the saved definition to the tabs that use it, found by
+              // identity rather than position:
+              //   fields \u2192 every tab that IS this form        (_formId)
+              //   format \u2192 every tab that has it SELECTED     (_templateId)
+              // Two faults lived here. Built-in forms wrote to \`formConfig[N]\`
+              // parsed out of \`tpl-N\` \u2014 wrong the moment an Unload shifted the
+              // tabs. And custom forms skipped any tab the user had typed into,
+              // so an edit silently never reached it (the reason unload-and-
+              // reload was needed at all). Typed values survive the rebuild
+              // below by field name, so there is nothing to protect here.
+              safe(() => {
+                const fmt = t.cfg
+                  ? typeof t.cfg === 'string'
+                    ? { type: 'template', template: t.cfg }
+                    : deepCopy(t.cfg)
+                  : null;
+                formConfig.forEach((tab) => {
+                  if (!tab) return;
+                  if (tab._formId === t.id) {
+                    tab.fields = deepCopy(t.fields || []);
+                    // A loaded form's tab is titled by its label; a built-in
+                    // keeps its own title (its label may be a format label).
+                    if (!/^tpl-\\d+$/.test(t.id)) tab.title = t.label || tab.title;
+                  }
+                  if (tab._templateId === t.id) tab.format = fmt;
+                });
+              });
+              formsMap = rebuildMap(forms);
+              storageSet(KEYS.forms, forms);
+              // persist any mapping changes made by save
+              safe(() => persistFormMap());
+              // preserve templates tab and selection after rebuild
+              const preserveIndex = tplPane.dataset.index;
+              const preserveId = t.id;
+              const allPrev = captureAllFormValues();
+              safe(() => build());
+              safe(() => restoreAllFormValues(allPrev));
+              safe(() => {
+                activateTab(Number(preserveIndex));
+                const newPane = q(contents, \`.tab-pane[data-index='\${preserveIndex}']\`);
+                if (newPane) {
+                  const newSelect = q(newPane, 'select');
+                  if (newSelect) {
+                    newSelect.value = preserveId;
+                    newSelect.dispatchEvent(new Event('change'));
+                  }
+                  // status appended after applying to form panes below
+                }
+              });
+              // Also trigger change on any form panes that currently have this template selected
+              try {
+                suppressTabActivation = true;
+                for (let fi = 0; fi < formConfig.length; fi++) {
+                  const formPane = q(contents, \`.tab-pane[data-index='\${fi}']\`);
+                  if (!formPane) continue;
+                  const formTpl = q(formPane, 'select');
+                  if (!formTpl) continue;
+                  if (formTpl.value === preserveId) {
+                    formTpl.dispatchEvent(new Event('change'));
+                  }
+                }
+              } finally {
+                suppressTabActivation = false;
+              }
+              // re-activate templates tab and show saved status (after form panes updated)
+              safe(() => {
+                activateTab(Number(preserveIndex));
+                const tplPane = q(contents, \`.tab-pane[data-index='\${preserveIndex}']\`);
+                if (tplPane) {
+                  const status = document.createElement('div');
+                  status.className = 'meta';
+                  status.textContent = 'Saved';
+                  status.style.marginTop = '8px';
+                  const tplPaneContent = q(tplPane, '.tab-content');
+                  if (tplPaneContent) tplPaneContent.appendChild(status);
+                  setTimeout(() => status.remove(), 1800);
+                }
+              });
+            })
+          );
+
+          delBtn.addEventListener(
+            'click',
+            wrapHandler(() => {
+              let _proceed2 = true;
+              safe(
+                () => {
+                  if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) {
+                    _proceed2 = true; // auto-accept in test/jsdom environment
+                  } else if (typeof window.confirm === 'function') {
+                    _proceed2 = !!window.confirm(
+                      'Delete this form/template? This action cannot be undone.'
+                    );
+                  }
+                },
+                undefined,
+                () => {
+                  _proceed2 = true;
+                }
+              );
+              if (!_proceed2) return;
+              const id = tplSelect.value;
+              // debug removed
+              const preserveIndex = tplPane.dataset.index;
+              forms = forms.filter((x) => x.id !== id);
+              formsMap = rebuildMap(forms);
+              storageSet(KEYS.forms, forms);
+              // update persisted mapping after deletion
+              safe(() => persistFormMap());
+              refreshTplSelect();
+              loadSelected();
+              // A deleted custom form takes its tab with it \u2014 the tab that IS it
+              // (\`_formId\`), not whichever tab merely has it selected as an
+              // output template. Capture values first, keyed by tab, so the
+              // tabs that shift down keep their own.
+              const allPrev = captureValuesByForm();
+              safe(() => {
+                if (id && id.startsWith('custom-')) {
+                  for (let j = formConfig.length - 1; j >= 0; j--) {
+                    if (formConfig[j] && formConfig[j]._formId === id) formConfig.splice(j, 1);
+                  }
+                }
+                // A tab left pointing at the deleted template falls back to its own.
+                formConfig.forEach((tab) => {
+                  if (tab && tab._templateId === id) tab._templateId = tab._formId;
+                });
+              });
+              safe(() => persistFormMap());
+              safe(() => build());
+              safe(() => restoreValuesByForm(allPrev));
+              // pick first available template in the templates pane (no status yet)
+              safe(() => {
+                activateTab(Number(preserveIndex));
+                const newPane = q(contents, \`.tab-pane[data-index='\${preserveIndex}']\`);
+                if (newPane) {
+                  const newSelect = q(newPane, 'select');
+                  if (newSelect && newSelect.options.length) newSelect.selectedIndex = 0;
+                }
+              });
+
+              // If any form panes used the deleted template, remove the option
+              // and ensure panes update via the centralized helper.
+              removeTemplateOptionFromFormPanes(id);
+
+              // finally re-activate templates tab and show Deleted status
+              safe(() => {
+                const newTplTab = q(tabbar, '.tab.right[data-templates="true"]');
+                if (newTplTab) {
+                  activateTab(Number(newTplTab.dataset.index));
+                  const finalPane = q(
+                    contents,
+                    \`.tab-pane[data-index='\${newTplTab.dataset.index}']\`
+                  );
+                  if (finalPane) {
+                    const status = document.createElement('div');
+                    status.className = 'meta';
+                    status.textContent = 'Deleted';
+                    status.style.marginTop = '8px';
+                    const finalPaneContent = q(finalPane, '.tab-content');
+                    if (finalPaneContent) finalPaneContent.appendChild(status);
+                    setTimeout(() => status.remove(), 1800);
+                  }
+                }
+              });
+            })
+          );
+
+          resetBtn.addEventListener(
+            'click',
+            wrapHandler(() => {
+              const preserveIndex = tplPane.dataset.index;
+              localStorage.removeItem(KEYS.forms);
+              // remove persisted per-tab form mapping as well
+              safe(() => {
+                localStorage.removeItem(formMapKey);
+                // \u2026and the saved tab list, so a refresh after Reset shows the
+                // original tabs rather than the set that was just reset.
+                localStorage.removeItem(KEYS.tabs);
+                formMap = {};
+              });
+              forms = deepCopy(defaultTemplates);
+              formsMap = rebuildMap(forms);
+              refreshTplSelect();
+              loadSelected();
+              // Restore the original SET of tabs \u2014 unloaded ones come back,
+              // loaded ones go \u2014 rather than pasting originals over whatever
+              // now sits at each position. By index, one Unload earlier meant
+              // every later tab received its neighbour's original fields.
+              const allPrev = captureValuesByForm();
+              safe(() => {
+                const fresh = deepCopy(originalFormConfig) || [];
+                fresh.forEach((t, idx) => {
+                  t._formId = \`tpl-\${idx}\`;
+                  t._templateId = \`tpl-\${idx}\`;
+                });
+                formConfig.splice(0, formConfig.length, ...fresh);
+              });
+              safe(() => build());
+              safe(() => restoreValuesByForm(allPrev));
+              safe(() => {
+                const newTplTab = q(tabbar, '.tab.right[data-templates="true"]');
+                if (newTplTab) {
+                  activateTab(Number(newTplTab.dataset.index));
+                  const newPane = q(contents, \`.tab-pane[data-index='\${newTplTab.dataset.index}']\`);
+                  if (newPane) {
+                    const newSelect = q(newPane, 'select');
+                    if (newSelect) {
+                      if (newSelect.options.length) newSelect.selectedIndex = 0;
+                      newSelect.dispatchEvent(new Event('change'));
+                    }
+                    // re-query the pane after dispatch in case the DOM was rebuilt
+                    const freshPane = q(
+                      contents,
+                      \`.tab-pane[data-index='\${newTplTab.dataset.index}']\`
+                    );
+                    const targetPane = freshPane || newPane;
+                    // Do not append status here \u2014 the DOM may be rebuilt by subsequent
+                    // programmatic change events. Status will be appended after all
+                    // programmatic updates complete.
+                  }
+                }
+              });
+              // After reset, ensure form panes point to a valid template and trigger change
+              try {
+                suppressTabActivation = true;
+                for (let fi = 0; fi < formConfig.length; fi++) {
+                  const formPane = q(contents, \`.tab-pane[data-index='\${fi}']\`);
+                  if (!formPane) continue;
+                  const formTpl = q(formPane, 'select');
+                  if (!formTpl) continue;
+                  // if the currently selected option is no longer present, select first
+                  if (!q(formTpl, \`option[value="\${formTpl.value}"]\`)) {
+                    if (formTpl.options.length) {
+                      formTpl.selectedIndex = 0;
+                      formTpl.dispatchEvent(new Event('change'));
+                    }
+                  }
+                }
+              } finally {
+                suppressTabActivation = false;
+              }
+              // Ensure Templates tab remains active after programmatic changes
+              safe(() => {
+                const newTplTab = q(tabbar, '.tab.right[data-templates="true"]');
+                if (newTplTab) {
+                  activateTab(Number(newTplTab.dataset.index));
+                  // append status after final activation so it isn't removed by rebuild
+                  safe(() => {
+                    const finalPane = q(
+                      contents,
+                      \`.tab-pane[data-index='\${newTplTab.dataset.index}']\`
+                    );
+                    if (finalPane) {
+                      const status = document.createElement('div');
+                      status.className = 'meta';
+                      status.textContent = 'Reset to defaults';
+                      status.style.marginTop = '8px';
+                      const container = q(finalPane, '.tab-content');
+                      if (container) container.appendChild(status);
+                      setTimeout(() => status.remove(), 1800);
+                    }
+                  });
+                }
+              });
+            })
+          );
+
+          tplPane.appendChild(paneContent);
+          contents.appendChild(tplPane);
+        })();
+
+        activateTab(0);
+      }
+
+      function activateTab(index) {
+        Array.from(tabbar.children).forEach((t) =>
+          t.classList.toggle('active', Number(t.dataset.index) === index)
+        );
+        Array.from(contents.children).forEach(
+          (p) => (p.style.display = Number(p.dataset.index) === index ? '' : 'none')
+        );
+      }
+
+      // Scans other tabs for values matching field names in target tab.
+      // Returns array of items {name, value, fromTabIndex, fromTabTitle, found}
+      function scanPopulate(targetIndex, previewContainer) {
+        const targetPane = q(contents, \`.tab-pane[data-index='\${targetIndex}']\`);
+        const targetForm = q(targetPane, 'form.generated-form');
+        const targetNames = Array.from(targetForm.elements)
+          .map((e) => e.name)
+          .filter(Boolean)
+          .filter((n) => !n.endsWith('_key') && !n.endsWith('_combined'));
+        const items = targetNames.map((n) => ({ name: n, candidates: [] }));
+
+        formConfig.forEach((tab, ti) => {
+          if (ti === targetIndex) return;
+          const pane = q(contents, \`.tab-pane[data-index='\${ti}']\`);
+          if (!pane) return;
+          const form = q(pane, 'form.generated-form');
+          if (!form) return;
+          targetNames.forEach((name, idx) => {
+            // consider both normal inputs and a possible combined input from other tabs
+            const combinedName = name + '_combined';
+            const els = qAll(
+              form,
+              \`[name="\${CSS.escape(name)}"], [name="\${CSS.escape(combinedName)}"]\`
+            );
+            if (!els || els.length === 0) return;
+            // Prefer a combined input if present in the source form; this
+            // ensures pre-parsed values (e.g. "steps_combined") are offered
+            // as candidates instead of individual per-step inputs.
+            const combinedEl = els.find((e) => e.name === combinedName);
+            if (combinedEl) {
+              const v = combinedEl.value !== undefined ? combinedEl.value : '';
+              if (String(v).trim() !== '')
+                items[idx].candidates.push({ value: v, fromTab: ti, fromTitle: tab.title });
+              return;
+            }
+            // collect candidate(s) from this tab for normal inputs
+            if (els[0].type === 'radio') {
+              const checked = els.find((e) => e.checked);
+              if (checked)
+                items[idx].candidates.push({
+                  value: checked.value || '',
+                  fromTab: ti,
+                  fromTitle: tab.title,
+                });
+            } else if (els[0].type === 'checkbox') {
+              const checked = els.find((e) => e.checked);
+              if (checked)
+                items[idx].candidates.push({
+                  value: checked.value || 'on',
+                  fromTab: ti,
+                  fromTitle: tab.title,
+                });
+            } else {
+              // prefer first non-empty value among matching elements
+              for (const e of els) {
+                if (e.value !== undefined && String(e.value).trim() !== '') {
+                  items[idx].candidates.push({ value: e.value, fromTab: ti, fromTitle: tab.title });
+                  break;
+                }
+              }
+            }
+          });
+        });
+
+        // render preview with multiple candidate choices per field
+        previewContainer.innerHTML = '';
+        items.forEach((it) => {
+          const row = document.createElement('div');
+          row.className = 'preview-item';
+          const label = document.createElement('div');
+          label.style.flex = '1';
+          const name = document.createElement('div');
+          name.className = 'small';
+          name.textContent = it.name;
+          label.appendChild(name);
+
+          if (it.candidates.length === 0) {
+            const none = document.createElement('div');
+            none.className = 'meta';
+            none.textContent = 'no value found';
+            label.appendChild(none);
+          } else {
+            const list = document.createElement('div');
+            // add keep-current option first (default) and show the current value
+            const keepOpt = document.createElement('div');
+            keepOpt.style.display = 'flex';
+            keepOpt.style.alignItems = 'center';
+            keepOpt.style.gap = '8px';
+            keepOpt.style.padding = '2px 0';
+            const keepRadio = document.createElement('input');
+            keepRadio.type = 'radio';
+            keepRadio.autocomplete = 'off';
+            keepRadio.name = \`choose-\${targetIndex}-\${it.name}\`;
+            keepRadio.value = '__keep__';
+            keepRadio.checked = true;
+            // determine current value from the target form
+            const currentVal = safe(() => {
+              const currentEls = qAll(targetForm, \`[name="\${CSS.escape(it.name)}"]\`);
+              if (currentEls && currentEls.length) {
+                if (currentEls[0].type === 'radio') {
+                  const c = currentEls.find((e) => e.checked);
+                  if (c) return c.value || '';
+                } else if (currentEls[0].type === 'checkbox') {
+                  const c = currentEls.find((e) => e.checked);
+                  if (c) return c.value || 'on';
+                } else {
+                  return currentEls[0].value || '';
+                }
+              }
+              return '';
+            }, '');
+            const keepTxt = document.createElement('div');
+            keepTxt.className = 'meta';
+            keepTxt.textContent = \`\${currentVal || ''} (Keep current)\`;
+            keepOpt.appendChild(keepRadio);
+            keepOpt.appendChild(keepTxt);
+            list.appendChild(keepOpt);
+
+            it.candidates.forEach((c, ci) => {
+              const opt = document.createElement('div');
+              opt.style.display = 'flex';
+              opt.style.alignItems = 'center';
+              opt.style.gap = '8px';
+              opt.style.padding = '2px 0';
+              const r = document.createElement('input');
+              r.type = 'radio';
+              r.autocomplete = 'off';
+              r.name = \`choose-\${targetIndex}-\${it.name}\`;
+              r.value = String(ci);
+              const txt = document.createElement('div');
+              txt.className = 'meta';
+              txt.textContent = \`\${c.value} (from \${c.fromTitle})\`;
+              opt.appendChild(r);
+              opt.appendChild(txt);
+              list.appendChild(opt);
+            });
+            label.appendChild(list);
+          }
+
+          row.appendChild(label);
+          previewContainer.appendChild(row);
+          it._candidates = it.candidates; // store for later
+        });
+
+        // Apply selected button
+        const applyBtn = document.createElement('button');
+        applyBtn.className = 'btn';
+        applyBtn.type = 'button';
+        applyBtn.textContent = 'Apply Selected';
+        applyBtn.style.marginTop = '8px';
+        applyBtn.addEventListener(
+          'click',
+          wrapHandler(() => {
+            const selections = [];
+            items.forEach((it) => {
+              const radios = qAll(
+                previewContainer,
+                \`input[name="choose-\${targetIndex}-\${it.name}"]\`
+              );
+              if (!radios || radios.length === 0) return;
+              const checked = Array.from(radios).find((r) => r.checked);
+              if (!checked) return;
+              const ci = Number(checked.value);
+              const cand = it._candidates && it._candidates[ci];
+              if (cand) selections.push({ name: it.name, value: cand.value });
+            });
+            applyPreviewSelections(targetIndex, selections);
+          })
+        );
+        previewContainer.appendChild(applyBtn);
+
+        return items;
+      }
+
+      // Resolve one "{name}" token for a \`type: "template"\` output.
+      //  - an explicit value (even "") is returned as-is (arrays joined by \\n)
+      //  - otherwise the "<name>_combined" value is used, formatted as a
+      //    numbered list when it is an array or a ">"-separated string
+      function formatTemplateToken(name, values) {
+        const hasExplicit = values && Object.prototype.hasOwnProperty.call(values, name);
+        if (hasExplicit) {
+          const val = values[name];
+          if (Array.isArray(val)) return val.join('\\n');
+          return val !== undefined && val !== null ? String(val) : '';
+        }
+        let val;
+        if (values && Object.prototype.hasOwnProperty.call(values, name + '_combined')) {
+          val = values[name + '_combined'];
+        }
+        if (Array.isArray(val)) return toNumberedList(val);
+        if (typeof val === 'string' && val.includes('>')) return toNumberedList(splitSteps(val));
+        return val !== undefined && val !== null ? String(val) : '';
+      }
+
+      const fillNamedTokens = (tpl, values) =>
+        String(tpl || '').replace(/\\{([^}]+)\\}/g, (_, name) =>
+          values && values[name] !== undefined ? values[name] : ''
+        );
+
+      // Generate output based on format configuration and values object
+      function generateOutput(formatCfg, values) {
+        if (!formatCfg) return JSON.stringify(values, null, 2);
+        if (typeof formatCfg === 'string') return fillNamedTokens(formatCfg, values);
+        const tpl = formatCfg.template || '';
+        if (formatCfg.type === 'template') {
+          return tpl.replace(/\\{([^}]+)\\}/g, (_, name) => formatTemplateToken(name, values));
+        }
+        if (formatCfg.type === 'sprintf') {
+          // support Python-style named tokens: %(name)s
+          return tpl.replace(/%\\(([^)]+)\\)s/g, (_, name) =>
+            values[name] !== undefined ? values[name] : ''
+          );
+        }
+        return JSON.stringify(values, null, 2);
+      }
+
+      function applyPreviewSelections(targetIndex, selections) {
+        const targetPane = q(contents, \`.tab-pane[data-index='\${targetIndex}']\`);
+        const targetForm = q(targetPane, 'form.generated-form');
+        selections.forEach((sel) => {
+          // resolve field config for this target tab + field name
+          const fieldCfg =
+            formConfig[targetIndex] && formConfig[targetIndex].fields
+              ? formConfig[targetIndex].fields.find((f) => f.name === sel.name)
+              : null;
+          // find the combined input for steps fields (if any) so we can
+          // mirror combined values into the top input when applying selections
+          const combinedInput = q(targetForm, \`[name="\${CSS.escape(sel.name + '_combined')}"]\`);
+          // If this field's type is 'steps' and there are no inputs yet, create items
+          if (fieldCfg && fieldCfg.type === 'steps') {
+            const parts = splitSteps(sel.value);
+            const existing = qAll(targetForm, \`[name="\${CSS.escape(sel.name)}"]\`);
+            const container = q(targetForm, \`.steps-container[data-name="\${sel.name}"]\`);
+            const list = container && q(container, '.steps-list');
+            if (parts.length > 1) {
+              // clear existing list
+              if (list) list.innerHTML = '';
+              // create inputs per part
+              parts.forEach((p) => {
+                if (list) createStepRow(sel.name, parseStepPart(p), container, list);
+              });
+              // Also update the combined input so the combined representation
+              // is visible to the user after applying the selection.
+              safe(() => {
+                if (combinedInput) combinedInput.value = sel.value;
+              });
+            }
+          }
+
+          const els = qAll(targetForm, \`[name="\${CSS.escape(sel.name)}"]\`);
+          if (!els || els.length === 0) return;
+          // radios
+          if (els[0].type === 'radio') {
+            els.forEach((r) => {
+              r.checked = r.value == sel.value;
+            });
+            return;
+          }
+          // checkboxes
+          if (els[0].type === 'checkbox') {
+            els.forEach((c) => {
+              c.checked = !!sel.value && String(sel.value) !== 'false' && String(sel.value) !== '0';
+            });
+            return;
+          }
+          // For steps fields, if sel.value contains '>' distribute values
+          if (fieldCfg && fieldCfg.type === 'steps' && String(sel.value || '').includes('>')) {
+            const parts = splitSteps(sel.value);
+            // locate container/list up-front so it's available to the entire block
+            const container = q(targetForm, \`.steps-container[data-name="\${sel.name}"]\`);
+            const list = container && q(container, '.steps-list');
+            // ensure we have enough inputs
+            if (parts.length > els.length) {
+              for (let i = els.length; i < parts.length; i++) {
+                if (list) createStepRow(sel.name, '', container, list);
+              }
+            }
+            const newEls = qAll(targetForm, \`[name="\${CSS.escape(sel.name)}"]\`);
+            const newKeys = qAll(targetForm, \`[name="\${CSS.escape(sel.name + '_key')}"]\`);
+            parts.forEach((p, idx) => {
+              const { key, val } = parseStepPart(p);
+              if (newEls[idx]) newEls[idx].value = val;
+              if (newKeys[idx]) {
+                if (key) newKeys[idx].value = key;
+                else if (container && container.dataset) {
+                  newKeys[idx].value =
+                    container.dataset.keyMode === 'numbered'
+                      ? String(idx + 1)
+                      : container.dataset.keyMode === 'bullet'
+                      ? '-'
+                      : newKeys[idx].value;
+                }
+              }
+            });
+            // mirror the combined string into the top combined input if present
+            safe(() => {
+              if (combinedInput) combinedInput.value = sel.value;
+            });
+            return;
+          }
+
+          // text/select/textarea - set first element's value
+          const e = els[0];
+          e.value = sel.value;
+          // if this is a steps field, also update the combined input
+          if (fieldCfg && fieldCfg.type === 'steps' && combinedInput)
+            combinedInput.value = sel.value;
+        });
+      }
+
+      // initial build
+      build();
+
+      // Theme handling: toggle dark mode and persist choice
+      (function () {
+        const key = KEYS.theme;
+        const btn = document.getElementById('themeToggle');
+        function applyTheme(t) {
+          if (t === 'dark') document.documentElement.classList.add('dark');
+          else document.documentElement.classList.remove('dark');
+          if (btn) btn.textContent = t === 'dark' ? 'Light' : 'Dark';
+        }
+        const saved =
+          storageGet(key) ||
+          (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light');
+        applyTheme(saved);
+        if (btn)
+          btn.addEventListener(
+            'click',
+            wrapHandler(() => {
+              const isDark = document.documentElement.classList.toggle('dark');
+              const next = isDark ? 'dark' : 'light';
+              storageSet(key, next);
+              if (btn) btn.textContent = isDark ? 'Light' : 'Dark';
+            })
+          );
+      })();
+    <\/script>
+  </body>
+</html>
+`;
   }
 });
 
