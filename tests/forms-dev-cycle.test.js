@@ -424,3 +424,123 @@ describe('the tab list survives a refresh', () => {
     expect(tabTitles(again.window)).toEqual(['Contact', 'Survey']);
   });
 });
+
+describe('reordering tabs', () => {
+  const APP = require(path.resolve(__dirname, '..', 'src', 'form-generator.html'));
+  const pane = (win, idx) => win.document.querySelector(`.tab-pane[data-index='${idx}']`);
+  const moveBtn = (win, idx, dir) => pane(win, idx).querySelector(`[data-move='${dir}']`);
+  const tabEl = (win, idx) =>
+    win.document.querySelector(`#tabbar .tab[data-index='${idx}']:not(.right)`);
+  /** Drag tab `from` and drop it on tab `onto`, left or right half. */
+  function drag(win, from, onto, half) {
+    // jsdom lays nothing out, so every tab's box is 0 wide at x 0: a drop at
+    // x 1 is on the right half, at x 0 on the left.
+    const clientX = half === 'right' ? 1 : 0;
+    tabEl(win, from).dispatchEvent(new win.MouseEvent('dragstart', { bubbles: true }));
+    const target = tabEl(win, onto);
+    target.dispatchEvent(
+      new win.MouseEvent('dragover', { bubbles: true, cancelable: true, clientX })
+    );
+    target.dispatchEvent(new win.MouseEvent('drop', { bubbles: true, cancelable: true, clientX }));
+  }
+
+  test('Move right / Move left reorder the tab, and are disabled at the ends', async () => {
+    const dom = await fresh();
+    const win = dom.window;
+    expect(moveBtn(win, 0, 'left').disabled).toBe(true);
+    expect(moveBtn(win, 2, 'right').disabled).toBe(true);
+
+    moveBtn(win, 0, 'right').click();
+    expect(tabTitles(win)).toEqual(['Contact', 'Profile', 'Survey']);
+    moveBtn(win, 2, 'left').click();
+    expect(tabTitles(win)).toEqual(['Contact', 'Survey', 'Profile']);
+  });
+
+  test('typed values travel with the tab', async () => {
+    const dom = await fresh();
+    const win = dom.window;
+    pane(win, 0).querySelector('[name="firstName"]').value = 'profile-value';
+    pane(win, 1).querySelector('[name="firstName"]').value = 'contact-value';
+
+    moveBtn(win, 0, 'right').click();
+
+    expect(pane(win, 0).querySelector('[name="firstName"]').value).toBe('contact-value');
+    expect(pane(win, 1).querySelector('[name="firstName"]').value).toBe('profile-value');
+  });
+
+  test('focus stays on the Move button, so a key held down keeps moving the tab', async () => {
+    const dom = await fresh();
+    const win = dom.window;
+    moveBtn(win, 0, 'right').click();
+
+    expect(win.document.activeElement).toBe(moveBtn(win, 1, 'right'));
+  });
+
+  test('dragging a tab onto the right half of another lands it after that tab', async () => {
+    const dom = await fresh();
+    const win = dom.window;
+    drag(win, 0, 2, 'right');
+    expect(tabTitles(win)).toEqual(['Contact', 'Survey', 'Profile']);
+  });
+
+  test('dragging a tab onto the left half of another lands it before that tab', async () => {
+    const dom = await fresh();
+    const win = dom.window;
+    drag(win, 2, 0, 'left');
+    expect(tabTitles(win)).toEqual(['Survey', 'Profile', 'Contact']);
+  });
+
+  test('dropping a tab on itself changes nothing', async () => {
+    const dom = await fresh();
+    const win = dom.window;
+    drag(win, 1, 1, 'right');
+    expect(tabTitles(win)).toEqual(['Profile', 'Contact', 'Survey']);
+  });
+
+  test('the new order survives a refresh and ships in the export', async () => {
+    const dom = await fresh();
+    const win = dom.window;
+    const seed = JSON.parse(JSON.stringify(win.formConfig)).map((t) =>
+      Object.fromEntries(Object.entries(t).filter(([k]) => !k.startsWith('_')))
+    );
+    drag(win, 2, 0, 'left');
+
+    const saved = {};
+    for (let k = 0; k < win.localStorage.length; k++) {
+      saved[win.localStorage.key(k)] = win.localStorage.getItem(win.localStorage.key(k));
+    }
+    const again = await open(APP, 'http://localhost/reordered', (w) => {
+      w.formConfig = seed;
+      Object.entries(saved).forEach(([k, v]) => w.localStorage.setItem(k, v));
+    });
+    expect(tabTitles(again.window)).toEqual(['Survey', 'Profile', 'Contact']);
+
+    const exported = await open(exportHtml(win), 'http://localhost/reordered-export');
+    expect(tabTitles(exported.window)).toEqual(['Survey', 'Profile', 'Contact']);
+    expect(fieldNames(exported.window, 1)).toEqual(['firstName', 'email']);
+  });
+
+  test('saving a form after a reorder still updates the tab that IS that form', async () => {
+    const dom = await fresh();
+    const win = dom.window;
+    drag(win, 0, 2, 'right'); // Profile (tpl-0) now last
+
+    const ed = await editForm(dom, 'tpl-0');
+    ed.fields.value = JSON.stringify(PHONE_FIELDS);
+    button(ed.pane, 'Save').click();
+
+    expect(fieldNames(win, 2)).toEqual(['firstName', 'email', 'phone']); // Profile
+    expect(fieldNames(win, 0)).toEqual(['firstName', 'email']); // Contact untouched
+  });
+
+  test('reordering is a dev-mode tool: off, there are no Move buttons and nothing drags', async () => {
+    const dom = await fresh();
+    const win = dom.window;
+    const dev = win.document.getElementById('devToggle');
+    dev.checked = false;
+    dev.dispatchEvent(new win.Event('change'));
+
+    expect(pane(win, 0).querySelector('[data-move]')).toBeNull();
+    expect(tabEl(win, 0).draggable).toBe(false);
+  });
+});
