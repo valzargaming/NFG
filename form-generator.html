@@ -277,6 +277,21 @@
       // Keep a pristine copy of the original formConfig so we can restore defaults
       const originalFormConfig = JSON.parse(JSON.stringify(formConfig));
 
+      // A short, stable fingerprint of the tabs this page was SHIPPED with. The
+      // saved tab list only applies to the page it was saved from: if the
+      // original tabs change — a new export, or an embedding page that updates
+      // its built-in tabs — the saved list is stale (its built-in ids are
+      // positions in the OLD list) and the page's own tabs win instead.
+      const seedPrint = (() => {
+        const s = JSON.stringify(originalFormConfig);
+        let h = 5381;
+        for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+        return (h >>> 0).toString(36) + '.' + s.length.toString(36);
+      })();
+      // Unique id for tabs made on the fly (New / Duplicate).
+      const uid = (prefix) =>
+        prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
       const tabbar = document.getElementById('tabbar');
       const contents = document.getElementById('contents');
 
@@ -337,6 +352,10 @@
         formMap: 'nfg-form-map',
         devMode: 'nfg-dev-mode',
         theme: 'nfg-theme',
+        // the tab list itself — which tabs are open, in order (see persistFormMap)
+        tabs: 'nfg-tabs',
+        // which export last seeded this browser's storage (see Export)
+        seed: 'nfg-seed',
       };
 
       // `id -> item` lookup for a list; rebuilt wherever the list changes so the
@@ -597,31 +616,88 @@
                 const seed = [];
                 // Safely serialize JSON for embedding inside a <script> tag.
                 // Uses top-level `safeJson` helper.
-                safe(() => seed.push('window.formConfig = ' + safeJson(formConfig) + ';'));
+                // The exported file rebuilds its built-in forms `tpl-0..N` from
+                // the tabs it is seeded with, BY POSITION. So after an Unload the
+                // old `tpl-N` definitions no longer line up: shipping them would
+                // hand tab 0 of the new file the definition of whatever used to
+                // be tab 0 in this one. Ship the tabs as they are now instead —
+                // current fields, and the format of the form each tab IS — and
+                // let `tpl-*` regenerate from them. Custom forms are not
+                // positional and ship unchanged.
+                const isBuiltIn = (id) => id === '__json__' || /^tpl-\d+$/.test(String(id));
+                const oldToNew = {};
+                const exportedTabs = formConfig.map((tab, ei) => {
+                  if (tab && tab._formId) oldToNew[tab._formId] = `tpl-${ei}`;
+                  const def = tab && tab._formId ? formsMap[tab._formId] : null;
+                  let format = deepCopy(tab.format === undefined ? null : tab.format);
+                  if (def && Object.prototype.hasOwnProperty.call(def, 'cfg')) {
+                    format =
+                      typeof def.cfg === 'string'
+                        ? { type: 'template', template: def.cfg }
+                        : deepCopy(def.cfg);
+                  }
+                  return { title: tab.title, fields: deepCopy(tab.fields || []), format };
+                });
+                // The tab list lives in the page, not in storage — set it every load.
+                const tabsLine = 'window.formConfig = ' + safeJson(exportedTabs) + ';';
                 safe(() =>
-                  seed.push("localStorage.setItem('nfg-forms', " + safeJson(forms) + ');')
+                  seed.push(
+                    "localStorage.setItem('nfg-forms', " +
+                      safeJson(forms.filter((f) => f && !isBuiltIn(f.id))) +
+                      ');'
+                  )
                 );
                 safe(() =>
                   seed.push("localStorage.setItem('nfg-outputs', " + safeJson(outputs) + ');')
                 );
                 safe(() => {
-                  // Compute current mapping from formConfig -> template id so the
-                  // exported HTML reflects the currently loaded form per-tab even
-                  // if the mapping wasn't previously persisted.
+                  // Each tab's Template selection, renumbered: a `tpl-*` choice
+                  // follows its tab to that tab's new position (or is dropped
+                  // if that tab was not exported); a custom choice is kept.
                   const exportMap = {};
-                  for (let ei = 0; ei < formConfig.length; ei++) {
-                    const tid = formConfig[ei] && formConfig[ei]._templateId;
-                    if (tid && formsMap && formsMap[tid]) exportMap[ei] = tid;
-                  }
+                  formConfig.forEach((tab, ei) => {
+                    const sel = tab && tab._templateId;
+                    if (!sel) return;
+                    if (isBuiltIn(sel)) {
+                      if (oldToNew[sel]) exportMap[ei] = oldToNew[sel];
+                    } else if (formsMap && formsMap[sel]) {
+                      exportMap[ei] = sel;
+                    }
+                  });
                   seed.push("localStorage.setItem('nfg-form-map', " + safeJson(exportMap) + ');');
                 });
                 safe(() => seed.push("localStorage.setItem('nfg-dev-mode', 'false');"));
-                const seedScript = `<script>try{${seed.join('')} }catch(e){}<\/script>`;
+                // Storage is seeded ONCE per export, not on every load. It used
+                // to run on every open, so anything edited inside an exported
+                // file — forms, template choices — was overwritten by the next
+                // refresh, and dev mode switched itself back off each time. The
+                // id marks which export last seeded this browser; a different
+                // export (or a fresh browser) still gets seeded.
+                const exportId =
+                  'nfg-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+                const idJson = safeJson(exportId);
+                const seedScript =
+                  `<script data-nfg-seed>try{${tabsLine}}catch(e){}` +
+                  `try{if(localStorage.getItem('${KEYS.seed}')!==${idJson}){${seed.join('')}` +
+                  `localStorage.setItem('${KEYS.seed}',${idJson});}}catch(e){}<\/script>`;
                 // create a cleaned clone of the document and remove dev UI elements
                 const docClone = document.documentElement.cloneNode(true);
                 safe(() => {
                   const toRemove = qAll(docClone, '[data-dev-toggle], [data-export-button]');
                   toRemove.forEach((n) => n.remove());
+                  // Strip every EARLIER export's seed. Exporting an exported file
+                  // clones a document that still carries its old seed; the new one
+                  // went in ahead of it, so the old one ran last and won — a
+                  // re-export of a fixed file opened as the version before the fix.
+                  // Seeds from before the marker existed are recognised by their
+                  // opening statement.
+                  qAll(docClone, 'body script').forEach((n) => {
+                    if (
+                      n.hasAttribute('data-nfg-seed') ||
+                      /^\s*try\{\s*window\.formConfig\s*=/.test(n.textContent || '')
+                    )
+                      n.remove();
+                  });
                 });
                 let html = '<!doctype html>\n' + docClone.outerHTML;
                 html = html.replace(/<body([^>]*)>/i, (m, attrs) => `<body${attrs}>${seedScript}`);
@@ -682,16 +758,30 @@
         });
       })();
 
+      // A tab carries two ids that used to be one:
+      //   _formId     — WHICH form definition this tab is. Stable. Load, Unload,
+      //                 Save and Delete find a tab by this.
+      //   _templateId — which output template the tab has SELECTED in its
+      //                 Template dropdown. Changes freely; drives formatting only.
+      // Conflating them meant picking a different output template silently changed
+      // what the tab *was* — so whether Unload, Load or Save could find a tab
+      // depended on a dropdown.
+      const deepCopy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
+
       // Build list of available templates (include JSON fallback)
       const defaultTemplates = [{ id: '__json__', label: '__json__', cfg: null }];
       // Create a default template entry for every tab so each tab has a template option
       formConfig.forEach((t, idx) => {
         const id = `tpl-${idx}`;
         const label = t.format && t.format.label ? t.format.label : `${t.title}`;
-        const cfg = t.format ? t.format : null;
-        defaultTemplates.push({ id, label, cfg });
-        // keep a reference on the config so we can detect default when using defaults
+        const cfg = t.format ? deepCopy(t.format) : null;
+        // Built-in forms carry the tab's FIELDS. They used to be created without
+        // any, so opening a built-in tab in the Forms editor showed an empty
+        // Fields box — and saving it (even just to rename it) wrote that empty
+        // list back onto the tab, deleting every field.
+        defaultTemplates.push({ id, label, cfg, fields: deepCopy(t.fields || []) });
         t._templateId = id;
+        t._formId = id;
       });
 
       // Load editable forms from localStorage if present, otherwise merge with defaults
@@ -699,16 +789,62 @@
       // Load persisted forms (parsed) via storageGet which handles safety
       const parsedForms = storageGet(KEYS.forms, null);
       if (Array.isArray(parsedForms)) {
-        const map = Object.fromEntries(defaultTemplates.map((t) => [t.id, t]));
+        // Copies, not the defaults themselves: Save edits a form object in
+        // place, and sharing them made every edit rewrite the "pristine"
+        // defaults — so Reset to defaults handed the edited versions back.
+        const map = Object.fromEntries(deepCopy(defaultTemplates).map((t) => [t.id, t]));
         for (const s of parsedForms) {
           if (s && s.id) map[s.id] = s;
         }
         forms = Object.values(map);
       }
-      if (!forms) forms = defaultTemplates.slice();
+      if (!forms) forms = deepCopy(defaultTemplates);
 
       // map for quick lookup
       let formsMap = rebuildMap(forms);
+
+      // Reopen the tabs as they were left, when they were saved from THIS page's
+      // original tabs (see `seedPrint`). Built-in ids were assigned from those
+      // original tabs just above, so a saved `tpl-N` still means the same tab.
+      // A tab whose form definition has since been deleted is dropped; tabs
+      // made on the fly (New / Duplicate) carry their own `adhoc-` identity.
+      safe(() => {
+        const saved = storageGet(KEYS.tabs, null);
+        if (!saved || saved.seed !== seedPrint || !Array.isArray(saved.tabs)) return;
+        const restored = saved.tabs
+          .filter(
+            (t) =>
+              t &&
+              Array.isArray(t.fields) &&
+              typeof t._formId === 'string' &&
+              (formsMap[t._formId] || t._formId.startsWith('adhoc-'))
+          )
+          .map((t) => {
+            const tab = deepCopy(t);
+            // A Template choice that no longer exists falls back to the tab's
+            // own form — or, for a tab made on the fly, to plain JSON output.
+            if (!tab._templateId || !formsMap[tab._templateId]) {
+              tab._templateId = formsMap[tab._formId] ? tab._formId : '__json__';
+            }
+            return tab;
+          });
+        formConfig.splice(0, formConfig.length, ...restored);
+      });
+
+      // A SAVED definition wins over the tab's own copy of its fields. Tabs
+      // render `formConfig[i].fields`, while the Forms editor saves to
+      // `nfg-forms` — two copies with nothing reconciling them on load, so a
+      // page refresh put the OLD fields back on the tab while the edit sat
+      // unused in storage (and an export after the refresh shipped the old ones).
+      // Only definitions that were actually saved apply; format stays with the
+      // tab's Template selection, which is restored from the form map below.
+      if (Array.isArray(parsedForms)) {
+        const saved = rebuildMap(parsedForms);
+        formConfig.forEach((t) => {
+          const def = t && t._formId ? saved[t._formId] : null;
+          if (def && Array.isArray(def.fields)) t.fields = deepCopy(def.fields);
+        });
+      }
       // Outputs: separate persisted output definitions (format + fields)
       const outputsKey = KEYS.outputs;
       let outputs;
@@ -756,6 +892,20 @@
         formMap = map;
         // use storageSet which handles JSON serialization and safety
         storageSet(formMapKey, map);
+        // And the tab list itself. It used to live only in memory, so Unload,
+        // Load, New and Duplicate lasted until the next refresh: an unloaded tab
+        // came back, a loaded one vanished, and only an Export kept either.
+        // Typed values are deliberately NOT saved, as before.
+        storageSet(KEYS.tabs, {
+          seed: seedPrint,
+          tabs: formConfig.map((t) => ({
+            title: t.title,
+            fields: t.fields,
+            format: t.format === undefined ? null : t.format,
+            _formId: t._formId,
+            _templateId: t._templateId,
+          })),
+        });
       }
       // Capture all current form values across tabs. Returns an object
       // mapping pane dataset.index -> { name: value | [values] }
@@ -779,6 +929,26 @@
             applyValues(q(pane, 'form.generated-form'), allPrev[nameIdx] || {});
           });
         });
+      }
+      // The same pair keyed by the TAB (its `_formId`) instead of its position.
+      // Removing a tab shifts every later tab down one; restoring by index then
+      // poured each tab's typed values into its neighbour. Use these around any
+      // change that removes, inserts or reorders tabs.
+      function captureValuesByForm() {
+        const byIdx = captureAllFormValues();
+        const out = {};
+        Object.keys(byIdx).forEach((k) => {
+          const t = formConfig[Number(k)];
+          if (t && t._formId) out[t._formId] = byIdx[k];
+        });
+        return out;
+      }
+      function restoreValuesByForm(byForm) {
+        const byIdx = {};
+        formConfig.forEach((t, i) => {
+          if (t && t._formId && byForm && byForm[t._formId]) byIdx[i] = byForm[t._formId];
+        });
+        restoreAllFormValues(byIdx);
       }
       // counter used to give generated dynamic inputs unique ids
       let dynamicIdCounter = 0;
@@ -1136,6 +1306,10 @@
                     formConfig[i] && formConfig[i]._templateId
                       ? formConfig[i]._templateId
                       : undefined,
+                  // A tab made on the fly has no form definition behind it, but
+                  // it still needs an identity: typed values follow tabs by it,
+                  // and the saved tab list is reloaded by it.
+                  _formId: uid('adhoc'),
                 };
                 formConfig.push(newForm);
                 safe(() => persistFormMap());
@@ -1190,6 +1364,10 @@
                     formConfig[i] && formConfig[i]._templateId
                       ? formConfig[i]._templateId
                       : undefined,
+                  // A tab made on the fly has no form definition behind it, but
+                  // it still needs an identity: typed values follow tabs by it,
+                  // and the saved tab list is reloaded by it.
+                  _formId: uid('adhoc'),
                 };
                 formConfig.push(newForm);
                 safe(() => persistFormMap());
@@ -1285,20 +1463,22 @@
             unloadBtn.className = 'btn warn';
             unloadBtn.textContent = 'Unload';
             unloadBtn.style.marginLeft = '8px';
+            unloadBtn.title =
+              'Remove this tab. Its form definition stays in the Forms pane, so Load brings it back.';
             unloadBtn.addEventListener(
               'click',
               wrapHandler(() => {
-                const tid = formConfig[i] && formConfig[i]._templateId;
-                if (tid && /^tpl-(\d+)$/.test(tid)) {
-                  alert('Cannot unload a default form tab.');
-                  return;
-                }
-                // remove this form tab
-                const allPrev = captureAllFormValues();
+                // Any tab can be unloaded. This used to refuse every built-in
+                // (`tpl-N`) tab — which is every tab of an exported file — and
+                // decided it from the Template dropdown's current selection, so
+                // unloadability depended on which output format was picked.
+                // Unloading removes the TAB only; its definition stays in
+                // `forms`, so the Forms pane can Load it straight back.
+                const allPrev = captureValuesByForm();
                 formConfig.splice(i, 1);
                 safe(() => persistFormMap());
                 safe(() => build());
-                safe(() => restoreAllFormValues(allPrev));
+                safe(() => restoreValuesByForm(allPrev));
                 safe(() => activateTab(Math.max(0, i - 1)));
               })
             );
@@ -2295,41 +2475,40 @@
               if (!id) return;
               // Preserve current form values across the DOM rebuild so loading
               // a template doesn't clear data entered in other tabs.
-              const allPrev = captureAllFormValues();
+              const allPrev = captureValuesByForm();
 
               safe(() => {
-                // if a tab already exists for this template, do nothing
-                let exists = false;
-                for (let j = 0; j < formConfig.length; j++) {
-                  if (formConfig[j] && formConfig[j]._templateId === id) {
-                    exists = true;
-                    break;
-                  }
-                }
-                if (!exists) {
-                  const t = forms.find((x) => x.id === id) || formsMap[id];
-                  const cfgCopy =
-                    t && t.cfg
-                      ? typeof t.cfg === 'string'
-                        ? { type: 'template', template: t.cfg }
-                        : JSON.parse(JSON.stringify(t.cfg))
-                      : null;
-                  const newForm = {
-                    title: (t && t.label) || id,
+                const t = forms.find((x) => x.id === id) || formsMap[id];
+                if (!t) return;
+                const cfgCopy = t.cfg
+                  ? typeof t.cfg === 'string'
+                    ? { type: 'template', template: t.cfg }
+                    : deepCopy(t.cfg)
+                  : null;
+                // Found by WHAT the tab is (`_formId`), not by its current
+                // Template selection. An existing tab is RELOADED in place from
+                // the saved definition — this used to be a silent no-op, so a
+                // tab that could not be unloaded could not be refreshed either,
+                // and "edit → reload → export" had no working path.
+                let at = formConfig.findIndex((x) => x && x._formId === id);
+                if (at >= 0) {
+                  formConfig[at].fields = deepCopy(t.fields || []);
+                  if (formConfig[at]._templateId === id) formConfig[at].format = cfgCopy;
+                } else {
+                  formConfig.push({
+                    title: t.label || id,
                     format: cfgCopy,
-                    fields: t && t.fields ? JSON.parse(JSON.stringify(t.fields)) : [],
+                    fields: deepCopy(t.fields || []),
+                    _formId: id,
                     _templateId: id,
-                  };
-                  formConfig.push(newForm);
-                  formsMap = rebuildMap(forms);
-                  // persist mapping and forms
-                  safe(() => persistFormMap());
-                  build();
-                  // restore preserved values into rebuilt panes
-                  safe(() => restoreAllFormValues(allPrev));
-                  // activate the newly created tab (last index)
-                  safe(() => activateTab(formConfig.length - 1));
+                  });
+                  at = formConfig.length - 1;
                 }
+                formsMap = rebuildMap(forms);
+                safe(() => persistFormMap());
+                build();
+                safe(() => restoreValuesByForm(allPrev));
+                safe(() => activateTab(at));
               });
               // keep templates pane active: after `build()` the templates tab
               // element was recreated and its dataset.index may have changed.
@@ -2393,80 +2572,32 @@
               }
               // Associate the template with the currently selected Output (if any)
               if (outSelect && outSelect.value) t.outputId = outSelect.value;
-              // If this template maps to a default form (tpl-<index>), update that formConfig entry
+              // Apply the saved definition to the tabs that use it, found by
+              // identity rather than position:
+              //   fields → every tab that IS this form        (_formId)
+              //   format → every tab that has it SELECTED     (_templateId)
+              // Two faults lived here. Built-in forms wrote to `formConfig[N]`
+              // parsed out of `tpl-N` — wrong the moment an Unload shifted the
+              // tabs. And custom forms skipped any tab the user had typed into,
+              // so an edit silently never reached it (the reason unload-and-
+              // reload was needed at all). Typed values survive the rebuild
+              // below by field name, so there is nothing to protect here.
               safe(() => {
-                const m = /^tpl-(\d+)$/.exec(t.id);
-                if (m) {
-                  const idx = Number(m[1]);
-                  // debug removed
-                  if (formConfig[idx]) {
-                    // If the existing tab already has user-filled values, do not
-                    // overwrite its fields list (avoids clearing user input).
-                    let hasValues = false;
-                    safe(() => {
-                      const pane = q(contents, `.tab-pane[data-index='${idx}']`);
-                      if (pane) {
-                        const f = q(pane, 'form.generated-form');
-                        if (f) {
-                          Array.from(f.elements).forEach((e) => {
-                            if (hasValues) return;
-                            if (!e.name) return;
-                            if (e.type === 'checkbox' || e.type === 'radio') {
-                              if (e.checked) hasValues = true;
-                            } else if (String(e.value || '').trim() !== '') {
-                              hasValues = true;
-                            }
-                          });
-                        }
-                      }
-                    });
-                    formConfig[idx].fields = JSON.parse(JSON.stringify(t.fields || []));
-                    // explicitly set format to null when template cfg is null/blank
-                    formConfig[idx].format = t.cfg
-                      ? typeof t.cfg === 'string'
-                        ? { type: 'template', template: t.cfg }
-                        : JSON.parse(JSON.stringify(t.cfg))
-                      : null;
-                    formConfig[idx]._templateId = t.id;
+                const fmt = t.cfg
+                  ? typeof t.cfg === 'string'
+                    ? { type: 'template', template: t.cfg }
+                    : deepCopy(t.cfg)
+                  : null;
+                formConfig.forEach((tab) => {
+                  if (!tab) return;
+                  if (tab._formId === t.id) {
+                    tab.fields = deepCopy(t.fields || []);
+                    // A loaded form's tab is titled by its label; a built-in
+                    // keeps its own title (its label may be a format label).
+                    if (!/^tpl-\d+$/.test(t.id)) tab.title = t.label || tab.title;
                   }
-                } else {
-                  // For custom templates, if a corresponding form exists, update it too
-                  safe(() => {
-                    for (let j = 0; j < formConfig.length; j++) {
-                      if (formConfig[j] && formConfig[j]._templateId === t.id) {
-                        // If this tab already has values entered by the user, avoid
-                        // overwriting its `fields` to prevent clearing user input.
-                        let hasValues = false;
-                        safe(() => {
-                          const pane = q(contents, `.tab-pane[data-index='${j}']`);
-                          if (pane) {
-                            const f = q(pane, 'form.generated-form');
-                            if (f) {
-                              Array.from(f.elements).forEach((e) => {
-                                if (hasValues) return;
-                                if (!e.name) return;
-                                if (e.type === 'checkbox' || e.type === 'radio') {
-                                  if (e.checked) hasValues = true;
-                                } else if (String(e.value || '').trim() !== '') {
-                                  hasValues = true;
-                                }
-                              });
-                            }
-                          }
-                        });
-                        if (!hasValues) {
-                          formConfig[j].fields = JSON.parse(JSON.stringify(t.fields || []));
-                        }
-                        formConfig[j].format = t.cfg
-                          ? typeof t.cfg === 'string'
-                            ? { type: 'template', template: t.cfg }
-                            : JSON.parse(JSON.stringify(t.cfg))
-                          : null;
-                        formConfig[j].title = t.label || formConfig[j].title;
-                      }
-                    }
-                  });
-                }
+                  if (tab._templateId === t.id) tab.format = fmt;
+                });
               });
               formsMap = rebuildMap(forms);
               storageSet(KEYS.forms, forms);
@@ -2505,56 +2636,6 @@
               } finally {
                 suppressTabActivation = false;
               }
-              // Ensure that when saving a default tpl-<index> we render any new fields
-              // immediately in the corresponding form pane. This guards against
-              // timing issues in tests that assert DOM presence right after save.
-              safe(() => {
-                const m2 = /^tpl-(\d+)$/.exec(preserveId);
-                if (m2) {
-                  const idx2 = Number(m2[1]);
-                  const pane2 = q(contents, `.tab-pane[data-index='${idx2}']`);
-                  if (pane2) {
-                    const formEl = q(pane2, 'form.generated-form');
-                    if (formEl && formConfig[idx2] && Array.isArray(formConfig[idx2].fields)) {
-                      formConfig[idx2].fields.forEach((f) => {
-                        safe(() => {
-                          if (
-                            q(formEl, `[name="${CSS.escape(f.name)}"]`) ||
-                            (f.type === 'steps' &&
-                              q(formEl, `[name="${CSS.escape(f.name + '_combined')}" ]`))
-                          )
-                            return;
-                          const wrapper = document.createElement('div');
-                          wrapper.className = 'field';
-                          const labelEl = document.createElement('label');
-                          labelEl.textContent = f.label || f.name;
-                          wrapper.appendChild(labelEl);
-                          let inputEl;
-                          if (f.type === 'textarea') inputEl = document.createElement('textarea');
-                          else if (f.type === 'select') {
-                            inputEl = document.createElement('select');
-                            (f.options || []).forEach((opt) => {
-                              const o = document.createElement('option');
-                              o.value = opt.value ?? opt;
-                              o.textContent = opt.label ?? opt;
-                              inputEl.appendChild(o);
-                            });
-                          } else {
-                            inputEl = document.createElement('input');
-                            inputEl.type = f.type || 'text';
-                          }
-                          inputEl.name = f.type === 'steps' ? f.name + '_combined' : f.name;
-                          inputEl.autocomplete = 'off';
-                          if (f.placeholder) inputEl.placeholder = f.placeholder;
-                          wrapper.appendChild(inputEl);
-                          formEl.appendChild(wrapper);
-                        });
-                      });
-                      safe(() => activateTab(idx2));
-                    }
-                  }
-                }
-              });
               // re-activate templates tab and show saved status (after form panes updated)
               safe(() => {
                 activateTab(Number(preserveIndex));
@@ -2602,17 +2683,25 @@
               safe(() => persistFormMap());
               refreshTplSelect();
               loadSelected();
-              // If this was a custom template that had an associated form tab, remove that tab
+              // A deleted custom form takes its tab with it — the tab that IS it
+              // (`_formId`), not whichever tab merely has it selected as an
+              // output template. Capture values first, keyed by tab, so the
+              // tabs that shift down keep their own.
+              const allPrev = captureValuesByForm();
               safe(() => {
                 if (id && id.startsWith('custom-')) {
                   for (let j = formConfig.length - 1; j >= 0; j--) {
-                    if (formConfig[j] && formConfig[j]._templateId === id) formConfig.splice(j, 1);
+                    if (formConfig[j] && formConfig[j]._formId === id) formConfig.splice(j, 1);
                   }
                 }
+                // A tab left pointing at the deleted template falls back to its own.
+                formConfig.forEach((tab) => {
+                  if (tab && tab._templateId === id) tab._templateId = tab._formId;
+                });
               });
-              const allPrev = captureAllFormValues();
+              safe(() => persistFormMap());
               safe(() => build());
-              safe(() => restoreAllFormValues(allPrev));
+              safe(() => restoreValuesByForm(allPrev));
               // pick first available template in the templates pane (no status yet)
               safe(() => {
                 activateTab(Number(preserveIndex));
@@ -2658,30 +2747,30 @@
               // remove persisted per-tab form mapping as well
               safe(() => {
                 localStorage.removeItem(formMapKey);
+                // …and the saved tab list, so a refresh after Reset shows the
+                // original tabs rather than the set that was just reset.
+                localStorage.removeItem(KEYS.tabs);
                 formMap = {};
               });
-              forms = defaultTemplates.slice();
+              forms = deepCopy(defaultTemplates);
               formsMap = rebuildMap(forms);
               refreshTplSelect();
               loadSelected();
-              // restore original formConfig fields/formats for default tabs
+              // Restore the original SET of tabs — unloaded ones come back,
+              // loaded ones go — rather than pasting originals over whatever
+              // now sits at each position. By index, one Unload earlier meant
+              // every later tab received its neighbour's original fields.
+              const allPrev = captureValuesByForm();
               safe(() => {
-                for (let idx = 0; idx < formConfig.length; idx++) {
-                  if (originalFormConfig[idx]) {
-                    formConfig[idx].fields = JSON.parse(
-                      JSON.stringify(originalFormConfig[idx].fields || [])
-                    );
-                    formConfig[idx].format = JSON.parse(
-                      JSON.stringify(originalFormConfig[idx].format || null)
-                    );
-                    if (originalFormConfig[idx]._templateId)
-                      formConfig[idx]._templateId = originalFormConfig[idx]._templateId;
-                  }
-                }
+                const fresh = deepCopy(originalFormConfig) || [];
+                fresh.forEach((t, idx) => {
+                  t._formId = `tpl-${idx}`;
+                  t._templateId = `tpl-${idx}`;
+                });
+                formConfig.splice(0, formConfig.length, ...fresh);
               });
-              const allPrev = captureAllFormValues();
               safe(() => build());
-              safe(() => restoreAllFormValues(allPrev));
+              safe(() => restoreValuesByForm(allPrev));
               safe(() => {
                 const newTplTab = q(tabbar, '.tab.right[data-templates="true"]');
                 if (newTplTab) {
