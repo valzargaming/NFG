@@ -89,6 +89,19 @@ var NFG=(()=>{var s=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
         box-shadow: 0 -4px 12px rgba(43, 140, 255, 0.06);
         border-bottom: 2px solid #fff;
       }
+      /* Reordering (dev mode): drag a tab, or use Move left / Move right. */
+      .tab[draggable='true'] {
+        cursor: grab;
+      }
+      .tab.dragging {
+        opacity: 0.45;
+      }
+      .tab.drop-before {
+        box-shadow: inset 3px 0 0 var(--accent);
+      }
+      .tab.drop-after {
+        box-shadow: inset -3px 0 0 var(--accent);
+      }
       .tab-content {
         padding: 18px;
       }
@@ -146,6 +159,11 @@ var NFG=(()=>{var s=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
         background: #f2f6ff;
         color: var(--accent);
         border: 1px solid #d7e7ff;
+      }
+      /* A disabled button must look it \u2014 e.g. "\u2190 Left" on the first tab. */
+      .btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
       }
       .btn-warn {
         background: #e05252;
@@ -950,6 +968,36 @@ var NFG=(()=>{var s=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
         });
         restoreAllFormValues(byIdx);
       }
+      // Move the tab at \`from\` to position \`to\`. Typed values travel with their
+      // tab (keyed by identity, not position), the new order is saved with the
+      // tab list, and an Export ships it. \`refocus\` names the Move button to put
+      // focus back on, so holding a key to walk a tab along keeps working after
+      // the rebuild.
+      function moveTab(from, to, refocus) {
+        if (
+          from === to ||
+          from < 0 ||
+          to < 0 ||
+          from >= formConfig.length ||
+          to >= formConfig.length
+        )
+          return;
+        const allPrev = captureValuesByForm();
+        const [tab] = formConfig.splice(from, 1);
+        formConfig.splice(to, 0, tab);
+        safe(() => persistFormMap());
+        safe(() => build());
+        safe(() => restoreValuesByForm(allPrev));
+        safe(() => activateTab(to));
+        if (refocus) {
+          safe(() => {
+            const btn = q(contents, \`.tab-pane[data-index='\${to}'] [data-move='\${refocus}']\`);
+            if (btn && !btn.disabled) btn.focus();
+          });
+        }
+      }
+      // index of the tab being dragged in the tab bar, or null
+      let dragFrom = null;
       // counter used to give generated dynamic inputs unique ids
       let dynamicIdCounter = 0;
       // when true, tpl select change handlers should not activate tabs (used during programmatic updates)
@@ -1064,15 +1112,76 @@ var NFG=(()=>{var s=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
       function build() {
         tabbar.innerHTML = '';
         contents.innerHTML = '';
-        formConfig.forEach((tab, i) => {
-          tabbar.appendChild(
-            el('div', {
-              className: 'tab',
-              textContent: tab.title,
-              dataset: { index: i },
-              onclick: wrapHandler(() => activateTab(i)),
-            })
+        const clearDropMarks = () =>
+          qAll(tabbar, '.tab').forEach((t) =>
+            t.classList.remove('dragging', 'drop-before', 'drop-after')
           );
+        formConfig.forEach((tab, i) => {
+          const tabEl = el('div', {
+            className: 'tab',
+            textContent: tab.title,
+            dataset: { index: i },
+            onclick: wrapHandler(() => activateTab(i)),
+          });
+          // Dev mode: drag a tab along the bar to reorder it. Dropping on the
+          // left half of a tab lands before it, the right half after it. (Touch
+          // screens do not fire these drag events \u2014 the Move left / Move right
+          // buttons beside Unload cover them, and keyboard users.)
+          if (devMode) {
+            tabEl.draggable = true;
+            tabEl.title = 'Drag to reorder';
+            const afterHalf = (ev) => {
+              const r = tabEl.getBoundingClientRect();
+              return ev.clientX > r.left + r.width / 2;
+            };
+            tabEl.addEventListener(
+              'dragstart',
+              wrapHandler((ev) => {
+                dragFrom = i;
+                if (ev.dataTransfer) {
+                  ev.dataTransfer.effectAllowed = 'move';
+                  safe(() => ev.dataTransfer.setData('text/plain', String(i)));
+                }
+                tabEl.classList.add('dragging');
+              })
+            );
+            tabEl.addEventListener(
+              'dragover',
+              wrapHandler((ev) => {
+                if (dragFrom === null) return; // not one of our tabs
+                ev.preventDefault();
+                if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';
+                const after = afterHalf(ev);
+                tabEl.classList.toggle('drop-after', after);
+                tabEl.classList.toggle('drop-before', !after);
+              })
+            );
+            tabEl.addEventListener(
+              'dragleave',
+              wrapHandler(() => tabEl.classList.remove('drop-before', 'drop-after'))
+            );
+            tabEl.addEventListener(
+              'drop',
+              wrapHandler((ev) => {
+                if (dragFrom === null) return;
+                ev.preventDefault();
+                const from = dragFrom;
+                dragFrom = null;
+                clearDropMarks();
+                let to = afterHalf(ev) ? i + 1 : i;
+                if (from < to) to -= 1; // the dragged tab leaves a gap behind it
+                moveTab(from, to);
+              })
+            );
+            tabEl.addEventListener(
+              'dragend',
+              wrapHandler(() => {
+                dragFrom = null;
+                clearDropMarks();
+              })
+            );
+          }
+          tabbar.appendChild(tabEl);
 
           // subtabs: Form and Populate
           const stForm = el('div', { className: 'subtab active', textContent: 'Form' });
@@ -1482,6 +1591,34 @@ var NFG=(()=>{var s=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
                 safe(() => activateTab(Math.max(0, i - 1)));
               })
             );
+            // Reorder without dragging \u2014 for keyboard and touch, where the tab
+            // bar's drag-and-drop does not reach.
+            const moveLeft = el('button', {
+              type: 'button',
+              className: 'btn ghost',
+              text: '\u2190 Left',
+              'aria-label': 'Move this tab one place to the left',
+              title: 'Move this tab one place to the left',
+              dataset: { move: 'left' },
+              disabled: i === 0,
+              // The Template select takes the row's spare width; without these
+              // the buttons shrank and wrapped onto two or three lines.
+              style: { marginLeft: '8px', whiteSpace: 'nowrap', flexShrink: '0' },
+              onclick: wrapHandler(() => moveTab(i, i - 1, 'left')),
+            });
+            const moveRight = el('button', {
+              type: 'button',
+              className: 'btn ghost',
+              text: 'Right \u2192',
+              'aria-label': 'Move this tab one place to the right',
+              title: 'Move this tab one place to the right',
+              dataset: { move: 'right' },
+              disabled: i === formConfig.length - 1,
+              style: { marginLeft: '4px', whiteSpace: 'nowrap', flexShrink: '0' },
+              onclick: wrapHandler(() => moveTab(i, i + 1, 'right')),
+            });
+            tplRow.appendChild(moveLeft);
+            tplRow.appendChild(moveRight);
             tplRow.appendChild(unloadBtn);
           }
           formArea.appendChild(tplRow);
