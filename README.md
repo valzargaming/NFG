@@ -7,7 +7,7 @@ to GitHub Pages from `src/form-generator.html` on every push to `main`.
 
 ## Installation
 
-Prerequisites: Node.js (16+) and npm.
+Prerequisites: Node.js (22+) and npm.
 
 Install dependencies:
 

@@ -5,7 +5,7 @@ workflow — fork, branch, implement, test, and open a pull request.
 
 Prerequisites
 
-- Node.js 16+ and npm
+- Node.js 22+ and npm
 
 Steps
 

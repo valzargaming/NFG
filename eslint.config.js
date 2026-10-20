@@ -50,6 +50,8 @@ module.exports = [
     ignores: [
       'node_modules/**',
       'coverage/**',
+      'playwright-report/**',
+      'test-results/**',
       'dist/**',
       'build/**',
       'tmp_lint/**',
@@ -72,6 +74,11 @@ module.exports = [
   // The package entry also runs in the browser (mount()).
   {
     files: ['src/index.js'],
+    languageOptions: { globals: { ...nodeGlobals, ...browserGlobals } },
+  },
+
+  {
+    files: ['browser-tests/**/*.js'],
     languageOptions: { globals: { ...nodeGlobals, ...browserGlobals } },
   },
 

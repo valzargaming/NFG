@@ -16,7 +16,9 @@
     "build:browser": "npm run build:html && esbuild src/index.js --bundle --format=iife --global-name=NFG --outfile=dist/form-generator.js --minify",
     "build:all": "npm run build && npm run build:browser",
     "prepare": "npm run build",
-    "detect-useless-try": "node src/tools/detect_useless_try.js"
+    "detect-useless-try": "node src/tools/detect_useless_try.js",
+    "test:browser": "playwright test",
+    "report:browser": "playwright show-report"
   },
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
@@ -40,11 +42,18 @@
     },
     "setupFiles": [
       "<rootDir>/jest.setup.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/browser-tests/"
     ]
   },
   "devDependencies": {
+    "@babel/parser": "^7.24.0",
+    "@babel/traverse": "^7.24.0",
     "@html-eslint/eslint-plugin": "^0.54.2",
     "@html-eslint/parser": "^0.54.0",
+    "@playwright/test": "1.64.1",
     "esbuild": "^0.27.2",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
@@ -52,8 +61,6 @@
     "jest": "^29.6.0",
     "jest-environment-jsdom": "^29.6.0",
     "jsdom": "^22.1.0",
-    "prettier": "^2.8.8",
-    "@babel/parser": "^7.24.0",
-    "@babel/traverse": "^7.24.0"
+    "prettier": "^2.8.8"
   }
 }
