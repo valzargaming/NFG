@@ -103,6 +103,35 @@ describe('opt-in per-step Click controls', () => {
     original.querySelector('[name="steps_combined"]').nextElementSibling.click();
     expect(checks(original).map((c) => c.checked)).toEqual([false, false]);
   });
+  test('opt-in configuration persists in saved tabs and exported HTML', async () => {
+    const { pane, form, dom } = await example({ click: true });
+    checks(form)[0].click();
+    button(pane, 'Duplicate').click();
+    const saved = JSON.parse(dom.window.localStorage.getItem('nfg-tabs'));
+    expect(saved.tabs[0].fields[0].controls).toEqual({ click: true });
+    expect(saved.tabs[1].fields[0].controls).toEqual({ click: true });
+    let exported;
+    dom.window.confirm = () => false;
+    dom.window.Blob = function (parts) {
+      exported = parts.join('');
+    };
+    dom.window.URL.createObjectURL = () => 'blob:test';
+    dom.window.HTMLAnchorElement.prototype.click = () => {};
+    dom.window.document.querySelector('[data-export-button]').click();
+    expect(exported).toContain('"controls":{"click":true}');
+    const { JSDOM } = require('jsdom');
+    const { ensureCssEscape, waitForLoad } = require('./_helpers');
+    const reopened = new JSDOM(exported, {
+      runScripts: 'dangerously',
+      url: 'http://localhost',
+      beforeParse: ensureCssEscape,
+    });
+    await waitForLoad(reopened.window);
+    const reopenedForm = reopened.window.document.querySelector('form.generated-form');
+    expect(checks(reopenedForm)).toHaveLength(2);
+    expect(checks(reopenedForm).map((c) => c.checked)).toEqual([false, false]);
+    reopened.window.close();
+  });
   test('Clear resets checked state', async () => {
     const { pane, form } = await example({ click: true });
     checks(form)[0].click();
