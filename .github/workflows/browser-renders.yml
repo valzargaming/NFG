@@ -1,0 +1,56 @@
+name: Browser renders
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-renders-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    # Standard public-repository runner compute is free. Do not run on private forks.
+    if: github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - name: Check report size
+        id: report_size
+        if: ${{ !cancelled() }}
+        run: |
+          bytes=$(du -sb playwright-report | cut -f1)
+          test "$bytes" -le 15728640 || { echo 'Report exceeds 15 MiB upload cap'; exit 1; }
+      # The owner confirmed a $0 stop-usage budget. Never bypass quota failures.
+      - uses: actions/upload-artifact@v5
+        id: upload
+        if: ${{ !cancelled() && steps.report_size.outcome == 'success' }}
+        with:
+          name: browser-renders-${{ github.run_id }}
+          path: playwright-report/
+          retention-days: 1
+          if-no-files-found: error
+      - name: Explain render delivery
+        if: ${{ !cancelled() }}
+        env:
+          UPLOAD_OUTCOME: ${{ steps.upload.outcome }}
+        run: |
+          echo '## Browser render smoke tests' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Chromium: desktop light/dark and mobile light. Synthetic sample data only.' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$UPLOAD_OUTCOME" = success ]; then
+            echo 'Download the browser-renders artifact for the HTML report and PNG attachments (retained one day).' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Render artifact upload failed or was skipped. See logs; no downloadable report is available. Do not bypass quota or spending limits.' >> "$GITHUB_STEP_SUMMARY"
+          fi

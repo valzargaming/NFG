@@ -196,3 +196,28 @@ Inserted rows start unchecked. Duplicate and in-session form rebuilds preserve
 row values, keys and checked states. Clear unchecks them. Parse replaces rows and
 resets their checked state. Checkbox state is temporary form input, not configuration
 or an extra output field; exporting form definitions does not persist it.
+
+## Browser render smoke checks
+
+`npm run build:all`, `npx playwright install --with-deps chromium`, then
+`npm run test:browser` exercise the real generated app in Chromium. Use
+`npm run report:browser` to open the local HTML report and its attached PNGs.
+The suite uses synthetic examples on desktop light/dark and mobile light, covering
+text/textarea/headings, steps insertion/removal/duplication, Forms/Outputs editors,
+and Click controls absent, disabled, unchecked and checked. These are behavioral
+smoke assertions plus human-reviewable captures, not pixel-baseline approval or
+proof that every possible visual regression is detected.
+
+The separate Browser renders workflow uses a single standard public-repository
+Ubuntu runner, no deployment, no secrets and no external visual-testing service.
+Artifact storage has its own account-wide allowance. The repository owner confirmed
+an Actions $0 stop-usage budget before enabling uploads; maintain that protection.
+Quota/upload failures must not be bypassed with a paid upgrade. The HTML report
+(including PNG attachments) has a 15 MiB cap and one-day retention.
+GitHub requires signing in with repository read access to download artifacts;
+download/extract the report and open it locally. Expired artifacts cannot be
+retrieved. Reports contain only synthetic fixtures, never real user data.
+
+References: [Playwright CI](https://playwright.dev/docs/ci),
+[GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions),
+[artifact downloads](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts).
