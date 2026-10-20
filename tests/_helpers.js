@@ -168,7 +168,6 @@ async function setup(providedFormConfig) {
 async function openTemplatesPane(dom) {
   const win = dom.window;
   const tabs = Array.from(win.document.querySelectorAll('.tab'));
-  // debug removed
   const tplTab =
     tabs.find((t) => t.textContent && t.textContent.trim() === 'Forms') ||
     win.document.querySelector('.tab.right');
@@ -204,7 +203,6 @@ async function createAndSaveTemplate(dom, labelText) {
   );
   addBtn.click();
   // after clicking +New the DOM may be rebuilt; re-query the Forms pane
-  // debug removed
   pane = await openTemplatesPane(dom);
   // find the forms select reliably: the + New button sits next to it
   const addBtnNow = Array.from(pane.querySelectorAll('button')).find(
