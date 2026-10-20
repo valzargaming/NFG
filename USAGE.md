@@ -89,7 +89,11 @@ CommonJS:
 
 ```js
 const { mount } = require('@yourorg/nfg');
-mount('#root', { formConfig: [/* your tabs */] });
+mount('#root', {
+  formConfig: [
+    /* your tabs */
+  ],
+});
 ```
 
 ## 2) Install directly from a Git repository
@@ -165,3 +169,30 @@ npm link note-form-generator
 ```
 
 ---
+
+## Optional per-step Click checkbox
+
+A `steps` field can opt into an inline Click checkbox on every row:
+
+```json
+{
+  "label": "Procedure",
+  "name": "steps",
+  "type": "steps",
+  "keyMode": "numbered",
+  "controls": { "click": true },
+  "default": "Settings > Save"
+}
+```
+
+`controls.click` controls visibility, not the checked state. Only the boolean
+`true` enables it; omit the section or use `false` to retain the original UI and
+output. Each checkbox starts unchecked and applies independently. Checking the
+first row above generates `1. Click " Settings "`; leaving the second unchecked
+generates `2. Save`. The key remains outside the wrapper. Spaces inside the double
+quotes are intentional. Values remain plain text; JSON output escapes them normally.
+
+Inserted rows start unchecked. Duplicate and in-session form rebuilds preserve
+row values, keys and checked states. Clear unchecks them. Parse replaces rows and
+resets their checked state. Checkbox state is temporary form input, not configuration
+or an extra output field; exporting form definitions does not persist it.
