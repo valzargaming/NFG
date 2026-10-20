@@ -472,6 +472,10 @@ var require_embedded_html = __commonJS({
             map[e.name] = val;
           }
         });
+        qAll(form, '.steps-container').forEach((container) => {
+          const base = container.dataset.name;
+          if (!q(container, '.step-row')) map[base] = [];
+        });
         return map;
       }
 
@@ -498,6 +502,15 @@ var require_embedded_html = __commonJS({
 
       function applyValues(form, prev) {
         if (!form || !prev) return;
+        // Rows are authoritative: the combined input can be stale after edits.
+        qAll(form, '.steps-container').forEach((container) => {
+          const base = container.dataset.name;
+          if (!Object.prototype.hasOwnProperty.call(prev, base)) return;
+          const vals = Array.isArray(prev[base]) ? prev[base] : [prev[base]];
+          const list = q(container, '.steps-list');
+          list.innerHTML = '';
+          vals.forEach((val) => createStepRow(base, { val }, container, list));
+        });
         Object.keys(prev).forEach((nm) => {
           safe(() => {
             const els = qAll(form, \`[name="\${CSS.escape(nm)}"]\`);
@@ -508,7 +521,11 @@ var require_embedded_html = __commonJS({
               return;
             }
             if (els[0].type === 'checkbox') {
-              els.forEach((c) => {
+              els.forEach((c, index) => {
+                if (c.dataset.step === 'click') {
+                  c.checked = (Array.isArray(pv) ? pv[index] : pv) === 'on';
+                  return;
+                }
                 c.checked = Array.isArray(pv)
                   ? pv.includes(c.value)
                   : !!pv && String(pv) !== 'false' && String(pv) !== '0';
@@ -519,7 +536,11 @@ var require_embedded_html = __commonJS({
               for (let k = 0; k < els.length && k < pv.length; k++) els[k].value = pv[k];
             } else {
               els[0].value = pv;
-              safe(() => maybeRestoreCombinedSteps(form, nm, pv));
+              if (
+                !nm.endsWith('_combined') ||
+                !Object.prototype.hasOwnProperty.call(prev, nm.slice(0, -9))
+              )
+                safe(() => maybeRestoreCombinedSteps(form, nm, pv));
             }
           });
         });
@@ -826,7 +847,6 @@ var require_embedded_html = __commonJS({
       }
       if (!forms) forms = deepCopy(defaultTemplates);
 
-      // map for quick lookup
       let formsMap = rebuildMap(forms);
 
       // Reopen the tabs as they were left, when they were saved from THIS page's
@@ -1148,6 +1168,30 @@ var require_embedded_html = __commonJS({
             }),
           })
         );
+        if (container.dataset.clickEnabled === 'true') {
+          const click = el('input', {
+            type: 'checkbox',
+            name: baseName + '_click',
+            value: 'on',
+            dataset: { step: 'click' },
+            style: { width: 'auto', margin: '0' },
+          });
+          const label = el(
+            'label',
+            {
+              style: {
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                margin: '0',
+                whiteSpace: 'nowrap',
+              },
+            },
+            click,
+            document.createTextNode('Click')
+          );
+          row.insertBefore(label, inp.nextSibling);
+        }
         if (list) list.insertBefore(row, before || null);
         return inp;
       }
@@ -1302,7 +1346,6 @@ var require_embedded_html = __commonJS({
             input.placeholder = f.placeholder || '';
             if (f.default) input.value = f.default;
             wrapper.appendChild(input);
-            // Special handling for steps type: build dynamic list UI
             if (f.type === 'steps') {
               // Rename the top input to be the combined input so it does not
               // conflict with the per-step inputs below (which share the base name).
@@ -1319,7 +1362,6 @@ var require_embedded_html = __commonJS({
               parseBtnTop.className = 'btn ghost';
               parseBtnTop.textContent = 'Parse';
               parseBtnTop.style.marginLeft = '8px';
-              // place the combined input and button inside a row
               const combinedRow = document.createElement('div');
               combinedRow.style.display = 'flex';
               combinedRow.style.alignItems = 'center';
@@ -1373,7 +1415,7 @@ var require_embedded_html = __commonJS({
               const container = document.createElement('div');
               container.className = 'steps-container';
               container.dataset.name = f.name;
-              // initialize key mode on the container after it's created
+              container.dataset.clickEnabled = String(f.controls && f.controls.click === true);
               container.dataset.keyMode = modeSelect.value;
 
               const list = document.createElement('div');
@@ -1404,7 +1446,6 @@ var require_embedded_html = __commonJS({
                 'click',
                 wrapHandler(() => addPathItem(''))
               );
-              // parse top combined input into steps
               parseBtnTop.addEventListener(
                 'click',
                 wrapHandler(() => {
@@ -1485,7 +1526,6 @@ var require_embedded_html = __commonJS({
             wrapHandler(() => {
               const allPrev = captureAllFormValues();
               safe(() => {
-                // capture current form values
                 const vals = formValues(form);
 
                 const newFields = (tab.fields || []).map((f) => {
@@ -1527,6 +1567,7 @@ var require_embedded_html = __commonJS({
                 formConfig.push(newForm);
                 safe(() => persistFormMap());
                 safe(() => build());
+                allPrev[formConfig.length - 1] = vals;
                 safe(() => restoreAllFormValues(allPrev));
                 safe(() => activateTab(formConfig.length - 1));
               });
@@ -1706,8 +1747,14 @@ var require_embedded_html = __commonJS({
             wrapHandler(() => {
               const values = {};
               Array.from(form.elements).forEach((e) => {
-                if (!e.name) return;
-                const v = e.value !== undefined ? e.value : '';
+                if (!e.name || e.dataset.step === 'click') return;
+                const click =
+                  e.closest('.step-row') && q(e.closest('.step-row'), '[data-step="click"]');
+                const raw = e.value !== undefined ? e.value : '';
+                const v =
+                  click && click.checked && e.name === e.closest('.steps-container').dataset.name
+                    ? 'Click " ' + raw + ' "'
+                    : raw;
                 if (Object.prototype.hasOwnProperty.call(values, e.name)) {
                   if (!Array.isArray(values[e.name])) values[e.name] = [values[e.name]];
                   values[e.name].push(v);
@@ -1732,7 +1779,6 @@ var require_embedded_html = __commonJS({
                   return prefix + v;
                 });
                 values[base] = combined.length === 1 ? combined[0] : combined;
-                // optionally remove the keys entry
                 delete values[k];
               });
               const sel = tplSelect.value || '__json__';
@@ -1824,7 +1870,6 @@ var require_embedded_html = __commonJS({
             })
           );
 
-          // actions
           scanBtn.addEventListener(
             'click',
             wrapHandler(() => scanPopulate(i, preview))
@@ -2305,6 +2350,7 @@ var require_embedded_html = __commonJS({
                 <code>"none"</code> (no key), <code>"numbered"</code> (1., 2., ...), or <code>"bullet"</code> (-). Example field definition:
                 <pre style="background:#f4f7fb;padding:8px;border-radius:6px;margin:6px 0;">{ "label": "Tasks", "name": "tasks", "type": "steps", "keyMode": "numbered" }</pre>
                 When a form defines <code>keyMode</code> the steps UI will initialize the Default key selector accordingly so parsed or added step rows inherit that style.</p>
+                <p>Opt in to an inline Click checkbox on each step with <code>"controls": { "click": true }</code>. Missing or false hides it. Checked rows output <code>Click " value "</code> after their key; unchecked rows stay unchanged. Each row starts unchecked.</p>
               </li>
               <li>Click <em>Save</em> to apply \u2014 left-side form tabs update immediately and form definitions are persisted to localStorage (only form definitions are saved; user-entered form values are never persisted).</li>
             </ul>\`;
@@ -2708,10 +2754,7 @@ var require_embedded_html = __commonJS({
           saveBtn.addEventListener(
             'click',
             wrapHandler(() => {
-              // debug removed
               const id = tplSelect.value;
-              // debug special removed
-              // debug removed
               const t = forms.find((x) => x.id === id);
               if (!t) return;
               t.label = lblInput.value || t.label || t.id;
@@ -2857,7 +2900,6 @@ var require_embedded_html = __commonJS({
               );
               if (!_proceed2) return;
               const id = tplSelect.value;
-              // debug removed
               const preserveIndex = tplPane.dataset.index;
               forms = forms.filter((x) => x.id !== id);
               formsMap = rebuildMap(forms);
@@ -3044,6 +3086,7 @@ var require_embedded_html = __commonJS({
         const targetPane = q(contents, \`.tab-pane[data-index='\${targetIndex}']\`);
         const targetForm = q(targetPane, 'form.generated-form');
         const targetNames = Array.from(targetForm.elements)
+          .filter((e) => e.dataset.step !== 'click')
           .map((e) => e.name)
           .filter(Boolean)
           .filter((n) => !n.endsWith('_key') && !n.endsWith('_combined'));
@@ -3289,14 +3332,12 @@ var require_embedded_html = __commonJS({
 
           const els = qAll(targetForm, \`[name="\${CSS.escape(sel.name)}"]\`);
           if (!els || els.length === 0) return;
-          // radios
           if (els[0].type === 'radio') {
             els.forEach((r) => {
               r.checked = r.value == sel.value;
             });
             return;
           }
-          // checkboxes
           if (els[0].type === 'checkbox') {
             els.forEach((c) => {
               c.checked = !!sel.value && String(sel.value) !== 'false' && String(sel.value) !== '0';
@@ -3348,7 +3389,6 @@ var require_embedded_html = __commonJS({
         });
       }
 
-      // initial build
       build();
 
       // Theme handling: toggle dark mode and persist choice
