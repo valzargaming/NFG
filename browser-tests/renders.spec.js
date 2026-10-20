@@ -26,16 +26,21 @@ const seed = (controls) => [
 
 async function open(page, testInfo, controls) {
   await page.addInitScript(
-    ({ config, dark }) => {
+    ({ config }) => {
       window.formConfig = config;
       localStorage.clear();
       localStorage.setItem('nfg-dev-mode', 'true');
-      localStorage.setItem('nfg-theme', dark ? 'dark' : 'light');
     },
-    { config: seed(controls), dark: testInfo.project.name === 'desktop-dark' }
+    { config: seed(controls) }
   );
   await page.goto(app);
   await expect(page.locator('.tab-pane[data-index="0"] form')).toBeVisible();
+  if (testInfo.project.name === 'desktop-dark') {
+    await page.locator('#themeToggle').click();
+    await expect(page.locator('html')).toHaveClass(/dark/);
+  } else {
+    await expect(page.locator('html')).not.toHaveClass(/dark/);
+  }
 }
 const pane = (page, index = 0) => page.locator(`.tab-pane[data-index="${index}"]`);
 async function generate(target) {
