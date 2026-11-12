@@ -197,6 +197,41 @@ row values, keys and checked states. Clear unchecks them. Parse replaces rows an
 resets their checked state. Checkbox state is temporary form input, not configuration
 or an extra output field; exporting form definitions does not persist it.
 
+## Optional template sections
+
+Wrap part of an output template in `[[` and `]]` to keep it only when every
+placeholder inside it has a value:
+
+```json
+{ "type": "template", "template": "{title}[[ - {subtitle}]]" }
+```
+
+With `subtitle` filled this generates `Report - Q3`; with it blank (or only
+spaces) it generates `Report`, with no dangling `-`. The same works for a
+prefix: `[[{label}: ]]{value}` drops `: ` when `label` is blank.
+Sections can nest, and an inner section is checked on its own:
+`{a}[[ - {b}[[ / {c}]]]]` drops ` / {c}` when `c` is blank but keeps ` - {b}`.
+Optional sections work in `template`, `sprintf` (`%(name)s`) and bare-string
+formats. Unmatched brackets are output as typed, and values entered in the form
+are never treated as template syntax.
+
+## Optional fields
+
+Mark a field with `"optional": true` to leave it out of the output entirely when
+it is blank:
+
+```json
+{ "label": "Additional Comments", "name": "comments", "type": "textarea", "optional": true }
+```
+
+With the template `Name: {name}\nAdditional Comments: {comments}`, a blank
+comment removes the whole `Additional Comments:` line instead of printing an
+empty label. Every template line holding the field's placeholder is removed,
+so put the label on the same line as the placeholder. Blank required fields on
+other lines are unaffected. The JSON fallback omits a blank optional field, and
+the form shows _(optional)_ beside its label. To drop only part of a line, use
+an optional section (`[[ ]]`) instead.
+
 ## Browser render smoke checks
 
 `npm run build:all`, `npx playwright install --with-deps chromium`, then
