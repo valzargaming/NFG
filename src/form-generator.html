@@ -44,7 +44,6 @@
         align-items: center;
       }
       .top {
-        /* keep the header stable and prevent reflow when tabs change */
         position: sticky;
         top: 0;
         z-index: 3;
@@ -89,7 +88,6 @@
         box-shadow: 0 -4px 12px rgba(43, 140, 255, 0.06);
         border-bottom: 2px solid #fff;
       }
-      /* Reordering (dev mode): drag a tab, or use Move left / Move right. */
       .tab[draggable='true'] {
         cursor: grab;
       }
@@ -160,7 +158,6 @@
         color: var(--accent);
         border: 1px solid #d7e7ff;
       }
-      /* A disabled button must look it — e.g. "← Left" on the first tab. */
       .btn:disabled {
         opacity: 0.45;
         cursor: not-allowed;
@@ -211,7 +208,6 @@
         font-size: 13px;
         color: #333;
       }
-      /* Dev toggle switch */
       .switch {
         display: inline-flex;
         align-items: center;
@@ -292,29 +288,44 @@
       const formConfig =
         window.formConfig && Array.isArray(window.formConfig) ? window.formConfig : [];
 
-      // Keep a pristine copy of the original formConfig so we can restore defaults
       const originalFormConfig = JSON.parse(JSON.stringify(formConfig));
 
-      // A short, stable fingerprint of the tabs this page was SHIPPED with. The
-      // saved tab list only applies to the page it was saved from: if the
-      // original tabs change — a new export, or an embedding page that updates
-      // its built-in tabs — the saved list is stale (its built-in ids are
-      // positions in the OLD list) and the page's own tabs win instead.
+      /**
+       * Short, stable fingerprint of the tabs this page shipped with. A saved tab list
+       * is only restored when its fingerprint matches, so a page whose built-in tabs
+       * changed falls back to its own tabs.
+       *
+       * @type {string}
+       */
       const seedPrint = (() => {
         const s = JSON.stringify(originalFormConfig);
         let h = 5381;
         for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
         return (h >>> 0).toString(36) + '.' + s.length.toString(36);
       })();
-      // Unique id for tabs made on the fly (New / Duplicate).
+
+      /**
+       * Build a unique id for a tab created on the fly (New / Duplicate).
+       *
+       * @param {string} prefix Id prefix, e.g. 'adhoc'.
+       * @returns {string} `<prefix>-<time><random>`.
+       */
       const uid = (prefix) =>
         prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
       const tabbar = document.getElementById('tabbar');
       const contents = document.getElementById('contents');
 
-      // Small safety helpers to reduce repetitive try/catch boilerplate
       const DEBUG = false;
+
+      /**
+       * Run `fn` and return its result, or `fallback` if it throws.
+       *
+       * @param {Function} fn Callback to run.
+       * @param {*} [fallback] Value returned when `fn` throws.
+       * @param {Function} [onError] Receives the thrown error.
+       * @returns {*} The result of `fn`, or `fallback`.
+       */
       const safe = (fn, fallback = undefined, onError) => {
         try {
           return fn();
@@ -326,17 +337,64 @@
           return fallback;
         }
       };
+
+      /**
+       * Parse a JSON string without throwing.
+       *
+       * @param {?string} s JSON text.
+       * @param {*} [fallback=null] Value returned for empty or invalid input.
+       * @returns {*} The parsed value, or `fallback`.
+       */
       const safeParse = (s, fallback = null) => {
         if (s === undefined || s === null) return fallback;
         return safe(() => JSON.parse(s), fallback);
       };
+
+      /**
+       * Null-safe `querySelector`.
+       *
+       * @param {?ParentNode} root Search root; defaults to `document`.
+       * @param {string} sel CSS selector.
+       * @returns {?Element} The first match, or null.
+       */
       const q = (root, sel) => safe(() => (root || document).querySelector(sel), null);
+
+      /**
+       * Null-safe `querySelectorAll` returning an array.
+       *
+       * @param {?ParentNode} root Search root; defaults to `document`.
+       * @param {string} sel CSS selector.
+       * @returns {Element[]} All matches.
+       */
       const qAll = (root, sel) =>
         safe(() => Array.from((root || document).querySelectorAll(sel)), []);
+
+      /**
+       * Read and JSON-decode a localStorage entry.
+       *
+       * @param {string} k Storage key.
+       * @param {*} [fallback=null] Value returned when missing or unreadable.
+       * @returns {*} The stored value, or `fallback`.
+       */
       const storageGet = (k, fallback = null) =>
         safe(() => safeParse(localStorage.getItem(k), fallback), fallback);
+
+      /**
+       * Write a localStorage entry, JSON-encoding non-string values.
+       *
+       * @param {string} k Storage key.
+       * @param {*} v Value to store.
+       * @returns {void}
+       */
       const storageSet = (k, v) =>
         safe(() => localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)));
+
+      /**
+       * Wrap an event handler so sync throws and async rejections are swallowed.
+       *
+       * @param {Function} fn Handler, optionally async.
+       * @returns {Function} Event listener.
+       */
       const wrapHandler = (fn) => (ev) => {
         try {
           const res = fn(ev);
@@ -353,6 +411,13 @@
           } catch (ex) {}
         }
       };
+
+      /**
+       * JSON-encode a value so it is safe to embed inside a `<script>` element.
+       *
+       * @param {*} obj Value to encode.
+       * @returns {string} Escaped JSON, or 'null' on failure.
+       */
       const safeJson = (obj) =>
         safe(
           () =>
@@ -363,29 +428,43 @@
           'null'
         );
 
-      // localStorage keys \u2014 one place so the export seed and the runtime agree.
+      /**
+       * localStorage keys shared by the runtime and the export seed.
+       *
+       * @type {Object<string, string>}
+       */
       const KEYS = {
         forms: 'nfg-forms',
         outputs: 'nfg-outputs',
         formMap: 'nfg-form-map',
         devMode: 'nfg-dev-mode',
         theme: 'nfg-theme',
-        // the tab list itself — which tabs are open, in order (see persistFormMap)
         tabs: 'nfg-tabs',
-        // which export last seeded this browser's storage (see Export)
         seed: 'nfg-seed',
       };
 
-      // `id -> item` lookup for a list; rebuilt wherever the list changes so the
-      // array and its index never drift apart.
+      /**
+       * Index a list of items by their `id`.
+       *
+       * @param {Array<{id: string}>} arr Items to index.
+       * @returns {Object<string, Object>} Map of id to item.
+       */
       function rebuildMap(arr) {
         return Object.fromEntries((arr || []).map((x) => [x && x.id, x]));
       }
 
-      // Declarative element builder. Replaces the createElement + property/style
-      // /listener sequences that made up most of the DOM code.
-      //   el('button', { className: 'btn', type: 'button', text: 'Save',
-      //                  style: { marginLeft: '8px' }, onclick: fn }, childNode)
+      /**
+       * Create an element with properties, styles, listeners and children.
+       *
+       * Recognised `props`: `style` and `dataset` objects, `class`/`className`,
+       * `text`/`textContent`, `html`/`innerHTML`, `on<event>` listeners, DOM
+       * properties, and any other key as an attribute.
+       *
+       * @param {string} tag Tag name.
+       * @param {?Object} props Properties to apply.
+       * @param {...(Node|string|Array)} children Child nodes or text.
+       * @returns {HTMLElement} The new element.
+       */
       function el(tag, props, ...children) {
         const node = document.createElement(tag);
         if (props) {
@@ -410,11 +489,12 @@
         return node;
       }
 
-      // --- steps parsing / numbered-list formatting -------------------------
-      // Shared by the steps UI, value restore, the populate flow and output
-      // generation, which each used to re-inline these three operations.
-
-      // "A > B > C" -> ['A', 'B', 'C']  (blank segments dropped)
+      /**
+       * Split a "A > B > C" steps string into its non-empty, trimmed parts.
+       *
+       * @param {?string} str Combined steps string.
+       * @returns {string[]} Step values.
+       */
       function splitSteps(str) {
         return String(str == null ? '' : str)
           .split('>')
@@ -422,7 +502,12 @@
           .filter(Boolean);
       }
 
-      // "key => value" -> { key: 'key', val: 'value' };  "plain" -> { key: '', val: 'plain' }
+      /**
+       * Split a "key => value" step into its key and value.
+       *
+       * @param {?string} part Step text.
+       * @returns {{key: string, val: string}} Key is '' when no "=>" is present.
+       */
       function parseStepPart(part) {
         const p = String(part == null ? '' : part);
         if (p.includes('=>')) {
@@ -432,25 +517,37 @@
         return { key: '', val: p.trim() };
       }
 
-      // Drop a leading "1. ", "2) ", "- ", "* " or bullet so re-numbering is clean.
+      /**
+       * Remove a leading list marker ("1.", "2)", "-", "*" or a bullet).
+       *
+       * @param {?string} s List item text.
+       * @returns {string} The trimmed item text.
+       */
       function stripListPrefix(s) {
         return String(s == null ? '' : s)
           .replace(/^\s*(?:\d+[.)]\s*)?(?:[-*\u2022]\s*)?/, '')
           .trim();
       }
 
-      // ['A','1. B'] -> "\n 1. A\n 2. B"  (leading newline, one space indent)
+      /**
+       * Format items as a numbered list preceded by a newline.
+       *
+       * @param {string[]} items List items; existing markers are replaced.
+       * @returns {string} "\n 1. A\n 2. B", or '' for an empty list.
+       */
       function toNumberedList(items) {
         const cleaned = (items || []).map(stripListPrefix);
         if (cleaned.length === 0) return '';
         return '\n' + cleaned.map((v, i) => ` ${i + 1}. ${v}`).join('\n');
       }
 
-      // --- form value capture / restore -----------------------------------
-      // One implementation of "read every named control into a map" and "write
-      // a map back", used by the rebuild-preserving flows (New / Duplicate /
-      // dev toggle / Load) and the top-level capture/restore helpers.
-
+      /**
+       * Read every named control of a form into a value map.
+       *
+       * @param {?HTMLFormElement} form Form to read.
+       * @returns {Object<string, (string|string[])>} Values by control name;
+       *   repeated names become arrays.
+       */
       function formValues(form) {
         const map = {};
         if (!form) return map;
@@ -471,9 +568,14 @@
         return map;
       }
 
-      // When a "<field>_combined" value is restored, rebuild the per-step rows
-      // so the steps UI matches (click the adjacent Parse button if present,
-      // otherwise populate the list directly).
+      /**
+       * Rebuild a steps field's rows from a restored "<field>_combined" value.
+       *
+       * @param {HTMLFormElement} form Form containing the field.
+       * @param {string} nm Control name.
+       * @param {*} pv Restored value.
+       * @returns {void}
+       */
       function maybeRestoreCombinedSteps(form, nm, pv) {
         if (typeof nm !== 'string' || !nm.endsWith('_combined')) return;
         if (typeof pv !== 'string' || !pv.trim()) return;
@@ -492,9 +594,15 @@
         splitSteps(pv).forEach((p) => createStepRow(base, parseStepPart(p), container, list));
       }
 
+      /**
+       * Write a value map produced by `formValues` back into a form.
+       *
+       * @param {?HTMLFormElement} form Form to fill.
+       * @param {?Object<string, (string|string[])>} prev Values by control name.
+       * @returns {void}
+       */
       function applyValues(form, prev) {
         if (!form || !prev) return;
-        // Rows are authoritative: the combined input can be stale after edits.
         qAll(form, '.steps-container').forEach((container) => {
           const base = container.dataset.name;
           if (!Object.prototype.hasOwnProperty.call(prev, base)) return;
@@ -538,7 +646,14 @@
         });
       }
 
-      // Helper to download a string as a file (used by export flow)
+      /**
+       * Offer a string to the user as a file download.
+       *
+       * @param {string} content File contents.
+       * @param {string} [filename='nfg-export.html'] Suggested file name.
+       * @param {string} [type='text/html'] MIME type.
+       * @returns {void}
+       */
       function downloadFile(content, filename = 'nfg-export.html', type = 'text/html') {
         safe(() => {
           const blob = new Blob([content], { type });
@@ -553,7 +668,13 @@
         });
       }
 
-      // Small DOM helpers for option population and select syncing
+      /**
+       * Create an `<option>` element.
+       *
+       * @param {string} value Option value.
+       * @param {string} text Option label.
+       * @returns {HTMLOptionElement} The new option.
+       */
       function createOption(value, text) {
         return safe(() => {
           const o = document.createElement('option');
@@ -563,6 +684,11 @@
         });
       }
 
+      /**
+       * Repopulate every Outputs selector from the current `outputs` list.
+       *
+       * @returns {void}
+       */
       function refreshOutputsSelectors() {
         safe(() => {
           const sels = qAll(document, 'select[data-outputs-selector="true"]');
@@ -573,6 +699,13 @@
         });
       }
 
+      /**
+       * Add a template option to each form pane's Template select, if missing.
+       *
+       * @param {string} id Template id.
+       * @param {string} [label] Option label; defaults to the id.
+       * @returns {void}
+       */
       function addTemplateOptionToFormPanes(id, label) {
         safe(() => {
           for (let fi = 0; fi < formConfig.length; fi++) {
@@ -585,10 +718,13 @@
         });
       }
 
-      // Remove a template option from all per-form template selects.
-      // If a select had the removed option selected, pick the first option
-      // and dispatch a change event so the pane updates. Suppress tab
-      // activation while making programmatic changes to avoid side-effects.
+      /**
+       * Remove a template option from each form pane's Template select. A select that
+       * had it selected falls back to its first option and fires `change`.
+       *
+       * @param {string} id Template id.
+       * @returns {void}
+       */
       function removeTemplateOptionFromFormPanes(id) {
         safe(() => {
           try {
@@ -617,14 +753,22 @@
         });
       }
 
-      // Dev mode toggle: when true, Templates pane and per-form Unload buttons are visible.
-      // Persisted in localStorage key 'nfg-dev-mode'. Default is false to preserve current behavior.
       const devKey = KEYS.devMode;
+
+      /**
+       * Whether dev mode (Templates/Outputs panes, Unload, reordering, Export) is on.
+       *
+       * @type {boolean}
+       */
       let devMode = false;
       const s = storageGet(devKey);
       if (s !== null) devMode = s === 'true' || s === true;
 
-      // create a small Dev toggle switch next to theme toggle
+      /**
+       * Add the Dev toggle and the dev-only Export HTML button to the header.
+       *
+       * @returns {void}
+       */
       (function addDevToggleBtn() {
         safe(() => {
           const header = q(document, '.top > div');
@@ -633,14 +777,12 @@
           wrapper.className = 'switch';
           wrapper.dataset.devToggle = 'true';
           wrapper.style.marginLeft = '6px';
-          // inner structure: checkbox + knob + label
           wrapper.innerHTML = `<input id="devToggle" type="checkbox" ${
             devMode ? 'checked' : ''
           }><span class="knob"></span><span class="label">${devMode ? 'Dev On' : 'Dev Off'}</span>`;
           const checkbox = q(wrapper, 'input');
           if (checkbox) checkbox.autocomplete = 'off';
           const textLabel = q(wrapper, '.label');
-          // export button (visible only in dev mode)
           const exportBtn = document.createElement('button');
           exportBtn.type = 'button';
           exportBtn.className = 'btn ghost';
@@ -653,16 +795,6 @@
             wrapHandler(async () => {
               try {
                 const seed = [];
-                // Safely serialize JSON for embedding inside a <script> tag.
-                // Uses top-level `safeJson` helper.
-                // The exported file rebuilds its built-in forms `tpl-0..N` from
-                // the tabs it is seeded with, BY POSITION. So after an Unload the
-                // old `tpl-N` definitions no longer line up: shipping them would
-                // hand tab 0 of the new file the definition of whatever used to
-                // be tab 0 in this one. Ship the tabs as they are now instead —
-                // current fields, and the format of the form each tab IS — and
-                // let `tpl-*` regenerate from them. Custom forms are not
-                // positional and ship unchanged.
                 const isBuiltIn = (id) => id === '__json__' || /^tpl-\d+$/.test(String(id));
                 const oldToNew = {};
                 const exportedTabs = formConfig.map((tab, ei) => {
@@ -677,7 +809,6 @@
                   }
                   return { title: tab.title, fields: deepCopy(tab.fields || []), format };
                 });
-                // The tab list lives in the page, not in storage — set it every load.
                 const tabsLine = 'window.formConfig = ' + safeJson(exportedTabs) + ';';
                 safe(() =>
                   seed.push(
@@ -690,9 +821,6 @@
                   seed.push("localStorage.setItem('nfg-outputs', " + safeJson(outputs) + ');')
                 );
                 safe(() => {
-                  // Each tab's Template selection, renumbered: a `tpl-*` choice
-                  // follows its tab to that tab's new position (or is dropped
-                  // if that tab was not exported); a custom choice is kept.
                   const exportMap = {};
                   formConfig.forEach((tab, ei) => {
                     const sel = tab && tab._templateId;
@@ -706,12 +834,6 @@
                   seed.push("localStorage.setItem('nfg-form-map', " + safeJson(exportMap) + ');');
                 });
                 safe(() => seed.push("localStorage.setItem('nfg-dev-mode', 'false');"));
-                // Storage is seeded ONCE per export, not on every load. It used
-                // to run on every open, so anything edited inside an exported
-                // file — forms, template choices — was overwritten by the next
-                // refresh, and dev mode switched itself back off each time. The
-                // id marks which export last seeded this browser; a different
-                // export (or a fresh browser) still gets seeded.
                 const exportId =
                   'nfg-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
                 const idJson = safeJson(exportId);
@@ -719,17 +841,10 @@
                   `<script data-nfg-seed>try{${tabsLine}}catch(e){}` +
                   `try{if(localStorage.getItem('${KEYS.seed}')!==${idJson}){${seed.join('')}` +
                   `localStorage.setItem('${KEYS.seed}',${idJson});}}catch(e){}<\/script>`;
-                // create a cleaned clone of the document and remove dev UI elements
                 const docClone = document.documentElement.cloneNode(true);
                 safe(() => {
                   const toRemove = qAll(docClone, '[data-dev-toggle], [data-export-button]');
                   toRemove.forEach((n) => n.remove());
-                  // Strip every EARLIER export's seed. Exporting an exported file
-                  // clones a document that still carries its old seed; the new one
-                  // went in ahead of it, so the old one ran last and won — a
-                  // re-export of a fixed file opened as the version before the fix.
-                  // Seeds from before the marker existed are recognised by their
-                  // opening statement.
                   qAll(docClone, 'body script').forEach((n) => {
                     if (
                       n.hasAttribute('data-nfg-seed') ||
@@ -740,8 +855,6 @@
                 });
                 let html = '<!doctype html>\n' + docClone.outerHTML;
                 html = html.replace(/<body([^>]*)>/i, (m, attrs) => `<body${attrs}>${seedScript}`);
-                // Ask user whether to copy to clipboard or save file. If clipboard
-                // isn't available, fall back to saving file.
                 let wantCopy = false;
                 safe(() => {
                   if (typeof window.confirm === 'function') {
@@ -756,7 +869,6 @@
                     await navigator.clipboard.writeText(html);
                     alert('Exported HTML copied to clipboard');
                   } catch (e) {
-                    // fallback to saving file if clipboard fails
                     downloadFile(html);
                   }
                 } else {
@@ -767,13 +879,18 @@
               }
             })
           );
+
+          /**
+           * Persist the dev mode state, update the header controls and rebuild the tabs
+           * while keeping typed values.
+           *
+           * @returns {void}
+           */
           function apply() {
             storageSet(devKey, devMode ? 'true' : 'false');
             if (checkbox) checkbox.checked = devMode;
             if (textLabel) textLabel.textContent = 'Dev';
             if (exportBtn) exportBtn.style.display = devMode ? '' : 'none';
-            // Preserve all current form values across the rebuild so toggling
-            // dev mode doesn't clear user input.
             const allPrev = captureAllFormValues();
             safe(() => build());
             safe(() => restoreAllFormValues(allPrev));
@@ -785,52 +902,35 @@
               apply();
             })
           );
-          // Place the Export button to the left of the theme toggle so enabling
-          // dev mode doesn't drastically shift layout. Insert before the
-          // `#themeToggle` button when present, otherwise append.
           const themeBtnEl = q(header, '#themeToggle');
           if (themeBtnEl) header.insertBefore(exportBtn, themeBtnEl);
           else header.appendChild(exportBtn);
-          // Keep the dev toggle after the theme button (end of controls)
           header.appendChild(wrapper);
           apply();
         });
       })();
 
-      // A tab carries two ids that used to be one:
-      //   _formId     — WHICH form definition this tab is. Stable. Load, Unload,
-      //                 Save and Delete find a tab by this.
-      //   _templateId — which output template the tab has SELECTED in its
-      //                 Template dropdown. Changes freely; drives formatting only.
-      // Conflating them meant picking a different output template silently changed
-      // what the tab *was* — so whether Unload, Load or Save could find a tab
-      // depended on a dropdown.
+      /**
+       * Deep-copy a JSON-compatible value.
+       *
+       * @param {*} v Value to copy.
+       * @returns {*} The copy, or undefined.
+       */
       const deepCopy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 
-      // Build list of available templates (include JSON fallback)
       const defaultTemplates = [{ id: '__json__', label: '__json__', cfg: null }];
-      // Create a default template entry for every tab so each tab has a template option
       formConfig.forEach((t, idx) => {
         const id = `tpl-${idx}`;
         const label = t.format && t.format.label ? t.format.label : `${t.title}`;
         const cfg = t.format ? deepCopy(t.format) : null;
-        // Built-in forms carry the tab's FIELDS. They used to be created without
-        // any, so opening a built-in tab in the Forms editor showed an empty
-        // Fields box — and saving it (even just to rename it) wrote that empty
-        // list back onto the tab, deleting every field.
         defaultTemplates.push({ id, label, cfg, fields: deepCopy(t.fields || []) });
         t._templateId = id;
         t._formId = id;
       });
 
-      // Load editable forms from localStorage if present, otherwise merge with defaults
       let forms;
-      // Load persisted forms (parsed) via storageGet which handles safety
       const parsedForms = storageGet(KEYS.forms, null);
       if (Array.isArray(parsedForms)) {
-        // Copies, not the defaults themselves: Save edits a form object in
-        // place, and sharing them made every edit rewrite the "pristine"
-        // defaults — so Reset to defaults handed the edited versions back.
         const map = Object.fromEntries(deepCopy(defaultTemplates).map((t) => [t.id, t]));
         for (const s of parsedForms) {
           if (s && s.id) map[s.id] = s;
@@ -841,11 +941,6 @@
 
       let formsMap = rebuildMap(forms);
 
-      // Reopen the tabs as they were left, when they were saved from THIS page's
-      // original tabs (see `seedPrint`). Built-in ids were assigned from those
-      // original tabs just above, so a saved `tpl-N` still means the same tab.
-      // A tab whose form definition has since been deleted is dropped; tabs
-      // made on the fly (New / Duplicate) carry their own `adhoc-` identity.
       safe(() => {
         const saved = storageGet(KEYS.tabs, null);
         if (!saved || saved.seed !== seedPrint || !Array.isArray(saved.tabs)) return;
@@ -859,8 +954,6 @@
           )
           .map((t) => {
             const tab = deepCopy(t);
-            // A Template choice that no longer exists falls back to the tab's
-            // own form — or, for a tab made on the fly, to plain JSON output.
             if (!tab._templateId || !formsMap[tab._templateId]) {
               tab._templateId = formsMap[tab._formId] ? tab._formId : '__json__';
             }
@@ -869,13 +962,6 @@
         formConfig.splice(0, formConfig.length, ...restored);
       });
 
-      // A SAVED definition wins over the tab's own copy of its fields. Tabs
-      // render `formConfig[i].fields`, while the Forms editor saves to
-      // `nfg-forms` — two copies with nothing reconciling them on load, so a
-      // page refresh put the OLD fields back on the tab while the edit sat
-      // unused in storage (and an export after the refresh shipped the old ones).
-      // Only definitions that were actually saved apply; format stays with the
-      // tab's Template selection, which is restored from the form map below.
       if (Array.isArray(parsedForms)) {
         const saved = rebuildMap(parsedForms);
         formConfig.forEach((t) => {
@@ -883,13 +969,10 @@
           if (def && Array.isArray(def.fields)) t.fields = deepCopy(def.fields);
         });
       }
-      // Outputs: separate persisted output definitions (format + fields)
       const outputsKey = KEYS.outputs;
       let outputs;
-      // Load persisted outputs via storageGet (returns parsed value)
       const parsedOut = storageGet(outputsKey, null);
       if (Array.isArray(parsedOut)) outputs = parsedOut;
-      // if no persisted outputs, derive defaults from formConfig
       if (!outputs) {
         outputs = [];
         for (let i = 0; i < formConfig.length; i++) {
@@ -903,11 +986,8 @@
         }
       }
       let outputsMap = rebuildMap(outputs);
-      // key for persisting per-tab form selection (map index -> formId)
       const formMapKey = KEYS.formMap;
       let formMap = {};
-      // try to load saved mapping and apply to formConfig
-      // Load persisted per-tab form mapping using storageGet
       const parsedMap = storageGet(formMapKey, null);
       if (parsedMap && typeof parsedMap === 'object') {
         formMap = parsedMap;
@@ -920,6 +1000,11 @@
         });
       }
 
+      /**
+       * Save each tab's Template selection and the tab list to localStorage.
+       *
+       * @returns {void}
+       */
       function persistFormMap() {
         const map = {};
         for (let i = 0; i < formConfig.length; i++) {
@@ -928,12 +1013,7 @@
           }
         }
         formMap = map;
-        // use storageSet which handles JSON serialization and safety
         storageSet(formMapKey, map);
-        // And the tab list itself. It used to live only in memory, so Unload,
-        // Load, New and Duplicate lasted until the next refresh: an unloaded tab
-        // came back, a loaded one vanished, and only an Export kept either.
-        // Typed values are deliberately NOT saved, as before.
         storageSet(KEYS.tabs, {
           seed: seedPrint,
           tabs: formConfig.map((t) => ({
@@ -945,8 +1025,12 @@
           })),
         });
       }
-      // Capture all current form values across tabs. Returns an object
-      // mapping pane dataset.index -> { name: value | [values] }
+
+      /**
+       * Capture the values of every tab's form, keyed by tab position.
+       *
+       * @returns {Object<string, Object>} Value maps by pane index.
+       */
       function captureAllFormValues() {
         const allPrev = {};
         safe(() => {
@@ -958,7 +1042,12 @@
         return allPrev;
       }
 
-      // Restore values captured by `captureAllFormValues` into the rebuilt DOM.
+      /**
+       * Restore values captured by `captureAllFormValues` into the current panes.
+       *
+       * @param {Object<string, Object>} allPrev Value maps by pane index.
+       * @returns {void}
+       */
       function restoreAllFormValues(allPrev) {
         safe(() => {
           Object.keys(allPrev || {}).forEach((nameIdx) => {
@@ -968,10 +1057,13 @@
           });
         });
       }
-      // The same pair keyed by the TAB (its `_formId`) instead of its position.
-      // Removing a tab shifts every later tab down one; restoring by index then
-      // poured each tab's typed values into its neighbour. Use these around any
-      // change that removes, inserts or reorders tabs.
+
+      /**
+       * Capture every tab's form values keyed by the tab's `_formId`, so they survive
+       * tabs being removed, inserted or reordered.
+       *
+       * @returns {Object<string, Object>} Value maps by form id.
+       */
       function captureValuesByForm() {
         const byIdx = captureAllFormValues();
         const out = {};
@@ -981,6 +1073,13 @@
         });
         return out;
       }
+
+      /**
+       * Restore values captured by `captureValuesByForm` into the matching tabs.
+       *
+       * @param {Object<string, Object>} byForm Value maps by form id.
+       * @returns {void}
+       */
       function restoreValuesByForm(byForm) {
         const byIdx = {};
         formConfig.forEach((t, i) => {
@@ -988,11 +1087,15 @@
         });
         restoreAllFormValues(byIdx);
       }
-      // Move the tab at `from` to position `to`. Typed values travel with their
-      // tab (keyed by identity, not position), the new order is saved with the
-      // tab list, and an Export ships it. `refocus` names the Move button to put
-      // focus back on, so holding a key to walk a tab along keeps working after
-      // the rebuild.
+
+      /**
+       * Move a tab to a new position, keeping its values and saving the new order.
+       *
+       * @param {number} from Current index.
+       * @param {number} to Target index.
+       * @param {string} [refocus] `data-move` value of the button to focus afterwards.
+       * @returns {void}
+       */
       function moveTab(from, to, refocus) {
         if (
           from === to ||
@@ -1016,21 +1119,22 @@
           });
         }
       }
-      // index of the tab being dragged in the tab bar, or null
       let dragFrom = null;
-      // counter used to give generated dynamic inputs unique ids
       let dynamicIdCounter = 0;
-      // when true, tpl select change handlers should not activate tabs (used during programmatic updates)
       let suppressTabActivation = false;
 
-      // Auto-resize a textarea to fit its content
+      /**
+       * Grow or shrink a textarea to fit its content, at least one line tall.
+       *
+       * @param {?HTMLTextAreaElement} ta Textarea to resize.
+       * @returns {void}
+       */
       function autosizeTextarea(ta) {
         if (!ta) return;
         safe(() => {
           ta.style.height = 'auto';
           ta.style.overflow = 'hidden';
           var newH = ta.scrollHeight;
-          // Ensure at least one line of height (use computed line-height or font-size as fallback)
           safe(() => {
             var cs = window.getComputedStyle(ta);
             var lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) || 16;
@@ -1043,12 +1147,17 @@
         });
       }
 
-      // Highlight the character position reported by a JSON parse error inside a textarea
+      /**
+       * Select and scroll to the character a JSON parse error points at.
+       *
+       * @param {?HTMLTextAreaElement} ta Textarea holding the JSON.
+       * @param {?Error} err Error thrown by `JSON.parse`.
+       * @returns {void}
+       */
       function highlightJsonError(ta, err) {
         if (!ta || !err) return;
         safe(() => {
           const msg = String(err && err.message ? err.message : '');
-          // Look for common position indicators from JSON.parse errors
           const m =
             msg.match(/at position\s*(\d+)/i) ||
             msg.match(/position\s*(\d+)/i) ||
@@ -1056,15 +1165,12 @@
           if (!m) return;
           const pos = Number(m[1]);
           if (Number.isNaN(pos)) return;
-          // Focus and select the offending character
           safe(() => {
             ta.focus();
             if (typeof ta.setSelectionRange === 'function') {
-              // clamp pos to bounds
               const idx = Math.max(0, Math.min(pos, (ta.value || '').length - 1));
               ta.setSelectionRange(idx, idx + 1);
             }
-            // Try to scroll the line into view roughly using line-height
             safe(() => {
               const cs = window.getComputedStyle(ta);
               const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) || 16;
@@ -1076,13 +1182,15 @@
         });
       }
 
-      // Create a step row (key input + value input + remove button) and append to `list`.
-      // `baseName` is the field name, `keyVal` can be a string value or {key,val}.
-      // In Numbered mode, re-number the steps after one is inserted or removed.
-      // Keys were only ever set once, from the count at creation — so removing
-      // step 2 of 3 left "1." "3.", and Generate writes keys verbatim ("3. …"
-      // straight into the note). Only keys that still look auto-numbered
-      // ("N.") are touched: anything the user typed as a key is theirs.
+      /**
+       * Renumber auto-numbered ("N.") step keys in Numbered mode. Keys the user typed
+       * are left alone.
+       *
+       * @param {string} baseName Steps field name.
+       * @param {?HTMLElement} container The field's `.steps-container`.
+       * @param {?HTMLElement} list The field's `.steps-list`.
+       * @returns {void}
+       */
       function renumberSteps(baseName, container, list) {
         if (!container || !list || container.dataset.keyMode !== 'numbered') return;
         qAll(list, `[name="${baseName}_key"]`).forEach((k, idx) => {
@@ -1090,8 +1198,16 @@
         });
       }
 
-      // `before` (optional): insert the new row ahead of that node instead of at
-      // the end of the list — used by a row's own "+".
+      /**
+       * Create a step row (key, value, remove, insert and optional Click controls).
+       *
+       * @param {string} baseName Steps field name.
+       * @param {(string|{key: string, val: string})} keyVal Initial value or key/value pair.
+       * @param {HTMLElement} container The field's `.steps-container`.
+       * @param {?HTMLElement} list List to insert the row into.
+       * @param {?Node} [before] Insert ahead of this node instead of at the end.
+       * @returns {HTMLInputElement} The row's value input.
+       */
       function createStepRow(baseName, keyVal, container, list, before) {
         const kv = { key: '', val: '' };
         if (keyVal && typeof keyVal === 'object') {
@@ -1144,8 +1260,6 @@
               renumberSteps(baseName, container, list);
             }),
           }),
-          // Insert a step directly below this one — "+ Add" only ever appended
-          // at the end, so a missed step meant retyping everything after it.
           el('button', {
             type: 'button',
             className: 'btn ghost',
@@ -1188,6 +1302,12 @@
         return inp;
       }
 
+      /**
+       * Render the tab bar and every pane (forms, plus Outputs and Templates in dev
+       * mode) from `formConfig`, then activate the first tab.
+       *
+       * @returns {void}
+       */
       function build() {
         tabbar.innerHTML = '';
         contents.innerHTML = '';
@@ -1202,10 +1322,6 @@
             dataset: { index: i },
             onclick: wrapHandler(() => activateTab(i)),
           });
-          // Dev mode: drag a tab along the bar to reorder it. Dropping on the
-          // left half of a tab lands before it, the right half after it. (Touch
-          // screens do not fire these drag events — the Move left / Move right
-          // buttons beside Unload cover them, and keyboard users.)
           if (devMode) {
             tabEl.draggable = true;
             tabEl.title = 'Drag to reorder';
@@ -1227,7 +1343,7 @@
             tabEl.addEventListener(
               'dragover',
               wrapHandler((ev) => {
-                if (dragFrom === null) return; // not one of our tabs
+                if (dragFrom === null) return;
                 ev.preventDefault();
                 if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';
                 const after = afterHalf(ev);
@@ -1248,7 +1364,7 @@
                 dragFrom = null;
                 clearDropMarks();
                 let to = afterHalf(ev) ? i + 1 : i;
-                if (from < to) to -= 1; // the dragged tab leaves a gap behind it
+                if (from < to) to -= 1;
                 moveTab(from, to);
               })
             );
@@ -1262,7 +1378,6 @@
           }
           tabbar.appendChild(tabEl);
 
-          // subtabs: Form and Populate
           const stForm = el('div', { className: 'subtab active', textContent: 'Form' });
           const stPop = el('div', { className: 'subtab', textContent: 'Populate' });
           const pane = el(
@@ -1277,13 +1392,10 @@
             style: { display: 'none' },
           });
 
-          // build form
           const form = el('form', { className: 'generated-form', autocomplete: 'off' });
           tab.fields.forEach((f) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'field';
-            // inline/side-by-side support: if field specifies `inline: true`,
-            // render it as an inline-block and respect optional `width`.
             if (f && f.inline) {
               wrapper.className += ' field-inline';
               safe(() => {
@@ -1296,8 +1408,6 @@
               wrapper.appendChild(label);
             }
 
-            // Support header type: render headings instead of inputs. Accept
-            // optional `level` (1-6) or `size` like 'h1'..'h6'. Default to h2.
             if (f.type === 'header') {
               try {
                 let tag = 'h2';
@@ -1312,7 +1422,7 @@
                 h.textContent = f.label || f.name || '';
                 wrapper.appendChild(h);
                 form.appendChild(wrapper);
-                return; // skip input creation
+                return;
               } catch (e) {}
             }
             let input;
@@ -1339,8 +1449,6 @@
             if (f.default) input.value = f.default;
             wrapper.appendChild(input);
             if (f.type === 'steps') {
-              // Rename the top input to be the combined input so it does not
-              // conflict with the per-step inputs below (which share the base name).
               input.name = f.name + '_combined';
               input.placeholder =
                 f.placeholder && String(f.placeholder).trim()
@@ -1360,12 +1468,10 @@
               combinedRow.style.gap = '8px';
               combinedRow.appendChild(input);
               combinedRow.appendChild(parseBtnTop);
-              // If the field defines a default combined steps string, prefill and parse it
               if (f.default && typeof f.default === 'string' && f.default.trim()) {
                 input.value = f.default;
               }
               wrapper.appendChild(combinedRow);
-              // default key behavior selector (none | numbered)
               const controlRow = document.createElement('div');
               controlRow.style.display = 'flex';
               controlRow.style.alignItems = 'center';
@@ -1387,8 +1493,6 @@
               modeSelect.appendChild(oNone);
               modeSelect.appendChild(oNum);
               modeSelect.appendChild(oBullet);
-              // Allow step fields to declare a default key mode via `keyMode` in the field definition
-              // Supported values: 'none' | 'numbered' | 'bullet'
               try {
                 modeSelect.value = f && f.keyMode ? String(f.keyMode) : 'none';
               } catch (e) {
@@ -1419,8 +1523,13 @@
               addBtn.textContent = '+ Add';
               addBtn.style.marginLeft = '8px';
 
+              /**
+               * Append a step row to this field.
+               *
+               * @param {(string|{key: string, val: string})} val Initial value or key/value pair.
+               * @returns {HTMLInputElement} The row's value input.
+               */
               function addPathItem(val) {
-                // val can be a string value or an object { key, val }
                 const keyVal = { key: '', val: '' };
                 if (val && typeof val === 'object') {
                   keyVal.key = val.key || '';
@@ -1431,7 +1540,6 @@
                 return createStepRow(f.name, keyVal, container, list);
               }
 
-              // ensure at least one item exists so scanPopulate can detect the name
               addPathItem('');
 
               addBtn.addEventListener(
@@ -1448,8 +1556,6 @@
                   } else {
                     parts.forEach((p) => {
                       const kv = parseStepPart(p);
-                      // A bare numeric key from a combined string ("1") gets a
-                      // period so the per-step key field shows the numbered style.
                       if (kv.key && /^\d+$/.test(kv.key)) kv.key += '.';
                       addPathItem(kv.key ? kv : kv.val);
                     });
@@ -1459,10 +1565,6 @@
               wrapper.appendChild(container);
               container.appendChild(list);
               container.appendChild(addBtn);
-              // Split a default combined string into step rows. This used to
-              // click Parse before Parse had a click handler — so a field's
-              // `default` (and every Duplicate, which copies steps as one)
-              // showed its steps in the combined box but only one blank row.
               if (f.default && typeof f.default === 'string' && f.default.trim()) {
                 parseBtnTop.click();
               }
@@ -1472,7 +1574,6 @@
             }
           });
 
-          // New and Duplicate buttons: create new tab blank or copy of current values
           const newBtn = document.createElement('button');
           newBtn.className = 'btn';
           newBtn.type = 'button';
@@ -1494,9 +1595,6 @@
                     formConfig[i] && formConfig[i]._templateId
                       ? formConfig[i]._templateId
                       : undefined,
-                  // A tab made on the fly has no form definition behind it, but
-                  // it still needs an identity: typed values follow tabs by it,
-                  // and the saved tab list is reloaded by it.
                   _formId: uid('adhoc'),
                 };
                 formConfig.push(newForm);
@@ -1523,7 +1621,6 @@
                 const newFields = (tab.fields || []).map((f) => {
                   const nf = JSON.parse(JSON.stringify(f));
                   if (f.type === 'steps') {
-                    // prefer combined input if present
                     if (
                       Object.prototype.hasOwnProperty.call(vals, f.name + '_combined') &&
                       vals[f.name + '_combined']
@@ -1551,9 +1648,6 @@
                     formConfig[i] && formConfig[i]._templateId
                       ? formConfig[i]._templateId
                       : undefined,
-                  // A tab made on the fly has no form definition behind it, but
-                  // it still needs an identity: typed values follow tabs by it,
-                  // and the saved tab list is reloaded by it.
                   _formId: uid('adhoc'),
                 };
                 formConfig.push(newForm);
@@ -1566,7 +1660,6 @@
             })
           );
 
-          // top-of-page clear button for this tab's form
           const topClear = document.createElement('button');
           topClear.className = 'btn warn';
           topClear.type = 'button';
@@ -1587,7 +1680,6 @@
           formArea.appendChild(dupBtn);
           formArea.appendChild(topClear);
 
-          // give the last appended control spacing before the form
           safe(() => {
             const last = formArea.lastElementChild;
             if (last && last.style) last.style.marginBottom = '8px';
@@ -1595,7 +1687,6 @@
 
           formArea.appendChild(form);
 
-          // template selector
           const tplRow = document.createElement('div');
           tplRow.style.display = 'flex';
           tplRow.style.alignItems = 'center';
@@ -1616,12 +1707,8 @@
 
             tplSelect.appendChild(o);
           });
-          // default to this tab's configured template if present
           if (formConfig[i] && formConfig[i]._templateId)
             tplSelect.value = formConfig[i]._templateId;
-          // when a template is selected, only update this tab's output format
-          // and mapping. Changing the generate-template dropdown must never
-          // alter the form's fields or trigger a DOM rebuild.
           tplSelect.addEventListener(
             'change',
             wrapHandler(() => {
@@ -1629,22 +1716,16 @@
               const tpl = formsMap[sel];
               if (!tpl) return;
               safe(() => {
-                // Only apply format when the template explicitly defines `cfg`.
-                // A null/blank cfg clears prior formats; absence of `cfg` means
-                // the template should not change the output formatting.
                 if (Object.prototype.hasOwnProperty.call(tpl, 'cfg')) {
                   formConfig[i].format = tpl.cfg ? JSON.parse(JSON.stringify(tpl.cfg)) : null;
                 }
                 formConfig[i]._templateId = sel;
                 persistFormMap();
               });
-              // Do NOT call build(), do NOT change formConfig[i].fields, and
-              // do NOT activate tabs — selection only affects generation output.
             })
           );
           tplRow.appendChild(tplLabel);
           tplRow.appendChild(tplSelect);
-          // if dev mode is enabled, expose an Unload button for this form
           if (devMode) {
             const unloadBtn = document.createElement('button');
             unloadBtn.type = 'button';
@@ -1656,12 +1737,6 @@
             unloadBtn.addEventListener(
               'click',
               wrapHandler(() => {
-                // Any tab can be unloaded. This used to refuse every built-in
-                // (`tpl-N`) tab — which is every tab of an exported file — and
-                // decided it from the Template dropdown's current selection, so
-                // unloadability depended on which output format was picked.
-                // Unloading removes the TAB only; its definition stays in
-                // `forms`, so the Forms pane can Load it straight back.
                 const allPrev = captureValuesByForm();
                 formConfig.splice(i, 1);
                 safe(() => persistFormMap());
@@ -1670,8 +1745,6 @@
                 safe(() => activateTab(Math.max(0, i - 1)));
               })
             );
-            // Reorder without dragging — for keyboard and touch, where the tab
-            // bar's drag-and-drop does not reach.
             const moveLeft = el('button', {
               type: 'button',
               className: 'btn ghost',
@@ -1680,8 +1753,6 @@
               title: 'Move this tab one place to the left',
               dataset: { move: 'left' },
               disabled: i === 0,
-              // The Template select takes the row's spare width; without these
-              // the buttons shrank and wrapped onto two or three lines.
               style: { marginLeft: '8px', whiteSpace: 'nowrap', flexShrink: '0' },
               onclick: wrapHandler(() => moveTab(i, i - 1, 'left')),
             });
@@ -1702,7 +1773,6 @@
           }
           formArea.appendChild(tplRow);
 
-          // --- Generate UI: button + output area
           const genWrapper = document.createElement('div');
           genWrapper.style.marginTop = '12px';
           const genBtn = document.createElement('button');
@@ -1754,7 +1824,6 @@
                   values[e.name] = v;
                 }
               });
-              // Combine key=>value pairs for fields that have an associated _key input
               Object.keys(values).forEach((k) => {
                 if (!k.endsWith('_key')) return;
                 const base = k.slice(0, -4);
@@ -1764,9 +1833,6 @@
                 const combined = vals.map((v, i) => {
                   const keyRaw = keys[i] || '';
                   let prefix = '';
-                  // Do not automatically append a period to numeric keys here;
-                  // only preserve what the user entered. If the key already
-                  // contains a period, it will be preserved.
                   prefix = keyRaw ? keyRaw + ' ' : '';
                   return prefix + v;
                 });
@@ -1776,7 +1842,6 @@
               const sel = tplSelect.value || '__json__';
               const cfg = formsMap[sel] && formsMap[sel].cfg ? formsMap[sel].cfg : null;
               out.value = generateOutput(cfg, values);
-              // Auto-resize the output textarea to fit the generated content
               safe(() => {
                 out.style.height = 'auto';
                 out.style.overflow = 'hidden';
@@ -1815,7 +1880,6 @@
             })
           );
 
-          // populate area UI
           const info = document.createElement('div');
           info.className = 'meta';
           info.textContent = 'Scan other tabs for values with matching field names.';
@@ -1841,7 +1905,6 @@
           pane.appendChild(populateArea);
           contents.appendChild(pane);
 
-          // subtabs switching
           stForm.addEventListener(
             'click',
             wrapHandler(() => {
@@ -1882,8 +1945,11 @@
           );
         });
 
-        // Add a dedicated 'Outputs' tab where outputs (generation formats + fields) can be edited.
-        // Only add when devMode is enabled.
+        /**
+         * Add the dev-mode Outputs pane for editing output formats and fields.
+         *
+         * @returns {void}
+         */
         (function addOutputsTab() {
           if (!devMode) return;
           const outIndex = formConfig.length;
@@ -1946,7 +2012,6 @@
           const cfgLbl = document.createElement('label');
           cfgLbl.textContent = 'Template';
           cfgLbl.style.marginTop = '8px';
-          // advanced toggle for Outputs: hide/show resolved JSON + resolve button
           const advRowOut = document.createElement('div');
           advRowOut.style.display = 'flex';
           advRowOut.style.alignItems = 'center';
@@ -1960,19 +2025,16 @@
           advLblOut.textContent = 'Advanced (raw JSON)';
           advRowOut.appendChild(advChkOut);
           advRowOut.appendChild(advLblOut);
-          // simple template input where user can type a template string
           const cfgSimpleOut = document.createElement('textarea');
           cfgSimpleOut.rows = 2;
           cfgSimpleOut.style.width = '100%';
           cfgSimpleOut.placeholder = 'Hello {firstName}';
           cfgSimpleOut.autocomplete = 'off';
-          // button to resolve the simple template into editable JSON
           const resolveBtn = document.createElement('button');
           resolveBtn.type = 'button';
           resolveBtn.className = 'btn ghost';
           resolveBtn.textContent = 'Resolve to JSON';
           resolveBtn.style.marginTop = '6px';
-          // raw JSON textarea (editable resolved JSON)
           const cfgTaOut = document.createElement('textarea');
           cfgTaOut.rows = 6;
           cfgTaOut.style.width = '100%';
@@ -1983,7 +2045,6 @@
           outContent.appendChild(cfgSimpleOut);
           outContent.appendChild(resolveBtn);
           outContent.appendChild(cfgTaOut);
-          // default to simple view: hide resolved JSON textarea and resolve button
           cfgTaOut.style.display = 'none';
           resolveBtn.style.display = 'none';
           advChkOut.addEventListener(
@@ -2013,7 +2074,6 @@
                   cfgTaOut.value = JSON.stringify(parsed, null, 2);
                   autosizeTextarea(cfgTaOut);
                 } catch (e) {
-                  // not valid JSON, treat as template string
                   cfgTaOut.value = JSON.stringify({ type: 'template', template: raw }, null, 2);
                   autosizeTextarea(cfgTaOut);
                 }
@@ -2059,17 +2119,22 @@
           outContent.appendChild(delOutBtn);
           outContent.appendChild(createFormBtn);
 
+          /**
+           * Repopulate the Outputs pane's output list.
+           *
+           * @returns {void}
+           */
           function refreshOutList() {
             outList.innerHTML = '';
-            outputs.forEach((o) => {
-              const op = document.createElement('option');
-              op.value = o.id;
-              op.textContent = o.label || o.id;
-              outList.appendChild(op);
-            });
+            outputs.forEach((o) => outList.appendChild(createOption(o.id, o.label || o.id)));
           }
           refreshOutList();
 
+          /**
+           * Load the selected output into the Outputs pane editors.
+           *
+           * @returns {void}
+           */
           function loadOut() {
             const id = outList.value;
             const o = outputs.find((x) => x.id === id);
@@ -2157,9 +2222,6 @@
                   try {
                     o.cfg = JSON.parse(jsonRaw);
                   } catch (e) {
-                    // If the user edited the resolved JSON but it's not valid JSON
-                    // and it doesn't look like JSON, treat it as a plain template
-                    // string to preserve backwards compatibility.
                     if (jsonRaw[0] === '{' || jsonRaw[0] === '[') throw e;
                     o.cfg = { type: 'template', template: jsonRaw };
                   }
@@ -2176,9 +2238,6 @@
               try {
                 const parsedF = fieldsTaOut.value.trim() ? JSON.parse(fieldsTaOut.value) : [];
                 if (!Array.isArray(parsedF)) throw new Error('Fields must be an array');
-                // Do not auto-generate fields from the template when saving — respect
-                // whatever the user has entered in the Fields textarea. Only validate
-                // that it's a JSON array and then save it.
                 o.fields = parsedF;
               } catch (e) {
                 safe(() => highlightJsonError(fieldsTaOut, e));
@@ -2186,7 +2245,6 @@
                 return;
               }
               outputsMap = rebuildMap(outputs);
-              // persist outputs so Templates can reference them later
               storageSet(outputsKey, outputs);
               refreshOutList();
               loadOut();
@@ -2194,8 +2252,6 @@
             })
           );
 
-          // Populate the Fields textarea by extracting placeholder variables
-          // from the output `template` string (preview only, does not save).
           genOutBtn.addEventListener(
             'click',
             wrapHandler(() => {
@@ -2207,7 +2263,6 @@
                   try {
                     parsed = JSON.parse(jsonRaw);
                   } catch (e) {
-                    // fallback to treating as template string
                     parsed = { type: 'template', template: jsonRaw };
                   }
                 } else if (simpleRaw) {
@@ -2247,7 +2302,7 @@
               safe(
                 () => {
                   if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) {
-                    _proceed = true; // auto-accept in test/jsdom environment
+                    _proceed = true;
                   } else if (typeof window.confirm === 'function') {
                     _proceed = !!window.confirm(
                       'Delete this output? This action cannot be undone.'
@@ -2270,9 +2325,6 @@
             })
           );
 
-          // The original "Create Form from Output" action is intentionally
-          // disabled — outputs are intended to define generation formats and
-          // their inferred fields, not to implicitly create form tabs.
           safe(() => {
             if (createFormBtn) createFormBtn.style.display = 'none';
           });
@@ -2281,8 +2333,11 @@
           contents.appendChild(outPane);
         })();
 
-        // Add a dedicated 'Templates' tab where the templates JSON can be edited.
-        // Only add when devMode is enabled.
+        /**
+         * Add the dev-mode Forms pane for editing, loading and exporting form templates.
+         *
+         * @returns {void}
+         */
         (function addTemplatesTab() {
           if (!devMode) return;
           const tplIndex = formConfig.length + 1;
@@ -2309,7 +2364,6 @@
           label.textContent = 'Forms';
           paneContent.appendChild(label);
 
-          // Inline help explaining how to edit templates
           const help = document.createElement('div');
           help.className = 'meta';
           help.style.marginTop = '8px';
@@ -2348,16 +2402,12 @@
               <li>Click <em>Save</em> to apply — left-side form tabs update immediately and form definitions are persisted to localStorage (only form definitions are saved; user-entered form values are never persisted).</li>
             </ul>`;
           paneContent.appendChild(help);
-          // Add brief export instructions to the Forms pane so users know how to
-          // generate an HTML export of the configuration.
           const exportHelp = document.createElement('div');
           exportHelp.className = 'meta';
           exportHelp.style.marginTop = '8px';
           exportHelp.textContent =
             'To export the current forms and outputs, use the Export HTML button in the header — you can save to a file or copy the exported HTML to your clipboard.';
           paneContent.appendChild(exportHelp);
-
-          // (Outputs selector moved below so Templates select remains the first select in the pane)
 
           const tplSelectorRow = document.createElement('div');
           tplSelectorRow.style.display = 'flex';
@@ -2375,7 +2425,6 @@
           tplSelectorRow.appendChild(addBtn);
           paneContent.appendChild(tplSelectorRow);
 
-          // Outputs selector for choosing an existing output before creating a template
           const outSelectorRow = document.createElement('div');
           outSelectorRow.style.display = 'flex';
           outSelectorRow.style.alignItems = 'center';
@@ -2385,18 +2434,23 @@
           outSelect.autocomplete = 'off';
           outSelect.style.flex = '1';
           outSelect.dataset.outputsSelector = 'true';
+
+          /**
+           * Repopulate the Forms pane's Output selector.
+           *
+           * @returns {void}
+           */
           function refreshOutSelect() {
             outSelect.innerHTML = '';
-            outputs.forEach((o) => {
-              const op = document.createElement('option');
-              op.value = o.id;
-              op.textContent = o.label || o.id;
-              outSelect.appendChild(op);
-            });
+            outputs.forEach((o) => outSelect.appendChild(createOption(o.id, o.label || o.id)));
           }
           refreshOutSelect();
-          // When an Output is selected in the Forms pane, populate the
-          // Template (JSON) and Fields textareas with that Output's data.
+
+          /**
+           * Fill the Template and Fields editors from the selected output.
+           *
+           * @returns {void}
+           */
           function loadSelectedOutput() {
             const id = outSelect.value;
             const o = outputsMap[id] || outputs.find((x) => x.id === id) || null;
@@ -2463,7 +2517,6 @@
             }
           }
           outSelect.addEventListener('change', wrapHandler(loadSelectedOutput));
-          // initialize the panes with the selected output (if any)
           safe(() => loadSelectedOutput());
           const outLabel = document.createElement('div');
           outLabel.className = 'meta';
@@ -2487,19 +2540,16 @@
           const cfgLabel = document.createElement('label');
           cfgLabel.textContent = 'Template (JSON)';
           cfgLabel.style.marginTop = '8px';
-          // raw JSON textarea (advanced)
           const cfgTa = document.createElement('textarea');
           cfgTa.rows = 6;
           cfgTa.style.width = '100%';
           cfgTa.placeholder = '{ "type": "template", "template": "Hello {firstName}" }';
           cfgTa.autocomplete = 'off';
-          // simple template input for non-advanced users
           const cfgSimple = document.createElement('textarea');
           cfgSimple.rows = 2;
           cfgSimple.style.width = '100%';
           cfgSimple.placeholder = 'Hello {firstName}';
           cfgSimple.autocomplete = 'off';
-          // advanced toggle
           const advRow = document.createElement('div');
           advRow.style.display = 'flex';
           advRow.style.alignItems = 'center';
@@ -2516,7 +2566,6 @@
           paneContent.appendChild(cfgLabel);
           paneContent.appendChild(advRow);
           paneContent.appendChild(cfgTa);
-          // default to simple view
           cfgTa.style.display = 'none';
           advChk.addEventListener(
             'change',
@@ -2541,9 +2590,6 @@
           fieldsTa.autocomplete = 'off';
           paneContent.appendChild(fieldsLabel);
           paneContent.appendChild(fieldsTa);
-          // append the simple template textarea after the fields textarea so
-          // existing tests that index textareas continue to work (fields textarea
-          // remains the second textarea)
           paneContent.appendChild(cfgSimple);
 
           const saveBtn = document.createElement('button');
@@ -2570,23 +2616,25 @@
           paneContent.appendChild(delBtn);
           paneContent.appendChild(resetBtn);
 
-          // helper: populate selector
+          /**
+           * Repopulate the Forms pane's form selector.
+           *
+           * @returns {void}
+           */
           function refreshTplSelect() {
             tplSelect.innerHTML = '';
-            forms.forEach((t) => {
-              const o = document.createElement('option');
-              o.value = t.id;
-              o.textContent = t.label || t.id;
-              tplSelect.appendChild(o);
-            });
+            forms.forEach((t) => tplSelect.appendChild(createOption(t.id, t.label || t.id)));
           }
           refreshTplSelect();
-          // Default the forms select to the most-recent form so reopening
-          // the pane shows the last-created form by default.
           safe(() => {
             if (forms && forms.length) tplSelect.value = forms[forms.length - 1].id;
           });
 
+          /**
+           * Load the selected form into the Forms pane editors.
+           *
+           * @returns {void}
+           */
           function loadSelected() {
             const id = tplSelect.value;
             const t = forms.find((x) => x.id === id);
@@ -2600,8 +2648,6 @@
             try {
               const json = t.cfg ? JSON.stringify(t.cfg, null, 2) : '';
               if (typeof cfgSimple !== 'undefined' && typeof advChk !== 'undefined') {
-                // If this template is a simple template object, prefer showing
-                // the simple textarea; otherwise show the raw JSON in advanced.
                 if (
                   t.cfg &&
                   typeof t.cfg === 'object' &&
@@ -2638,14 +2684,12 @@
           addBtn.addEventListener(
             'click',
             wrapHandler(() => {
-              // Require an existing Output to be selected before creating a Template
               const outId = outSelect && outSelect.value ? outSelect.value : null;
               if (!outId) {
                 alert('Please select an existing Output first.');
                 return;
               }
               const baseOut = outputsMap[outId] || null;
-              // Auto-populate the Label input with the selected Output's displayed name (option text)
               if (lblInput && (!lblInput.value || String(lblInput.value).trim() === '')) {
                 let displayLabel = null;
                 if (
@@ -2683,20 +2727,15 @@
               refreshTplSelect();
               tplSelect.value = id;
               loadSelected();
-              // Also add this template as an option to existing form panes' template selects
               addTemplateOptionToFormPanes(id, nt.label || id);
-              // Do NOT auto-create a form tab; templates now reference outputs separately.
             })
           );
 
-          // Load: create a form tab for the selected template if none exists
           loadBtn.addEventListener(
             'click',
             wrapHandler(() => {
               const id = tplSelect.value;
               if (!id) return;
-              // Preserve current form values across the DOM rebuild so loading
-              // a template doesn't clear data entered in other tabs.
               const allPrev = captureValuesByForm();
 
               safe(() => {
@@ -2707,11 +2746,6 @@
                     ? { type: 'template', template: t.cfg }
                     : deepCopy(t.cfg)
                   : null;
-                // Found by WHAT the tab is (`_formId`), not by its current
-                // Template selection. An existing tab is RELOADED in place from
-                // the saved definition — this used to be a silent no-op, so a
-                // tab that could not be unloaded could not be refreshed either,
-                // and "edit → reload → export" had no working path.
                 let at = formConfig.findIndex((x) => x && x._formId === id);
                 if (at >= 0) {
                   formConfig[at].fields = deepCopy(t.fields || []);
@@ -2732,17 +2766,12 @@
                 safe(() => restoreValuesByForm(allPrev));
                 safe(() => activateTab(at));
               });
-              // keep templates pane active: after `build()` the templates tab
-              // element was recreated and its dataset.index may have changed.
-              // Re-query the current templates tab (.tab.right) and activate it.
               try {
                 const newTplTab = q(tabbar, '.tab.right[data-templates="true"]');
                 if (newTplTab) activateTab(Number(newTplTab.dataset.index));
               } catch (e) {}
             })
           );
-
-          // Unload button handled elsewhere in templates pane; per-form Unload exists below when devMode enabled.
 
           saveBtn.addEventListener(
             'click',
@@ -2770,7 +2799,6 @@
                 }
               } catch (e) {
                 try {
-                  // If advanced view is enabled, highlight cfgTa, otherwise cfgSimple
                   try {
                     if (typeof advChk !== 'undefined' && advChk.checked)
                       highlightJsonError(cfgTa, e);
@@ -2789,18 +2817,7 @@
                 alert('Invalid fields JSON: ' + e.message);
                 return;
               }
-              // Associate the template with the currently selected Output (if any)
               if (outSelect && outSelect.value) t.outputId = outSelect.value;
-              // Apply the saved definition to the tabs that use it, found by
-              // identity rather than position:
-              //   fields → every tab that IS this form        (_formId)
-              //   format → every tab that has it SELECTED     (_templateId)
-              // Two faults lived here. Built-in forms wrote to `formConfig[N]`
-              // parsed out of `tpl-N` — wrong the moment an Unload shifted the
-              // tabs. And custom forms skipped any tab the user had typed into,
-              // so an edit silently never reached it (the reason unload-and-
-              // reload was needed at all). Typed values survive the rebuild
-              // below by field name, so there is nothing to protect here.
               safe(() => {
                 const fmt = t.cfg
                   ? typeof t.cfg === 'string'
@@ -2811,8 +2828,6 @@
                   if (!tab) return;
                   if (tab._formId === t.id) {
                     tab.fields = deepCopy(t.fields || []);
-                    // A loaded form's tab is titled by its label; a built-in
-                    // keeps its own title (its label may be a format label).
                     if (!/^tpl-\d+$/.test(t.id)) tab.title = t.label || tab.title;
                   }
                   if (tab._templateId === t.id) tab.format = fmt;
@@ -2820,9 +2835,7 @@
               });
               formsMap = rebuildMap(forms);
               storageSet(KEYS.forms, forms);
-              // persist any mapping changes made by save
               safe(() => persistFormMap());
-              // preserve templates tab and selection after rebuild
               const preserveIndex = tplPane.dataset.index;
               const preserveId = t.id;
               const allPrev = captureAllFormValues();
@@ -2837,10 +2850,8 @@
                     newSelect.value = preserveId;
                     newSelect.dispatchEvent(new Event('change'));
                   }
-                  // status appended after applying to form panes below
                 }
               });
-              // Also trigger change on any form panes that currently have this template selected
               try {
                 suppressTabActivation = true;
                 for (let fi = 0; fi < formConfig.length; fi++) {
@@ -2855,7 +2866,6 @@
               } finally {
                 suppressTabActivation = false;
               }
-              // re-activate templates tab and show saved status (after form panes updated)
               safe(() => {
                 activateTab(Number(preserveIndex));
                 const tplPane = q(contents, `.tab-pane[data-index='${preserveIndex}']`);
@@ -2879,7 +2889,7 @@
               safe(
                 () => {
                   if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) {
-                    _proceed2 = true; // auto-accept in test/jsdom environment
+                    _proceed2 = true;
                   } else if (typeof window.confirm === 'function') {
                     _proceed2 = !!window.confirm(
                       'Delete this form/template? This action cannot be undone.'
@@ -2897,14 +2907,9 @@
               forms = forms.filter((x) => x.id !== id);
               formsMap = rebuildMap(forms);
               storageSet(KEYS.forms, forms);
-              // update persisted mapping after deletion
               safe(() => persistFormMap());
               refreshTplSelect();
               loadSelected();
-              // A deleted custom form takes its tab with it — the tab that IS it
-              // (`_formId`), not whichever tab merely has it selected as an
-              // output template. Capture values first, keyed by tab, so the
-              // tabs that shift down keep their own.
               const allPrev = captureValuesByForm();
               safe(() => {
                 if (id && id.startsWith('custom-')) {
@@ -2912,7 +2917,6 @@
                     if (formConfig[j] && formConfig[j]._formId === id) formConfig.splice(j, 1);
                   }
                 }
-                // A tab left pointing at the deleted template falls back to its own.
                 formConfig.forEach((tab) => {
                   if (tab && tab._templateId === id) tab._templateId = tab._formId;
                 });
@@ -2920,7 +2924,6 @@
               safe(() => persistFormMap());
               safe(() => build());
               safe(() => restoreValuesByForm(allPrev));
-              // pick first available template in the templates pane (no status yet)
               safe(() => {
                 activateTab(Number(preserveIndex));
                 const newPane = q(contents, `.tab-pane[data-index='${preserveIndex}']`);
@@ -2930,11 +2933,8 @@
                 }
               });
 
-              // If any form panes used the deleted template, remove the option
-              // and ensure panes update via the centralized helper.
               removeTemplateOptionFromFormPanes(id);
 
-              // finally re-activate templates tab and show Deleted status
               safe(() => {
                 const newTplTab = q(tabbar, '.tab.right[data-templates="true"]');
                 if (newTplTab) {
@@ -2962,11 +2962,8 @@
             wrapHandler(() => {
               const preserveIndex = tplPane.dataset.index;
               localStorage.removeItem(KEYS.forms);
-              // remove persisted per-tab form mapping as well
               safe(() => {
                 localStorage.removeItem(formMapKey);
-                // …and the saved tab list, so a refresh after Reset shows the
-                // original tabs rather than the set that was just reset.
                 localStorage.removeItem(KEYS.tabs);
                 formMap = {};
               });
@@ -2974,10 +2971,6 @@
               formsMap = rebuildMap(forms);
               refreshTplSelect();
               loadSelected();
-              // Restore the original SET of tabs — unloaded ones come back,
-              // loaded ones go — rather than pasting originals over whatever
-              // now sits at each position. By index, one Unload earlier meant
-              // every later tab received its neighbour's original fields.
               const allPrev = captureValuesByForm();
               safe(() => {
                 const fresh = deepCopy(originalFormConfig) || [];
@@ -3000,19 +2993,14 @@
                       if (newSelect.options.length) newSelect.selectedIndex = 0;
                       newSelect.dispatchEvent(new Event('change'));
                     }
-                    // re-query the pane after dispatch in case the DOM was rebuilt
                     const freshPane = q(
                       contents,
                       `.tab-pane[data-index='${newTplTab.dataset.index}']`
                     );
                     const targetPane = freshPane || newPane;
-                    // Do not append status here — the DOM may be rebuilt by subsequent
-                    // programmatic change events. Status will be appended after all
-                    // programmatic updates complete.
                   }
                 }
               });
-              // After reset, ensure form panes point to a valid template and trigger change
               try {
                 suppressTabActivation = true;
                 for (let fi = 0; fi < formConfig.length; fi++) {
@@ -3020,7 +3008,6 @@
                   if (!formPane) continue;
                   const formTpl = q(formPane, 'select');
                   if (!formTpl) continue;
-                  // if the currently selected option is no longer present, select first
                   if (!q(formTpl, `option[value="${formTpl.value}"]`)) {
                     if (formTpl.options.length) {
                       formTpl.selectedIndex = 0;
@@ -3031,12 +3018,10 @@
               } finally {
                 suppressTabActivation = false;
               }
-              // Ensure Templates tab remains active after programmatic changes
               safe(() => {
                 const newTplTab = q(tabbar, '.tab.right[data-templates="true"]');
                 if (newTplTab) {
                   activateTab(Number(newTplTab.dataset.index));
-                  // append status after final activation so it isn't removed by rebuild
                   safe(() => {
                     const finalPane = q(
                       contents,
@@ -3064,6 +3049,12 @@
         activateTab(0);
       }
 
+      /**
+       * Show the pane at `index` and mark its tab active.
+       *
+       * @param {number} index Pane index.
+       * @returns {void}
+       */
       function activateTab(index) {
         Array.from(tabbar.children).forEach((t) =>
           t.classList.toggle('active', Number(t.dataset.index) === index)
@@ -3073,8 +3064,14 @@
         );
       }
 
-      // Scans other tabs for values matching field names in target tab.
-      // Returns array of items {name, value, fromTabIndex, fromTabTitle, found}
+      /**
+       * Find values in other tabs for the target tab's fields and render a preview
+       * where the user picks which to apply.
+       *
+       * @param {number} targetIndex Index of the tab to populate.
+       * @param {HTMLElement} previewContainer Element to render the preview into.
+       * @returns {Array<{name: string, candidates: Array}>} One entry per target field.
+       */
       function scanPopulate(targetIndex, previewContainer) {
         const targetPane = q(contents, `.tab-pane[data-index='${targetIndex}']`);
         const targetForm = q(targetPane, 'form.generated-form');
@@ -3092,16 +3089,12 @@
           const form = q(pane, 'form.generated-form');
           if (!form) return;
           targetNames.forEach((name, idx) => {
-            // consider both normal inputs and a possible combined input from other tabs
             const combinedName = name + '_combined';
             const els = qAll(
               form,
               `[name="${CSS.escape(name)}"], [name="${CSS.escape(combinedName)}"]`
             );
             if (!els || els.length === 0) return;
-            // Prefer a combined input if present in the source form; this
-            // ensures pre-parsed values (e.g. "steps_combined") are offered
-            // as candidates instead of individual per-step inputs.
             const combinedEl = els.find((e) => e.name === combinedName);
             if (combinedEl) {
               const v = combinedEl.value !== undefined ? combinedEl.value : '';
@@ -3109,7 +3102,6 @@
                 items[idx].candidates.push({ value: v, fromTab: ti, fromTitle: tab.title });
               return;
             }
-            // collect candidate(s) from this tab for normal inputs
             if (els[0].type === 'radio') {
               const checked = els.find((e) => e.checked);
               if (checked)
@@ -3127,7 +3119,6 @@
                   fromTitle: tab.title,
                 });
             } else {
-              // prefer first non-empty value among matching elements
               for (const e of els) {
                 if (e.value !== undefined && String(e.value).trim() !== '') {
                   items[idx].candidates.push({ value: e.value, fromTab: ti, fromTitle: tab.title });
@@ -3138,7 +3129,6 @@
           });
         });
 
-        // render preview with multiple candidate choices per field
         previewContainer.innerHTML = '';
         items.forEach((it) => {
           const row = document.createElement('div');
@@ -3157,7 +3147,6 @@
             label.appendChild(none);
           } else {
             const list = document.createElement('div');
-            // add keep-current option first (default) and show the current value
             const keepOpt = document.createElement('div');
             keepOpt.style.display = 'flex';
             keepOpt.style.alignItems = 'center';
@@ -3169,7 +3158,6 @@
             keepRadio.name = `choose-${targetIndex}-${it.name}`;
             keepRadio.value = '__keep__';
             keepRadio.checked = true;
-            // determine current value from the target form
             const currentVal = safe(() => {
               const currentEls = qAll(targetForm, `[name="${CSS.escape(it.name)}"]`);
               if (currentEls && currentEls.length) {
@@ -3215,10 +3203,9 @@
 
           row.appendChild(label);
           previewContainer.appendChild(row);
-          it._candidates = it.candidates; // store for later
+          it._candidates = it.candidates;
         });
 
-        // Apply selected button
         const applyBtn = document.createElement('button');
         applyBtn.className = 'btn';
         applyBtn.type = 'button';
@@ -3248,10 +3235,15 @@
         return items;
       }
 
-      // Resolve one "{name}" token for a `type: "template"` output.
-      //  - an explicit value (even "") is returned as-is (arrays joined by \n)
-      //  - otherwise the "<name>_combined" value is used, formatted as a
-      //    numbered list when it is an array or a ">"-separated string
+      /**
+       * Resolve a "{name}" token for a `type: "template"` output. An explicit value is
+       * used as-is (arrays joined by newlines); otherwise "<name>_combined" is used,
+       * formatted as a numbered list when it is an array or a ">"-separated string.
+       *
+       * @param {string} name Token name.
+       * @param {Object} values Form values.
+       * @returns {string} The replacement text.
+       */
       function formatTemplateToken(name, values) {
         const hasExplicit = values && Object.prototype.hasOwnProperty.call(values, name);
         if (hasExplicit) {
@@ -3323,10 +3315,24 @@
         return render(0, src.length).out;
       }
 
+      /**
+       * Look up a form value, treating undefined and null as blank.
+       *
+       * @param {?Object} values Form values.
+       * @param {string} name Value name.
+       * @returns {*} The value, or ''.
+       */
       const valueOrBlank = (values, name) =>
         values && values[name] !== undefined && values[name] !== null ? values[name] : '';
 
-      // Generate output based on format configuration and values object
+      /**
+       * Render form values using an output format: a template string, a
+       * `{type: 'template'|'sprintf', template}` object, or JSON when none is given.
+       *
+       * @param {(string|Object|null)} formatCfg Output format.
+       * @param {Object} values Form values.
+       * @returns {string} The generated note.
+       */
       function generateOutput(formatCfg, values) {
         if (!formatCfg) return JSON.stringify(values, null, 2);
         if (typeof formatCfg === 'string') {
@@ -3342,33 +3348,32 @@
         return JSON.stringify(values, null, 2);
       }
 
+      /**
+       * Write the values chosen in the populate preview into the target tab's form.
+       *
+       * @param {number} targetIndex Index of the tab to fill.
+       * @param {Array<{name: string, value: *}>} selections Chosen values.
+       * @returns {void}
+       */
       function applyPreviewSelections(targetIndex, selections) {
         const targetPane = q(contents, `.tab-pane[data-index='${targetIndex}']`);
         const targetForm = q(targetPane, 'form.generated-form');
         selections.forEach((sel) => {
-          // resolve field config for this target tab + field name
           const fieldCfg =
             formConfig[targetIndex] && formConfig[targetIndex].fields
               ? formConfig[targetIndex].fields.find((f) => f.name === sel.name)
               : null;
-          // find the combined input for steps fields (if any) so we can
-          // mirror combined values into the top input when applying selections
           const combinedInput = q(targetForm, `[name="${CSS.escape(sel.name + '_combined')}"]`);
-          // If this field's type is 'steps' and there are no inputs yet, create items
           if (fieldCfg && fieldCfg.type === 'steps') {
             const parts = splitSteps(sel.value);
             const existing = qAll(targetForm, `[name="${CSS.escape(sel.name)}"]`);
             const container = q(targetForm, `.steps-container[data-name="${sel.name}"]`);
             const list = container && q(container, '.steps-list');
             if (parts.length > 1) {
-              // clear existing list
               if (list) list.innerHTML = '';
-              // create inputs per part
               parts.forEach((p) => {
                 if (list) createStepRow(sel.name, parseStepPart(p), container, list);
               });
-              // Also update the combined input so the combined representation
-              // is visible to the user after applying the selection.
               safe(() => {
                 if (combinedInput) combinedInput.value = sel.value;
               });
@@ -3389,13 +3394,10 @@
             });
             return;
           }
-          // For steps fields, if sel.value contains '>' distribute values
           if (fieldCfg && fieldCfg.type === 'steps' && String(sel.value || '').includes('>')) {
             const parts = splitSteps(sel.value);
-            // locate container/list up-front so it's available to the entire block
             const container = q(targetForm, `.steps-container[data-name="${sel.name}"]`);
             const list = container && q(container, '.steps-list');
-            // ensure we have enough inputs
             if (parts.length > els.length) {
               for (let i = els.length; i < parts.length; i++) {
                 if (list) createStepRow(sel.name, '', container, list);
@@ -3418,17 +3420,14 @@
                 }
               }
             });
-            // mirror the combined string into the top combined input if present
             safe(() => {
               if (combinedInput) combinedInput.value = sel.value;
             });
             return;
           }
 
-          // text/select/textarea - set first element's value
           const e = els[0];
           e.value = sel.value;
-          // if this is a steps field, also update the combined input
           if (fieldCfg && fieldCfg.type === 'steps' && combinedInput)
             combinedInput.value = sel.value;
         });
@@ -3436,10 +3435,16 @@
 
       build();
 
-      // Theme handling: toggle dark mode and persist choice
       (function () {
         const key = KEYS.theme;
         const btn = document.getElementById('themeToggle');
+
+        /**
+         * Apply a colour theme and update the toggle's label.
+         *
+         * @param {string} t 'dark' or 'light'.
+         * @returns {void}
+         */
         function applyTheme(t) {
           if (t === 'dark') document.documentElement.classList.add('dark');
           else document.documentElement.classList.remove('dark');
