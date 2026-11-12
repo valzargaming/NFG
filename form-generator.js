@@ -1405,6 +1405,12 @@ var NFG=(()=>{var r=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
             const label = document.createElement('label');
             if (f.type !== 'header') {
               label.textContent = f.label || f.name;
+              if (f.optional === true) {
+                const hint = document.createElement('span');
+                hint.className = 'meta';
+                hint.textContent = ' (optional)';
+                label.appendChild(hint);
+              }
               wrapper.appendChild(label);
             }
 
@@ -1841,7 +1847,10 @@ var NFG=(()=>{var r=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
               });
               const sel = tplSelect.value || '__json__';
               const cfg = formsMap[sel] && formsMap[sel].cfg ? formsMap[sel].cfg : null;
-              out.value = generateOutput(cfg, values);
+              const optional = ((formConfig[i] && formConfig[i].fields) || [])
+                .filter((f) => f && f.optional === true && f.name)
+                .map((f) => f.name);
+              out.value = generateOutput(cfg, values, optional);
               safe(() => {
                 out.style.height = 'auto';
                 out.style.overflow = 'hidden';
@@ -2376,6 +2385,7 @@ var NFG=(()=>{var r=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
                 <em>Template</em>: a JSON object that controls output formatting. Common forms:
                 <ul>
                   <li><strong>type: "template"</strong> \u2014 use placeholders like <code>{firstName}</code>. When a field exposes a combined input (see <em>Fields</em> below), you can reference the combined value as <code>{fieldName_combined}</code> or the explicit per-field value as <code>{fieldName}</code>.</li>
+                  <li><strong>Optional sections</strong> \u2014 wrap text in <code>[[</code> and <code>]]</code> to keep it only when every placeholder inside is filled. <code>{title}[[ - {subtitle}]]</code> outputs <code>Report - Q3</code>, or just <code>Report</code> when <code>subtitle</code> is blank, with no dangling <code> - </code>. Sections can nest and work in every template type.</li>
                   <li><strong>type: "sprintf"</strong> \u2014 use Python-style tokens like <code>%(firstName)s</code>.</li>
                   <li><strong>Blank/JSON fallback</strong> \u2014 leave the template blank to output raw JSON.</li>
                 </ul>
@@ -2391,6 +2401,7 @@ var NFG=(()=>{var r=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
                 The generator prefers the combined input when present (use <code>{FIELD_combined}</code> in templates), but form-definitions can also handle arrays or combined strings \u2014 the runtime will format arrays as numbered lists when appropriate.
                 <p>To include headings inside the form, add a field with <code>"type":"header"</code>. Use <code>label</code> for the heading text and optionally <code>level</code> (1-6) or <code>size</code> (<code>h1</code>.. <code>h6</code>) to control the heading element.</p>
                 <p>To layout fields side-by-side, set a field's <code>inline</code> property to <code>true</code> and optionally provide <code>width</code> (e.g. <code>"45%"</code> or <code>"200px"</code>); default width is <code>45%</code>.</p>
+                <p>Set <code>"optional": true</code> on a field to leave it out of the output entirely when it is blank: every template line holding its placeholder is removed, label included, so <code>Additional Comments: {comments}</code> disappears instead of printing an empty label. The form shows <em>(optional)</em> beside its label. Use <code>[[ ]]</code> instead when only part of a line should go.</p>
                 <p>Fields support an optional <code>placeholder</code> property. When generating fields from a template, placeholders default to an empty string.</p>
                 <p><strong>Steps fields:</strong> step-like fields (<code>"type":"steps"</code>) now support a <code>keyMode</code> property to control the default per-step key style. Supported values:
                 <code>"none"</code> (no key), <code>"numbered"</code> (1., 2., ...), or <code>"bullet"</code> (-). Example field definition:
@@ -3260,38 +3271,128 @@ var NFG=(()=>{var r=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
       }
 
       /**
-       * Replace "{name}" tokens in a template string with values.
+       * Fill a template's tokens, dropping optional sections whose tokens are blank.
        *
-       * @param {string} tpl Template string.
-       * @param {Object} values Form values.
-       * @returns {string} The filled template.
+       * Text wrapped in \`[[\` and \`]]\` is an optional section: it is kept only when
+       * every token directly inside it resolves to a non-blank value, so separators
+       * such as " - " never dangle next to a missing value. Sections may nest; an
+       * inner section is evaluated on its own and never hides its parent.
+       * Unmatched brackets are kept as literal text.
+       *
+       * @param {string} tpl Template text.
+       * @param {RegExp} tokenRe Global token pattern whose first group is the name.
+       * @param {function(string): string} resolve Returns the text for a token name.
+       * @returns {string} The rendered text.
        */
-      const fillNamedTokens = (tpl, values) =>
-        String(tpl || '').replace(/\\{([^}]+)\\}/g, (_, name) =>
-          values && values[name] !== undefined ? values[name] : ''
-        );
+      function renderTemplate(tpl, tokenRe, resolve) {
+        const src = String(tpl == null ? '' : tpl);
+        const ends = new Map();
+        const opens = [];
+        for (let i = 0; i < src.length - 1; i++) {
+          if (src.startsWith('[[', i)) {
+            opens.push(i);
+            i++;
+          } else if (src.startsWith(']]', i) && opens.length) {
+            ends.set(opens.pop(), i);
+            i++;
+          }
+        }
+        const render = (start, end) => {
+          let out = '';
+          let text = '';
+          let filled = true;
+          const flush = () => {
+            out += text.replace(tokenRe, (_, name) => {
+              const v = String(resolve(name));
+              if (!v.trim()) filled = false;
+              return v;
+            });
+            text = '';
+          };
+          for (let i = start; i < end; i++) {
+            if (ends.has(i)) {
+              flush();
+              const section = render(i + 2, ends.get(i));
+              if (section.filled) out += section.out;
+              i = ends.get(i) + 1;
+            } else {
+              text += src[i];
+            }
+          }
+          flush();
+          return { out, filled };
+        };
+        return render(0, src.length).out;
+      }
+
+      /**
+       * Look up a form value, treating undefined and null as blank.
+       *
+       * @param {?Object} values Form values.
+       * @param {string} name Value name.
+       * @returns {*} The value, or ''.
+       */
+      const valueOrBlank = (values, name) =>
+        values && values[name] !== undefined && values[name] !== null ? values[name] : '';
+
+      /**
+       * Remove every template line that holds a token for a blank optional field,
+       * so the line's label (such as "Additional Comments:") goes with it.
+       *
+       * @param {string} tpl Template text.
+       * @param {RegExp} tokenRe Global token pattern whose first group is the name.
+       * @param {function(string): string} resolve Returns the text for a token name.
+       * @param {Array<string>} optional Names of optional fields.
+       * @returns {string} The template without those lines.
+       */
+      function dropBlankOptionalLines(tpl, tokenRe, resolve, optional) {
+        const src = String(tpl == null ? '' : tpl);
+        if (!optional || optional.length === 0) return src;
+        const isBlankOptional = (line) =>
+          Array.from(line.matchAll(tokenRe)).some(
+            (m) =>
+              (optional.includes(m[1]) || optional.includes(m[1].replace(/_combined$/, ''))) &&
+              !String(resolve(m[1])).trim()
+          );
+        const kept = src
+          .split(/(?<=\\n)/)
+          .filter((line) => !isBlankOptional(line))
+          .join('');
+        return src.endsWith('\\n') ? kept : kept.replace(/\\n$/, '');
+      }
 
       /**
        * Render form values using an output format: a template string, a
        * \`{type: 'template'|'sprintf', template}\` object, or JSON when none is given.
+       * Template lines holding a blank optional field are left out, and the JSON
+       * fallback omits blank optional fields.
        *
        * @param {(string|Object|null)} formatCfg Output format.
        * @param {Object} values Form values.
+       * @param {Array<string>} [optional] Names of fields marked \`optional\`.
        * @returns {string} The generated note.
        */
-      function generateOutput(formatCfg, values) {
-        if (!formatCfg) return JSON.stringify(values, null, 2);
-        if (typeof formatCfg === 'string') return fillNamedTokens(formatCfg, values);
-        const tpl = formatCfg.template || '';
-        if (formatCfg.type === 'template') {
-          return tpl.replace(/\\{([^}]+)\\}/g, (_, name) => formatTemplateToken(name, values));
-        }
-        if (formatCfg.type === 'sprintf') {
-          return tpl.replace(/%\\(([^)]+)\\)s/g, (_, name) =>
-            values[name] !== undefined ? values[name] : ''
+      function generateOutput(formatCfg, values, optional = []) {
+        const render = (tpl, tokenRe, resolve) =>
+          renderTemplate(dropBlankOptionalLines(tpl, tokenRe, resolve, optional), tokenRe, resolve);
+        const plain = (name) => valueOrBlank(values, name);
+        if (typeof formatCfg === 'string') return render(formatCfg, /\\{([^}]+)\\}/g, plain);
+        if (formatCfg && formatCfg.type === 'template') {
+          return render(formatCfg.template || '', /\\{([^}]+)\\}/g, (name) =>
+            formatTemplateToken(name, values)
           );
         }
-        return JSON.stringify(values, null, 2);
+        if (formatCfg && formatCfg.type === 'sprintf') {
+          return render(formatCfg.template || '', /%\\(([^)]+)\\)s/g, plain);
+        }
+        const kept = Object.assign({}, values);
+        optional.forEach((name) => {
+          if (!String(formatTemplateToken(name, values)).trim()) {
+            delete kept[name];
+            delete kept[name + '_combined'];
+          }
+        });
+        return JSON.stringify(kept, null, 2);
       }
 
       /**
