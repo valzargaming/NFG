@@ -208,8 +208,8 @@ placeholder inside it has a value:
 
 With `subtitle` filled this generates `Report - Q3`; with it blank (or only
 spaces) it generates `Report`, with no dangling `-`. The same works for a
-prefix (`[[{label}: ]]{value}`) or a separator that depends on a value you do
-not print. Sections can nest, and an inner section is checked on its own:
+prefix: `[[{label}: ]]{value}` drops `: ` when `label` is blank.
+Sections can nest, and an inner section is checked on its own:
 `{a}[[ - {b}[[ / {c}]]]]` drops ` / {c}` when `c` is blank but keeps ` - {b}`.
 Optional sections work in `template`, `sprintf` (`%(name)s`) and bare-string
 formats. Unmatched brackets are output as typed, and values entered in the form
