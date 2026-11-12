@@ -1405,6 +1405,12 @@
             const label = document.createElement('label');
             if (f.type !== 'header') {
               label.textContent = f.label || f.name;
+              if (f.optional === true) {
+                const hint = document.createElement('span');
+                hint.className = 'meta';
+                hint.textContent = ' (optional)';
+                label.appendChild(hint);
+              }
               wrapper.appendChild(label);
             }
 
@@ -1841,7 +1847,10 @@
               });
               const sel = tplSelect.value || '__json__';
               const cfg = formsMap[sel] && formsMap[sel].cfg ? formsMap[sel].cfg : null;
-              out.value = generateOutput(cfg, values);
+              const optional = ((formConfig[i] && formConfig[i].fields) || [])
+                .filter((f) => f && f.optional === true && f.name)
+                .map((f) => f.name);
+              out.value = generateOutput(cfg, values, optional);
               safe(() => {
                 out.style.height = 'auto';
                 out.style.overflow = 'hidden';
@@ -2392,6 +2401,7 @@
                 The generator prefers the combined input when present (use <code>{FIELD_combined}</code> in templates), but form-definitions can also handle arrays or combined strings — the runtime will format arrays as numbered lists when appropriate.
                 <p>To include headings inside the form, add a field with <code>"type":"header"</code>. Use <code>label</code> for the heading text and optionally <code>level</code> (1-6) or <code>size</code> (<code>h1</code>.. <code>h6</code>) to control the heading element.</p>
                 <p>To layout fields side-by-side, set a field's <code>inline</code> property to <code>true</code> and optionally provide <code>width</code> (e.g. <code>"45%"</code> or <code>"200px"</code>); default width is <code>45%</code>.</p>
+                <p>Set <code>"optional": true</code> on a field to leave it out of the output entirely when it is blank: every template line holding its placeholder is removed, label included, so <code>Additional Comments: {comments}</code> disappears instead of printing an empty label. The form shows <em>(optional)</em> beside its label. Use <code>[[ ]]</code> instead when only part of a line should go.</p>
                 <p>Fields support an optional <code>placeholder</code> property. When generating fields from a template, placeholders default to an empty string.</p>
                 <p><strong>Steps fields:</strong> step-like fields (<code>"type":"steps"</code>) now support a <code>keyMode</code> property to control the default per-step key style. Supported values:
                 <code>"none"</code> (no key), <code>"numbered"</code> (1., 2., ...), or <code>"bullet"</code> (-). Example field definition:
@@ -3326,26 +3336,63 @@
         values && values[name] !== undefined && values[name] !== null ? values[name] : '';
 
       /**
+       * Remove every template line that holds a token for a blank optional field,
+       * so the line's label (such as "Additional Comments:") goes with it.
+       *
+       * @param {string} tpl Template text.
+       * @param {RegExp} tokenRe Global token pattern whose first group is the name.
+       * @param {function(string): string} resolve Returns the text for a token name.
+       * @param {Array<string>} optional Names of optional fields.
+       * @returns {string} The template without those lines.
+       */
+      function dropBlankOptionalLines(tpl, tokenRe, resolve, optional) {
+        const src = String(tpl == null ? '' : tpl);
+        if (!optional || optional.length === 0) return src;
+        const isBlankOptional = (line) =>
+          Array.from(line.matchAll(tokenRe)).some(
+            (m) =>
+              (optional.includes(m[1]) || optional.includes(m[1].replace(/_combined$/, ''))) &&
+              !String(resolve(m[1])).trim()
+          );
+        const kept = src
+          .split(/(?<=\n)/)
+          .filter((line) => !isBlankOptional(line))
+          .join('');
+        return src.endsWith('\n') ? kept : kept.replace(/\n$/, '');
+      }
+
+      /**
        * Render form values using an output format: a template string, a
        * `{type: 'template'|'sprintf', template}` object, or JSON when none is given.
+       * Template lines holding a blank optional field are left out, and the JSON
+       * fallback omits blank optional fields.
        *
        * @param {(string|Object|null)} formatCfg Output format.
        * @param {Object} values Form values.
+       * @param {Array<string>} [optional] Names of fields marked `optional`.
        * @returns {string} The generated note.
        */
-      function generateOutput(formatCfg, values) {
-        if (!formatCfg) return JSON.stringify(values, null, 2);
-        if (typeof formatCfg === 'string') {
-          return renderTemplate(formatCfg, /\{([^}]+)\}/g, (name) => valueOrBlank(values, name));
+      function generateOutput(formatCfg, values, optional = []) {
+        const render = (tpl, tokenRe, resolve) =>
+          renderTemplate(dropBlankOptionalLines(tpl, tokenRe, resolve, optional), tokenRe, resolve);
+        const plain = (name) => valueOrBlank(values, name);
+        if (typeof formatCfg === 'string') return render(formatCfg, /\{([^}]+)\}/g, plain);
+        if (formatCfg && formatCfg.type === 'template') {
+          return render(formatCfg.template || '', /\{([^}]+)\}/g, (name) =>
+            formatTemplateToken(name, values)
+          );
         }
-        const tpl = formatCfg.template || '';
-        if (formatCfg.type === 'template') {
-          return renderTemplate(tpl, /\{([^}]+)\}/g, (name) => formatTemplateToken(name, values));
+        if (formatCfg && formatCfg.type === 'sprintf') {
+          return render(formatCfg.template || '', /%\(([^)]+)\)s/g, plain);
         }
-        if (formatCfg.type === 'sprintf') {
-          return renderTemplate(tpl, /%\(([^)]+)\)s/g, (name) => valueOrBlank(values, name));
-        }
-        return JSON.stringify(values, null, 2);
+        const kept = Object.assign({}, values);
+        optional.forEach((name) => {
+          if (!String(formatTemplateToken(name, values)).trim()) {
+            delete kept[name];
+            delete kept[name + '_combined'];
+          }
+        });
+        return JSON.stringify(kept, null, 2);
       }
 
       /**
