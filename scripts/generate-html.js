@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { findExternalReferences } = require('./offline-check');
 
 const rootDir = path.resolve(__dirname, '..');
 const outDir = path.join(rootDir, 'dist');
@@ -11,6 +12,15 @@ if (!fs.existsSync(srcHtmlPath)) {
 }
 
 const srcHtml = fs.readFileSync(srcHtmlPath, 'utf8');
+
+const external = findExternalReferences(srcHtml);
+if (external.length) {
+  console.error('src/form-generator.html must be self-contained and work with no network access:');
+  for (const { rule, match, line } of external) {
+    console.error(`  line ${line}: ${rule}: ${match}`);
+  }
+  process.exit(1);
+}
 
 if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(path.join(outDir, 'form-generator.html'), srcHtml, 'utf8');

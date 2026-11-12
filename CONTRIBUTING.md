@@ -39,6 +39,10 @@ Guidelines
 - Include tests for bug fixes and new features.
 - Run `npm run cs-fixer` to format and auto-fix code before opening a PR.
 - Use clear, descriptive commit messages.
+- Keep the app self-contained. It must work with no internet access, so keep
+  all CSS, JavaScript, fonts and images inline in `src/form-generator.html`.
+  The build and the test suite fail on external stylesheets, scripts, URLs or
+  network calls.
 
 Code Style
 

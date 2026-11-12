@@ -123,3 +123,24 @@ test('independent checked Click values use exact spacing', async ({ page }, test
   expect(result).not.toHaveProperty('steps_click');
   await capture(page, testInfo, 'click-checked-and-generated-output');
 });
+
+test('loads and works with no network access', async ({ page, context }, testInfo) => {
+  const requests = [];
+  const errors = [];
+  page.on('request', (request) => requests.push(request.url()));
+  page.on('pageerror', (error) => errors.push(error.message));
+  await context.setOffline(true);
+  await open(page, testInfo);
+  for (const label of ['Forms', 'Outputs']) {
+    await page
+      .locator('.tab')
+      .filter({ hasText: new RegExp(`^${label}$`) })
+      .click();
+  }
+  await page.locator('.tab').first().click();
+  await pane(page).locator('[name="summary"]').fill('Offline check');
+  expect((await generate(pane(page))).summary).toBe('Offline check');
+  expect(requests).toEqual([app]);
+  expect(errors).toEqual([]);
+  expect(await page.evaluate(() => document.fonts.size)).toBe(0);
+});
