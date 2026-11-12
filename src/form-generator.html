@@ -6,87 +6,159 @@
     <title>Note Form Generator</title>
     <style>
       :root {
-        --bg: #f7f9fc;
+        --bg: #f3f6fb;
         --card: #ffffff;
-        --text: #111216;
-        --accent: #2b8cff;
-        --muted: #666666;
-        --border: #e9eef6;
-        --panel: #fbfdff;
+        --text: #16181d;
+        --accent: #1f6fd1;
+        --accent-text: #ffffff;
+        --muted: #586274;
+        --border: #d5dde9;
+        --panel: #f7f9fd;
+        --input-bg: #ffffff;
+        --ghost-bg: #eef4ff;
+        --ghost-border: #c6dafa;
+        --warn: #c93c3c;
+        --tab-active-bg: #ffffff;
+        --code-bg: #eef2f8;
+        --focus: rgba(31, 111, 209, 0.35);
+        --measure: 78ch;
       }
       .dark {
         --bg: #0b1220;
-        --card: #0f1724;
+        --card: #111a2a;
         --text: #e6eef8;
         --accent: #4aa3ff;
-        --muted: #94a9c2;
-        --border: #253244;
-        --panel: #071226;
+        --accent-text: #06111f;
+        --muted: #9fb2c8;
+        --border: #2a3a52;
+        --panel: #0c1525;
+        --input-bg: #0c1525;
+        --ghost-bg: #16253b;
+        --ghost-border: #2c4566;
+        --warn: #e46464;
+        --tab-active-bg: #16253b;
+        --code-bg: #1a2638;
+        --focus: rgba(74, 163, 255, 0.45);
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html {
+        color-scheme: light;
+      }
+      html.dark {
+        color-scheme: dark;
       }
       body {
         font-family: Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        font-size: 15px;
+        line-height: 1.5;
         margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
         background: var(--bg);
         color: var(--text);
         transition: background 0.18s, color 0.18s;
       }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+        color: inherit;
+      }
+      code,
+      pre,
+      textarea {
+        font-family: Consolas, 'Cascadia Mono', Menlo, monospace;
+      }
+      code {
+        font-size: 0.92em;
+        background: var(--code-bg);
+        padding: 0 4px;
+        border-radius: 4px;
+      }
       .container {
-        max-width: 960px;
-        margin: 28px auto;
-        padding: 18px;
+        width: calc(100% - 32px);
+        max-width: 1100px;
+        margin: 16px auto;
+        padding: 0 24px 24px;
         background: var(--card);
-        border-radius: 8px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
         box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
       }
       .top {
         display: flex;
+        flex-wrap: wrap;
         justify-content: space-between;
         align-items: center;
-      }
-      .top {
+        gap: 8px 16px;
         position: sticky;
         top: 0;
         z-index: 3;
-        padding-bottom: 8px;
+        margin: 0 -24px;
+        padding: 14px 24px 0;
+        background: var(--card);
+        border-radius: 10px 10px 0 0;
       }
       .top h1 {
         flex: 0 0 auto;
       }
       .top-controls {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
-        gap: 10px;
-        flex: 0 0 auto;
+        gap: 8px;
         white-space: nowrap;
       }
+      .top-controls > * {
+        margin-left: 0 !important;
+      }
       h1 {
-        font-size: 18px;
+        font-size: 20px;
         margin: 0;
       }
       .tabs {
         display: flex;
-        gap: 6px;
-        margin-top: 14px;
+        flex: 1 0 100%;
+        gap: 4px;
+        margin: 0 -24px;
+        padding: 0 24px;
         border-bottom: 1px solid var(--border);
         overflow-x: auto;
         white-space: nowrap;
         -webkit-overflow-scrolling: touch;
+        background: var(--card);
       }
       .tab {
-        padding: 10px 14px;
+        padding: 10px 16px;
         cursor: pointer;
-        border-radius: 6px 6px 0 0;
+        border: 1px solid transparent;
+        border-bottom: 0;
+        border-radius: 8px 8px 0 0;
         color: var(--muted);
         flex: 0 0 auto;
+        font-weight: 500;
+      }
+      .tab:hover {
+        color: var(--text);
       }
       .tab.right {
         margin-left: auto;
       }
+      .tab.right ~ .tab.right {
+        margin-left: 0;
+      }
       .tab.active {
-        background: linear-gradient(180deg, #fff, #f4f8ff);
+        background: var(--tab-active-bg);
         color: var(--accent);
-        box-shadow: 0 -4px 12px rgba(43, 140, 255, 0.06);
-        border-bottom: 2px solid #fff;
+        border-color: var(--border);
+        box-shadow: inset 0 3px 0 var(--accent);
+        margin-bottom: -1px;
       }
       .tab[draggable='true'] {
         cursor: grab;
@@ -101,98 +173,168 @@
         box-shadow: inset -3px 0 0 var(--accent);
       }
       .tab-content {
-        padding: 18px;
+        padding: 16px 0 0;
+      }
+      .tab-content > label:first-child {
+        font-size: 18px;
       }
       .field {
-        margin-bottom: 12px;
+        margin-bottom: 14px;
       }
       label {
         display: block;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
         font-weight: 600;
       }
-      input[type='text'],
-      input[type='number'],
+      input:not([type='checkbox']):not([type='radio']),
       select,
       textarea {
         width: 100%;
-        padding: 8px 10px;
+        min-height: 38px;
+        padding: 7px 10px;
         border: 1px solid var(--border);
         border-radius: 6px;
-        background: transparent;
+        background: var(--input-bg);
         color: var(--text);
+      }
+      textarea {
+        line-height: 1.45;
+        resize: vertical;
+      }
+      .generated-form textarea {
+        font-family: inherit;
+      }
+      textarea[readonly] {
+        background: var(--panel);
+      }
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible,
+      .btn:focus-visible,
+      .tab:focus-visible,
+      .subtab:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+        box-shadow: 0 0 0 4px var(--focus);
+      }
+      ::placeholder {
+        color: var(--muted);
+        opacity: 0.8;
       }
       .subtabs {
         display: flex;
         gap: 6px;
-        margin-bottom: 12px;
+        margin: 14px 0 0;
       }
       .subtab {
-        padding: 6px 10px;
-        border-radius: 6px;
+        padding: 5px 14px;
+        border-radius: 999px;
         background: transparent;
         border: 1px solid var(--border);
         cursor: pointer;
         color: var(--muted);
+        font-size: 14px;
       }
       .subtab.active {
         background: var(--accent);
-        color: #fff;
+        border-color: var(--accent);
+        color: var(--accent-text);
       }
       .btn {
         display: inline-block;
-        padding: 8px 12px;
+        min-height: 36px;
+        padding: 6px 14px;
         border-radius: 6px;
         background: var(--accent);
-        color: #fff;
-        border: 0;
+        color: var(--accent-text);
+        border: 1px solid var(--accent);
         cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.4;
+        white-space: nowrap;
       }
-      .btn.warn {
-        background: #e05252;
+      .btn:hover:not(:disabled) {
+        filter: brightness(1.08);
+      }
+      .btn.warn,
+      .btn-warn {
+        background: var(--warn);
+        border-color: var(--warn);
         color: #fff;
-        border: 0;
       }
       .btn.ghost {
-        background: #f2f6ff;
+        background: var(--ghost-bg);
         color: var(--accent);
-        border: 1px solid #d7e7ff;
+        border: 1px solid var(--ghost-border);
       }
       .btn:disabled {
         opacity: 0.45;
         cursor: not-allowed;
       }
-      .btn-warn {
-        background: #e05252;
-        color: #fff;
-        border: 0;
-      }
       .btn-warn.ghost {
-        background: #fff5f5;
-        color: #e05252;
-        border: 1px solid #ffd6d6;
+        background: transparent;
+        color: var(--warn);
+        border: 1px solid var(--warn);
       }
       .meta {
         color: var(--muted);
-        font-size: 13px;
+        font-size: 14px;
+      }
+      .help {
+        max-width: var(--measure);
+        margin: 8px 0 12px;
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+      .help summary {
+        cursor: pointer;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .help ul {
+        margin: 6px 0 0 18px;
+        padding: 0;
+      }
+      .help li,
+      .help p {
+        margin: 4px 0;
+      }
+      .help pre {
+        background: var(--code-bg);
+        padding: 8px;
+        border-radius: 6px;
+        margin: 6px 0;
+        white-space: pre-wrap;
+      }
+      .help pre code {
+        background: none;
+        padding: 0;
       }
       .preview-list {
         border: 1px solid var(--border);
-        padding: 10px;
-        border-radius: 6px;
+        padding: 10px 14px;
+        border-radius: 8px;
         background: var(--panel);
       }
       .field-header {
-        margin: 8px 0;
+        margin: 18px 0 4px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--border);
         font-weight: 700;
         color: var(--text);
+      }
+      .field:first-child .field-header {
+        margin-top: 4px;
       }
       .preview-item {
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 6px 0;
-        border-bottom: 1px dashed #f0f4fb;
+        padding: 8px 0;
+        border-bottom: 1px dashed var(--border);
       }
       .preview-item:last-child {
         border-bottom: none;
@@ -201,12 +343,46 @@
         display: inline-block;
         vertical-align: top;
         margin-right: 4%;
-        box-sizing: border-box;
         max-width: 100%;
+      }
+      .steps-container,
+      .step-row {
+        max-width: 100%;
+      }
+      .step-row {
+        align-items: center;
+      }
+      .step-row .btn {
+        min-width: 38px;
+        padding: 6px 10px;
+      }
+      .steps-container > .btn {
+        margin: 8px 0 0 !important;
+      }
+      .action-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+      .action-row > * {
+        margin-left: 0 !important;
+      }
+      .action-row > select {
+        flex: 1 1 220px;
+        width: auto;
+      }
+      .action-row > .meta {
+        white-space: nowrap;
+      }
+      .output {
+        display: block;
+        min-height: 12em;
+        margin-top: 8px;
       }
       .small {
         font-size: 13px;
-        color: #333;
+        color: var(--muted);
       }
       .switch {
         display: inline-flex;
@@ -217,10 +393,19 @@
       .switch input {
         display: none;
       }
+      label.switch {
+        margin-bottom: 0;
+      }
+      .tab-content > .btn {
+        margin-top: 8px;
+      }
+      .populate-area > .meta {
+        margin-bottom: 8px;
+      }
       .switch .knob {
         width: 40px;
         height: 20px;
-        background: #d7dbe0;
+        background: var(--border);
         border-radius: 20px;
         position: relative;
         transition: background 0.15s;
@@ -250,17 +435,52 @@
         user-select: none;
       }
       .footer {
-        margin-top: 12px;
+        margin-top: auto;
         border-top: 1px solid var(--border);
-        padding-top: 10px;
+        padding: 10px 0;
         text-align: center;
         font-size: 13px;
         color: var(--muted);
       }
       .footer-inner {
-        max-width: 960px;
+        max-width: 1100px;
         margin: 0 auto;
         padding: 0 18px;
+      }
+      @media (orientation: portrait) and (min-height: 1100px) {
+        .container {
+          margin-top: 24px;
+        }
+        .generated-form textarea {
+          min-height: 8em;
+        }
+        .output {
+          min-height: 18em;
+        }
+      }
+      @media (max-width: 720px) {
+        .container {
+          width: 100%;
+          margin: 0;
+          padding: 0 16px 16px;
+          border-radius: 0;
+          border-left: 0;
+          border-right: 0;
+        }
+        .top,
+        .tabs {
+          margin: 0 -16px;
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+        .top {
+          border-radius: 0;
+        }
+        .field-inline {
+          display: block;
+          width: 100% !important;
+          margin-right: 0;
+        }
       }
     </style>
   </head>
@@ -273,9 +493,9 @@
             Dark
           </button>
         </div>
+        <div id="tabbar" class="tabs"></div>
       </div>
 
-      <div id="tabbar" class="tabs"></div>
       <div id="contents"></div>
     </div>
     <footer class="footer">
@@ -1132,6 +1352,7 @@
       function autosizeTextarea(ta) {
         if (!ta) return;
         safe(() => {
+          ta.dataset.autosize = 'true';
           ta.style.height = 'auto';
           ta.style.overflow = 'hidden';
           var newH = ta.scrollHeight;
@@ -1460,18 +1681,14 @@
                 f.placeholder && String(f.placeholder).trim()
                   ? String(f.placeholder)
                   : 'Step 1 > Step 2 > Step 3';
-              input.style.width = '70%';
-              input.style.display = 'inline-block';
+              input.style.flex = '1 1 240px';
 
               const parseBtnTop = document.createElement('button');
               parseBtnTop.type = 'button';
               parseBtnTop.className = 'btn ghost';
               parseBtnTop.textContent = 'Parse';
-              parseBtnTop.style.marginLeft = '8px';
               const combinedRow = document.createElement('div');
-              combinedRow.style.display = 'flex';
-              combinedRow.style.alignItems = 'center';
-              combinedRow.style.gap = '8px';
+              combinedRow.className = 'action-row';
               combinedRow.appendChild(input);
               combinedRow.appendChild(parseBtnTop);
               if (f.default && typeof f.default === 'string' && f.default.trim()) {
@@ -1479,9 +1696,7 @@
               }
               wrapper.appendChild(combinedRow);
               const controlRow = document.createElement('div');
-              controlRow.style.display = 'flex';
-              controlRow.style.alignItems = 'center';
-              controlRow.style.gap = '8px';
+              controlRow.className = 'action-row';
               controlRow.style.marginTop = '8px';
               const modeLabel = document.createElement('div');
               modeLabel.className = 'meta';
@@ -1682,30 +1897,26 @@
             })
           );
 
-          formArea.appendChild(newBtn);
-          formArea.appendChild(dupBtn);
-          formArea.appendChild(topClear);
-
-          safe(() => {
-            const last = formArea.lastElementChild;
-            if (last && last.style) last.style.marginBottom = '8px';
-          });
+          formArea.appendChild(
+            el(
+              'div',
+              { className: 'action-row', style: { marginBottom: '12px' } },
+              newBtn,
+              dupBtn,
+              topClear
+            )
+          );
 
           formArea.appendChild(form);
 
           const tplRow = document.createElement('div');
-          tplRow.style.display = 'flex';
-          tplRow.style.alignItems = 'center';
-          tplRow.style.gap = '8px';
+          tplRow.className = 'action-row';
           tplRow.style.marginTop = '6px';
           const tplLabel = document.createElement('div');
           tplLabel.className = 'meta';
           tplLabel.textContent = 'Template:';
           const tplSelect = document.createElement('select');
           tplSelect.autocomplete = 'off';
-          tplSelect.style.padding = '6px';
-          tplSelect.style.borderRadius = '6px';
-          tplSelect.style.border = '1px solid var(--border)';
           forms.forEach((tpl) => {
             const o = document.createElement('option');
             o.value = tpl.id;
@@ -1780,7 +1991,9 @@
           formArea.appendChild(tplRow);
 
           const genWrapper = document.createElement('div');
-          genWrapper.style.marginTop = '12px';
+          genWrapper.style.marginTop = '16px';
+          genWrapper.style.paddingTop = '16px';
+          genWrapper.style.borderTop = '1px solid var(--border)';
           const genBtn = document.createElement('button');
           genBtn.className = 'btn';
           genBtn.type = 'button';
@@ -1799,14 +2012,11 @@
           out.readOnly = true;
           out.rows = 10;
           out.autocomplete = 'off';
-          out.style.width = '100%';
-          out.style.marginTop = '8px';
-          out.style.padding = '8px';
-          out.style.borderRadius = '6px';
-          out.style.border = '1px solid #eee';
-          genWrapper.appendChild(genBtn);
-          genWrapper.appendChild(copyBtn);
-          genWrapper.appendChild(clearOutBtn);
+          out.className = 'output';
+          out.setAttribute('aria-label', 'Generated output');
+          genWrapper.appendChild(
+            el('div', { className: 'action-row' }, genBtn, copyBtn, clearOutBtn)
+          );
           genWrapper.appendChild(out);
           formArea.appendChild(genWrapper);
 
@@ -1991,9 +2201,7 @@
           outContent.appendChild(helpOut);
 
           const selectorRow = document.createElement('div');
-          selectorRow.style.display = 'flex';
-          selectorRow.style.alignItems = 'center';
-          selectorRow.style.gap = '8px';
+          selectorRow.className = 'action-row';
           selectorRow.style.marginTop = '8px';
           const outList = document.createElement('select');
           outList.autocomplete = 'off';
@@ -2022,9 +2230,7 @@
           cfgLbl.textContent = 'Template';
           cfgLbl.style.marginTop = '8px';
           const advRowOut = document.createElement('div');
-          advRowOut.style.display = 'flex';
-          advRowOut.style.alignItems = 'center';
-          advRowOut.style.gap = '8px';
+          advRowOut.className = 'action-row';
           advRowOut.style.marginTop = '6px';
           const advChkOut = document.createElement('input');
           advChkOut.type = 'checkbox';
@@ -2373,12 +2579,11 @@
           label.textContent = 'Forms';
           paneContent.appendChild(label);
 
-          const help = document.createElement('div');
-          help.className = 'meta';
-          help.style.marginTop = '8px';
+          const help = document.createElement('details');
+          help.className = 'meta help';
           help.innerHTML = `
-            <strong>How to edit forms:</strong>
-            <ul style="margin:6px 0 0 18px;padding:0;">
+            <summary>How to edit forms</summary>
+            <ul>
               <li>Select an existing form-definition or click <em>+ New</em> to create one.</li>
               <li><em>Label</em>: a friendly name shown in selects.</li>
               <li>
@@ -2405,7 +2610,7 @@
                 <p>Fields support an optional <code>placeholder</code> property. When generating fields from a template, placeholders default to an empty string.</p>
                 <p><strong>Steps fields:</strong> step-like fields (<code>"type":"steps"</code>) now support a <code>keyMode</code> property to control the default per-step key style. Supported values:
                 <code>"none"</code> (no key), <code>"numbered"</code> (1., 2., ...), or <code>"bullet"</code> (-). Example field definition:
-                <pre style="background:#f4f7fb;padding:8px;border-radius:6px;margin:6px 0;">{ "label": "Tasks", "name": "tasks", "type": "steps", "keyMode": "numbered" }</pre>
+                <pre>{ "label": "Tasks", "name": "tasks", "type": "steps", "keyMode": "numbered" }</pre>
                 When a form defines <code>keyMode</code> the steps UI will initialize the Default key selector accordingly so parsed or added step rows inherit that style.</p>
                 <p>Opt in to an inline Click checkbox on each step with <code>"controls": { "click": true }</code>. Missing or false hides it. Checked rows output <code>Click " value "</code> after their key; unchecked rows stay unchanged. Each row starts unchecked.</p>
               </li>
@@ -2414,15 +2619,13 @@
           paneContent.appendChild(help);
           const exportHelp = document.createElement('div');
           exportHelp.className = 'meta';
-          exportHelp.style.marginTop = '8px';
+          exportHelp.style.maxWidth = 'var(--measure)';
           exportHelp.textContent =
             'To export the current forms and outputs, use the Export HTML button in the header — you can save to a file or copy the exported HTML to your clipboard.';
           paneContent.appendChild(exportHelp);
 
           const tplSelectorRow = document.createElement('div');
-          tplSelectorRow.style.display = 'flex';
-          tplSelectorRow.style.alignItems = 'center';
-          tplSelectorRow.style.gap = '8px';
+          tplSelectorRow.className = 'action-row';
           tplSelectorRow.style.marginTop = '8px';
           const tplSelect = document.createElement('select');
           tplSelect.autocomplete = 'off';
@@ -2436,9 +2639,7 @@
           paneContent.appendChild(tplSelectorRow);
 
           const outSelectorRow = document.createElement('div');
-          outSelectorRow.style.display = 'flex';
-          outSelectorRow.style.alignItems = 'center';
-          outSelectorRow.style.gap = '8px';
+          outSelectorRow.className = 'action-row';
           outSelectorRow.style.marginTop = '8px';
           const outSelect = document.createElement('select');
           outSelect.autocomplete = 'off';
@@ -2561,9 +2762,7 @@
           cfgSimple.placeholder = 'Hello {firstName}';
           cfgSimple.autocomplete = 'off';
           const advRow = document.createElement('div');
-          advRow.style.display = 'flex';
-          advRow.style.alignItems = 'center';
-          advRow.style.gap = '8px';
+          advRow.className = 'action-row';
           advRow.style.marginTop = '6px';
           const advChk = document.createElement('input');
           advChk.type = 'checkbox';
@@ -3060,7 +3259,8 @@
       }
 
       /**
-       * Show the pane at `index` and mark its tab active.
+       * Show the pane at `index`, mark its tab active, and refit the pane's
+       * auto-sized textareas, which measure zero height while their pane is hidden.
        *
        * @param {number} index Pane index.
        * @returns {void}
@@ -3069,9 +3269,11 @@
         Array.from(tabbar.children).forEach((t) =>
           t.classList.toggle('active', Number(t.dataset.index) === index)
         );
-        Array.from(contents.children).forEach(
-          (p) => (p.style.display = Number(p.dataset.index) === index ? '' : 'none')
-        );
+        Array.from(contents.children).forEach((p) => {
+          const shown = Number(p.dataset.index) === index;
+          p.style.display = shown ? '' : 'none';
+          if (shown) qAll(p, 'textarea[data-autosize]').forEach(autosizeTextarea);
+        });
       }
 
       /**
