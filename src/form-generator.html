@@ -2322,6 +2322,7 @@
                 <em>Template</em>: a JSON object that controls output formatting. Common forms:
                 <ul>
                   <li><strong>type: "template"</strong> — use placeholders like <code>{firstName}</code>. When a field exposes a combined input (see <em>Fields</em> below), you can reference the combined value as <code>{fieldName_combined}</code> or the explicit per-field value as <code>{fieldName}</code>.</li>
+                  <li><strong>Optional sections</strong> — wrap text in <code>[[</code> and <code>]]</code> to keep it only when every placeholder inside is filled. <code>{title}[[ - {subtitle}]]</code> outputs <code>Report - Q3</code>, or just <code>Report</code> when <code>subtitle</code> is blank, with no dangling <code> - </code>. Sections can nest and work in every template type.</li>
                   <li><strong>type: "sprintf"</strong> — use Python-style tokens like <code>%(firstName)s</code>.</li>
                   <li><strong>Blank/JSON fallback</strong> — leave the template blank to output raw JSON.</li>
                 </ul>
@@ -3267,24 +3268,76 @@
         return val !== undefined && val !== null ? String(val) : '';
       }
 
-      const fillNamedTokens = (tpl, values) =>
-        String(tpl || '').replace(/\{([^}]+)\}/g, (_, name) =>
-          values && values[name] !== undefined ? values[name] : ''
-        );
+      /**
+       * Fill a template's tokens, dropping optional sections whose tokens are blank.
+       *
+       * Text wrapped in `[[` and `]]` is an optional section: it is kept only when
+       * every token directly inside it resolves to a non-blank value, so separators
+       * such as " - " never dangle next to a missing value. Sections may nest; an
+       * inner section is evaluated on its own and never hides its parent.
+       * Unmatched brackets are kept as literal text.
+       *
+       * @param {string} tpl Template text.
+       * @param {RegExp} tokenRe Global token pattern whose first group is the name.
+       * @param {function(string): string} resolve Returns the text for a token name.
+       * @returns {string} The rendered text.
+       */
+      function renderTemplate(tpl, tokenRe, resolve) {
+        const src = String(tpl == null ? '' : tpl);
+        const ends = new Map();
+        const opens = [];
+        for (let i = 0; i < src.length - 1; i++) {
+          if (src.startsWith('[[', i)) {
+            opens.push(i);
+            i++;
+          } else if (src.startsWith(']]', i) && opens.length) {
+            ends.set(opens.pop(), i);
+            i++;
+          }
+        }
+        const render = (start, end) => {
+          let out = '';
+          let text = '';
+          let filled = true;
+          const flush = () => {
+            out += text.replace(tokenRe, (_, name) => {
+              const v = String(resolve(name));
+              if (!v.trim()) filled = false;
+              return v;
+            });
+            text = '';
+          };
+          for (let i = start; i < end; i++) {
+            if (ends.has(i)) {
+              flush();
+              const section = render(i + 2, ends.get(i));
+              if (section.filled) out += section.out;
+              i = ends.get(i) + 1;
+            } else {
+              text += src[i];
+            }
+          }
+          flush();
+          return { out, filled };
+        };
+        return render(0, src.length).out;
+      }
+
+      const valueOrBlank = (values, name) =>
+        values && values[name] !== undefined && values[name] !== null ? values[name] : '';
 
       // Generate output based on format configuration and values object
       function generateOutput(formatCfg, values) {
         if (!formatCfg) return JSON.stringify(values, null, 2);
-        if (typeof formatCfg === 'string') return fillNamedTokens(formatCfg, values);
+        if (typeof formatCfg === 'string') {
+          return renderTemplate(formatCfg, /\{([^}]+)\}/g, (name) => valueOrBlank(values, name));
+        }
         const tpl = formatCfg.template || '';
         if (formatCfg.type === 'template') {
-          return tpl.replace(/\{([^}]+)\}/g, (_, name) => formatTemplateToken(name, values));
+          return renderTemplate(tpl, /\{([^}]+)\}/g, (name) => formatTemplateToken(name, values));
         }
         if (formatCfg.type === 'sprintf') {
-          // support Python-style named tokens: %(name)s
-          return tpl.replace(/%\(([^)]+)\)s/g, (_, name) =>
-            values[name] !== undefined ? values[name] : ''
-          );
+          return renderTemplate(tpl, /%\(([^)]+)\)s/g, (name) => valueOrBlank(values, name));
         }
         return JSON.stringify(values, null, 2);
       }

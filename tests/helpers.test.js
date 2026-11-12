@@ -180,5 +180,37 @@ describe('shared runtime helpers', () => {
     test('a bare string cfg is treated as a {name} template', () => {
       expect(win.generateOutput('X={x}', { x: '7' })).toBe('X=7');
     });
+    test('an optional section is dropped when its token is blank', () => {
+      const cfg = { type: 'template', template: '{title}[[ - {sub}]].' };
+      expect(win.generateOutput(cfg, { title: 'Report', sub: 'Q3' })).toBe('Report - Q3.');
+      expect(win.generateOutput(cfg, { title: 'Report', sub: '' })).toBe('Report.');
+      expect(win.generateOutput(cfg, { title: 'Report', sub: '   ' })).toBe('Report.');
+      expect(win.generateOutput(cfg, { title: 'Report' })).toBe('Report.');
+    });
+    test('an optional section needs every token inside it filled', () => {
+      const cfg = { type: 'template', template: '[[{a} - ]]{b}[[ ({c}, {d})]]' };
+      expect(win.generateOutput(cfg, { a: 'A', b: 'B', c: 'C', d: 'D' })).toBe('A - B (C, D)');
+      expect(win.generateOutput(cfg, { a: '', b: 'B', c: 'C', d: '' })).toBe('B');
+    });
+    test('nested optional sections are evaluated independently', () => {
+      const cfg = { type: 'template', template: '{a}[[ - {b}[[ / {c}]]]]' };
+      expect(win.generateOutput(cfg, { a: 'A', b: 'B', c: 'C' })).toBe('A - B / C');
+      expect(win.generateOutput(cfg, { a: 'A', b: 'B', c: '' })).toBe('A - B');
+      expect(win.generateOutput(cfg, { a: 'A', b: '', c: 'C' })).toBe('A');
+    });
+    test('optional sections work with steps, sprintf and bare string formats', () => {
+      const steps = { type: 'template', template: 'Do[[:{steps}]]' };
+      expect(win.generateOutput(steps, { steps_combined: 'One > Two' })).toBe(
+        'Do:\n 1. One\n 2. Two'
+      );
+      expect(win.generateOutput(steps, { steps_combined: '' })).toBe('Do');
+      const sprintf = { type: 'sprintf', template: '%(a)s[[ - %(b)s]]' };
+      expect(win.generateOutput(sprintf, { a: 'A', b: '' })).toBe('A');
+      expect(win.generateOutput('{a}[[ - {b}]]', { a: 'A', b: 'B' })).toBe('A - B');
+    });
+    test('unmatched brackets and filled values stay literal', () => {
+      const cfg = { type: 'template', template: '[[{a} ]] [x]] [[y' };
+      expect(win.generateOutput(cfg, { a: '[[v]] {b}' })).toBe('[[v]] {b}  [x]] [[y');
+    });
   });
 });

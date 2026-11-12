@@ -197,6 +197,24 @@ row values, keys and checked states. Clear unchecks them. Parse replaces rows an
 resets their checked state. Checkbox state is temporary form input, not configuration
 or an extra output field; exporting form definitions does not persist it.
 
+## Optional template sections
+
+Wrap part of an output template in `[[` and `]]` to keep it only when every
+placeholder inside it has a value:
+
+```json
+{ "type": "template", "template": "{title}[[ - {subtitle}]]" }
+```
+
+With `subtitle` filled this generates `Report - Q3`; with it blank (or only
+spaces) it generates `Report`, with no dangling `-`. The same works for a
+prefix (`[[{label}: ]]{value}`) or a separator that depends on a value you do
+not print. Sections can nest, and an inner section is checked on its own:
+`{a}[[ - {b}[[ / {c}]]]]` drops ` / {c}` when `c` is blank but keeps ` - {b}`.
+Optional sections work in `template`, `sprintf` (`%(name)s`) and bare-string
+formats. Unmatched brackets are output as typed, and values entered in the form
+are never treated as template syntax.
+
 ## Browser render smoke checks
 
 `npm run build:all`, `npx playwright install --with-deps chromium`, then
