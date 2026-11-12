@@ -192,6 +192,7 @@ describe('dev-mode edit → unload → reload → export', () => {
     typeInto(1, 'contact-value');
     typeInto(2, 'survey-value');
 
+    win.confirm = () => true;
     button(win.document.querySelector(`.tab-pane[data-index='0']`), 'Unload').click();
 
     const valueAt = (idx) =>
