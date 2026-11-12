@@ -133,8 +133,9 @@ describe('opt-in per-step Click controls', () => {
     reopened.window.close();
   });
   test('Clear resets checked state', async () => {
-    const { pane, form } = await example({ click: true });
+    const { pane, form, dom } = await example({ click: true });
     checks(form)[0].click();
+    dom.window.confirm = () => true;
     button(pane, 'Clear').click();
     expect(checks(form).every((c) => !c.checked)).toBe(true);
   });
