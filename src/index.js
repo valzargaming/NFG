@@ -1,19 +1,14 @@
-// Public entry point for the `note-form-generator` package.
-//
-// The real application is the single-file `src/form-generator.html`. This module
-// ships that exact document (embedded at build time by scripts/generate-html.js,
-// with a filesystem fallback for a fresh checkout) and mounts it as a live,
-// script-running iframe — not an inert innerHTML dump.
-
+/**
+ * Load the form generator document: the build-time embedded copy, or the source
+ * file when running under Node from a fresh checkout.
+ *
+ * @returns {string} The HTML document, or '' if unavailable.
+ */
 function loadHtml() {
   try {
     const embedded = require('./embedded-html.js');
     if (typeof embedded === 'string' && embedded.indexOf('<script') !== -1) return embedded;
-  } catch (e) {
-    /* not generated yet — fall through */
-  }
-  // Fresh checkout, running under Node (e.g. Jest) before `build:html`.
-  // Indirect require so browser bundlers never try to resolve `fs`/`path`.
+  } catch {}
   try {
     const nodeRequire = eval('typeof require === "function" ? require : null');
     if (nodeRequire) {
@@ -21,9 +16,7 @@ function loadHtml() {
       const path = nodeRequire('path');
       return fs.readFileSync(path.join(__dirname, 'form-generator.html'), 'utf8');
     }
-  } catch (e) {
-    /* not in Node — give up */
-  }
+  } catch {}
   return '';
 }
 
@@ -45,7 +38,9 @@ function mount(container, options) {
     container = document.querySelector(container);
   }
   if (!container || typeof container.appendChild !== 'function') {
-    throw new Error('mount(): first argument must be a DOM element or a selector that resolves to one');
+    throw new Error(
+      'mount(): first argument must be a DOM element or a selector that resolves to one'
+    );
   }
   if (!html) {
     throw new Error('mount(): runtime HTML is unavailable — run `npm run build:html`');
