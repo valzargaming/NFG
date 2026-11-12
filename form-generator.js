@@ -1247,6 +1247,63 @@ var NFG=(()=>{var l=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
       }
 
       /**
+       * Values each generated form showed when it was built, so typed entries can be
+       * told apart from template defaults.
+       *
+       * @type {WeakMap<HTMLFormElement, string>}
+       */
+      const formBaselines = new WeakMap();
+
+      /**
+       * Record a freshly built form's current values as its untouched state.
+       *
+       * @param {HTMLFormElement} form Form to snapshot.
+       * @returns {void}
+       */
+      function markFormBaseline(form) {
+        formBaselines.set(form, JSON.stringify(formValues(form)));
+      }
+
+      /**
+       * Whether a form holds values the user entered since it was built.
+       *
+       * @param {?HTMLFormElement} form Form to check.
+       * @returns {boolean} True when the form differs from its built state.
+       */
+      function formHasEntries(form) {
+        if (!form || !formBaselines.has(form)) return false;
+        return JSON.stringify(formValues(form)) !== formBaselines.get(form);
+      }
+
+      /**
+       * Whether any tab's form holds values the user entered.
+       *
+       * @returns {boolean} True when leaving the page would lose typed values.
+       */
+      function anyFormHasEntries() {
+        return qAll(contents, 'form.generated-form').some(formHasEntries);
+      }
+
+      /**
+       * Ask the user to confirm an action that would discard a form's entered values.
+       * Forms without entries skip the prompt.
+       *
+       * @param {?HTMLFormElement} form Form whose values would be lost.
+       * @param {string} message Prompt text.
+       * @returns {boolean} True when the action may go ahead.
+       */
+      function confirmDiscard(form, message) {
+        if (!formHasEntries(form)) return true;
+        return !!safe(() => window.confirm(message), true);
+      }
+
+      window.addEventListener('beforeunload', (ev) => {
+        if (!anyFormHasEntries()) return;
+        ev.preventDefault();
+        ev.returnValue = '';
+      });
+
+      /**
        * Capture the values of every tab's form, keyed by tab position.
        *
        * @returns {Object<string, Object>} Value maps by pane index.
@@ -1794,6 +1851,7 @@ var NFG=(()=>{var l=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
               form.appendChild(wrapper);
             }
           });
+          markFormBaseline(form);
 
           const newBtn = document.createElement('button');
           newBtn.className = 'btn';
@@ -1889,6 +1947,8 @@ var NFG=(()=>{var l=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
           topClear.addEventListener(
             'click',
             wrapHandler(() => {
+              if (!confirmDiscard(form, 'Clear this form? The values you entered will be lost.'))
+                return;
               Array.from(form.elements).forEach((e) => {
                 if (!e.name) return;
                 if (e.type === 'checkbox' || e.type === 'radio') e.checked = false;
@@ -1954,6 +2014,13 @@ var NFG=(()=>{var l=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
             unloadBtn.addEventListener(
               'click',
               wrapHandler(() => {
+                if (
+                  !confirmDiscard(
+                    form,
+                    'Unload this tab? The values you entered in it will be lost.'
+                  )
+                )
+                  return;
                 const allPrev = captureValuesByForm();
                 formConfig.splice(i, 1);
                 safe(() => persistFormMap());
