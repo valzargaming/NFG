@@ -232,6 +232,37 @@ other lines are unaffected. The JSON fallback omits a blank optional field, and
 the form shows _(optional)_ beside its label. To drop only part of a line, use
 an optional section (`[[ ]]`) instead.
 
+## Visual Designer
+
+Turn on **Dev** and open the **Designer** tab to build a form and its output
+without writing JSON. Everything runs inside the single HTML file, offline.
+
+- **Form fields:** drag a field type (Short text, Paragraph, Dropdown, Number,
+  Date, Email, Steps, Heading) onto the form, or click it to add it at the end.
+  Drag a card's header, or use its arrows, to reorder. Select a card to change
+  its label, field name (it follows the label until you edit it), placeholder,
+  starting value, dropdown options, step markers, the Click checkbox, side by
+  side layout, and whether it is optional.
+- **Output:** each row is one output line made of text and field chips. Drag a
+  field from _Insert_ into a line, or onto _Drop here to start a new line_.
+  Select a field chip to give it text before or after that only appears when
+  the field has a value, so separators such as `-` never dangle. An
+  _Optional group_ keeps everything inside it only when every field in it has a
+  value. These are saved as ordinary `[[ ]]` optional sections, and fields
+  marked optional still drop their whole line when blank. _Add a line per field_
+  fills in `Label: {name}` lines for fields the output does not show yet, and
+  the output can instead be raw JSON of every value.
+- **Preview:** type sample values into the cards to see exactly what Generate
+  will produce. The compiled template text is shown underneath.
+- **Save** writes to the same form (or output) definition the Forms and Outputs
+  panes edit, and updates any open tab. **Save & open tab** also opens the form
+  as a tab. Unsaved design changes trigger the leave-page prompt, and switching
+  to another definition asks first.
+
+Forms written by hand load into the Designer as they are: `{name}` tokens,
+`[[ ]]` sections (nested ones become nested groups) and blank lines all survive
+a save unchanged. Outputs written with `%(name)s` are converted to `{name}`.
+
 ## Browser render smoke checks
 
 `npm run build:all`, `npx playwright install --with-deps chromium`, then

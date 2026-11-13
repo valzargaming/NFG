@@ -95,6 +95,40 @@ for (const label of ['Forms', 'Outputs']) {
   });
 }
 
+test('Designer builds a form and output by dragging', async ({ page }, testInfo) => {
+  await open(page, testInfo);
+  await page
+    .locator('.tab')
+    .filter({ hasText: /^Designer$/ })
+    .click();
+  const designer = page.locator('.tab-pane:visible .designer');
+  await designer
+    .locator('[data-designer-add="email"]')
+    .dragTo(designer.locator('.dz-card').first(), {
+      targetPosition: { x: 40, y: 4 },
+    });
+  await expect(designer.locator('.dz-card .dz-type').first()).toHaveText('Email');
+  await designer.locator('[data-prop="label"]').fill('Contact email');
+  await designer.locator('[data-prop="optional"]').check();
+  await designer.locator('[data-designer="mode-template"]').check();
+  const chip = designer.locator('[data-designer-insert]').filter({ hasText: 'Contact email' });
+  if (testInfo.project.use.isMobile) await chip.click();
+  else await chip.dragTo(designer.locator('[data-designer="new-line"]'));
+  await expect(designer.locator('[data-designer="template"]')).toContainText('{contactEmail}');
+  await designer.locator('.dz-field').last().click();
+  await designer.locator('[data-prop="piece-before"]').fill('Email: ');
+  await designer.locator('[data-sample]').nth(1).fill('Example summary');
+  await expect(designer.locator('[data-designer="result"]')).not.toHaveValue(/Email:/);
+  await designer.locator('[data-sample]').first().fill('someone@example.test');
+  await expect(designer.locator('[data-designer="result"]')).toHaveValue(
+    /Email: someone@example\.test$/
+  );
+  await capture(page, testInfo, 'designer');
+  await designer.locator('[data-designer="open"]').click();
+  await expect(page.locator('.tab.active')).toHaveText('Procedure');
+  await expect(pane(page).locator('[name="contactEmail"]')).toBeVisible();
+});
+
 test('explicit false hides Click control', async ({ page }, testInfo) => {
   await open(page, testInfo, { click: false });
   await expect(page.locator('[data-step="click"]')).toHaveCount(0);
@@ -131,7 +165,7 @@ test('loads and works with no network access', async ({ page, context }, testInf
   page.on('pageerror', (error) => errors.push(error.message));
   await context.setOffline(true);
   await open(page, testInfo);
-  for (const label of ['Forms', 'Outputs']) {
+  for (const label of ['Forms', 'Outputs', 'Designer']) {
     await page
       .locator('.tab')
       .filter({ hasText: new RegExp(`^${label}$`) })
