@@ -261,6 +261,29 @@ describe('designer tab', () => {
     expect(preview(win)).toBe('Name: Val');
   });
 
+  test('an optional dropdown previews blank until an option is picked', async () => {
+    const dom = await setup([
+      {
+        title: 'Note',
+        fields: [{ label: 'Priority', name: 'priority', type: 'select', options: ['Low', 'High'] }],
+        format: { type: 'template', template: 'Top\nPriority: {priority}' },
+      },
+    ]);
+    const win = dom.window;
+    openDesigner(win);
+    expect(preview(win)).toBe('Top\nPriority: Low');
+    root(win).querySelectorAll('.dz-card-head')[0].click();
+    const box = root(win).querySelector('.dz-inspector [data-prop="optional"]');
+    box.checked = true;
+    box.dispatchEvent(new win.Event('change'));
+    expect(preview(win)).toBe('Top');
+    const select = root(win).querySelector('select[data-sample]');
+    expect(select.value).toBe('');
+    select.value = 'High';
+    select.dispatchEvent(new win.Event('change'));
+    expect(preview(win)).toBe('Top\nPriority: High');
+  });
+
   test('dragging a palette field and a field chip builds the form and output', async () => {
     const dom = await setup(TICKET);
     const win = dom.window;

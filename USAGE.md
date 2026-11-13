@@ -230,6 +230,8 @@ empty label. Every template line holding the field's placeholder is removed,
 so put the label on the same line as the placeholder. Blank required fields on
 other lines are unaffected. A steps field counts as blank when every step row
 is empty, even if the rows still show `1.` or `-` markers or a ticked Click box.
+Empty rows in an optional steps field are skipped when others are filled, and
+an optional dropdown starts on a blank choice (`—`) so it can be left out.
 The JSON fallback omits a blank optional field, and
 the form shows _(optional)_ beside its label. To drop only part of a line, use
 an optional section (`[[ ]]`) instead.

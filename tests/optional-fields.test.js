@@ -112,7 +112,46 @@ describe('optional fields', () => {
       expect(generate()).toBe('Name: Al\nEnd');
       pane.querySelectorAll('[name="nextSteps"]')[1].value = 'Call back';
       const marker = keyMode === 'numbered' ? '2.' : '-';
-      expect(generate()).toBe(`Name: Al\nNext Steps: \n${marker} Call back\nEnd`);
+      expect(generate()).toBe(`Name: Al\nNext Steps: ${marker} Call back\nEnd`);
+      pane.querySelector('[data-step="insert"]').click();
+      pane.querySelectorAll('[name="nextSteps"]')[0].value = 'Email';
+      const [first, last] = keyMode === 'numbered' ? ['1.', '3.'] : ['-', '-'];
+      expect(generate()).toBe(
+        `Name: Al\nNext Steps: ${first} Click " Email "\n${last} Call back\nEnd`
+      );
     }
   );
+
+  test('an optional dropdown starts blank and drops its line until an option is picked', async () => {
+    const dom = await setup([
+      {
+        title: 'Note',
+        fields: [
+          { label: 'Name', name: 'name', type: 'text' },
+          {
+            label: 'Priority',
+            name: 'priority',
+            type: 'select',
+            options: ['Low', 'High'],
+            optional: true,
+          },
+          { label: 'Size', name: 'size', type: 'select', options: ['S', 'L'] },
+        ],
+        format: { type: 'template', template: 'Name: {name}\nPriority: {priority}\nSize: {size}' },
+      },
+    ]);
+    const pane = dom.window.document.querySelector('.tab-pane[data-index="0"]');
+    const generate = () => {
+      Array.from(pane.querySelectorAll('button'))
+        .find((b) => b.textContent.trim() === 'Generate')
+        .click();
+      return Array.from(pane.querySelectorAll('textarea')).find((e) => e.readOnly).value;
+    };
+    const priority = pane.querySelector('[name="priority"]');
+    expect(Array.from(priority.options).map((o) => o.value)).toEqual(['', 'Low', 'High']);
+    expect(pane.querySelector('[name="size"]').options).toHaveLength(2);
+    expect(generate()).toBe('Name: \nSize: S');
+    priority.value = 'High';
+    expect(generate()).toBe('Name: \nPriority: High\nSize: S');
+  });
 });

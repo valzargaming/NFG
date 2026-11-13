@@ -2257,6 +2257,7 @@
               input.autocomplete = 'off';
             } else if (f.type === 'select') {
               input = document.createElement('select');
+              if (f.optional === true) input.appendChild(createOption('', '—'));
               (f.options || []).forEach((opt) => {
                 const o = document.createElement('option');
                 o.value = opt.value ?? opt;
@@ -2632,6 +2633,9 @@
             'click',
             wrapHandler(() => {
               const values = {};
+              const optional = ((formConfig[i] && formConfig[i].fields) || [])
+                .filter((f) => f && f.optional === true && f.name)
+                .map((f) => f.name);
               Array.from(form.elements).forEach((e) => {
                 if (!e.name || e.dataset.step === 'click') return;
                 if (e.type === 'checkbox') {
@@ -2665,15 +2669,12 @@
                   const keyRaw = keys[i] || '';
                   return String(v).trim() ? (keyRaw ? keyRaw + ' ' : '') + v : '';
                 });
-                values[base] =
-                  combined.length === 1 || !combined.some((v) => v) ? combined[0] : combined;
+                const rows = optional.includes(base) ? combined.filter((v) => v) : combined;
+                values[base] = rows.length === 1 ? rows[0] : rows.some((v) => v) ? rows : '';
                 delete values[k];
               });
               const sel = tplSelect.value || '__json__';
               const cfg = formsMap[sel] && formsMap[sel].cfg ? formsMap[sel].cfg : null;
-              const optional = ((formConfig[i] && formConfig[i].fields) || [])
-                .filter((f) => f && f.optional === true && f.name)
-                .map((f) => f.name);
               out.value = generateOutput(cfg, values, optional);
               safe(() => {
                 out.style.height = 'auto';
@@ -4887,7 +4888,12 @@
           const d = f.def;
           if (!d.name || d.type === 'header') return;
           let raw = designer.sample[f.key];
-          if (raw === undefined && d.type === 'select' && (d.options || []).length) {
+          if (
+            raw === undefined &&
+            d.type === 'select' &&
+            d.optional !== true &&
+            (d.options || []).length
+          ) {
             const o = d.options[0];
             raw = String(o && typeof o === 'object' ? o.value ?? o.label : o);
           }
@@ -6322,6 +6328,7 @@
           input = el(
             'select',
             null,
+            d.optional === true ? createOption('', '—') : null,
             (d.options || []).map((o) =>
               createOption(
                 String(o && typeof o === 'object' ? o.value ?? o.label : o),
