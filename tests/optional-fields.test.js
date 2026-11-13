@@ -75,4 +75,82 @@ describe('optional fields', () => {
     pane.querySelector('[name="comments"]').value = 'Thanks';
     expect(generate()).toEqual({ name: '', comments: 'Thanks' });
   });
+
+  test.each(['numbered', 'bullet'])(
+    'an optional %s steps field drops its label line only when every row is empty',
+    async (keyMode) => {
+      const dom = await setup([
+        {
+          title: 'Note',
+          fields: [
+            { label: 'Name', name: 'name', type: 'text' },
+            {
+              label: 'Next Steps',
+              name: 'nextSteps',
+              type: 'steps',
+              keyMode,
+              optional: true,
+              controls: { click: true },
+            },
+          ],
+          format: { type: 'template', template: 'Name: {name}\nNext Steps: {nextSteps}\nEnd' },
+        },
+      ]);
+      const pane = dom.window.document.querySelector('.tab-pane[data-index="0"]');
+      const generate = () => {
+        Array.from(pane.querySelectorAll('button'))
+          .find((b) => b.textContent.trim() === 'Generate')
+          .click();
+        return Array.from(pane.querySelectorAll('textarea')).find((e) => e.readOnly).value;
+      };
+      pane.querySelector('[name="name"]').value = 'Al';
+      expect(pane.querySelectorAll('.step-row')).toHaveLength(1);
+      expect(generate()).toBe('Name: Al\nEnd');
+      pane.querySelector('[data-step="click"]').click();
+      expect(generate()).toBe('Name: Al\nEnd');
+      pane.querySelector('[data-step="insert"]').click();
+      expect(generate()).toBe('Name: Al\nEnd');
+      pane.querySelectorAll('[name="nextSteps"]')[1].value = 'Call back';
+      const [k1, k2, k3] = keyMode === 'numbered' ? ['1.', '2.', '3.'] : ['-', '-', '-'];
+      expect(generate()).toBe(`Name: Al\nNext Steps: ${k1} \n${k2} Call back\nEnd`);
+      pane.querySelector('[data-step="insert"]').click();
+      pane.querySelectorAll('[name="nextSteps"]')[0].value = 'Email';
+      expect(generate()).toBe(
+        `Name: Al\nNext Steps: ${k1} Click " Email "\n${k2} \n${k3} Call back\nEnd`
+      );
+    }
+  );
+
+  test('an optional dropdown starts blank and drops its line until an option is picked', async () => {
+    const dom = await setup([
+      {
+        title: 'Note',
+        fields: [
+          { label: 'Name', name: 'name', type: 'text' },
+          {
+            label: 'Priority',
+            name: 'priority',
+            type: 'select',
+            options: ['Low', 'High'],
+            optional: true,
+          },
+          { label: 'Size', name: 'size', type: 'select', options: ['S', 'L'] },
+        ],
+        format: { type: 'template', template: 'Name: {name}\nPriority: {priority}\nSize: {size}' },
+      },
+    ]);
+    const pane = dom.window.document.querySelector('.tab-pane[data-index="0"]');
+    const generate = () => {
+      Array.from(pane.querySelectorAll('button'))
+        .find((b) => b.textContent.trim() === 'Generate')
+        .click();
+      return Array.from(pane.querySelectorAll('textarea')).find((e) => e.readOnly).value;
+    };
+    const priority = pane.querySelector('[name="priority"]');
+    expect(Array.from(priority.options).map((o) => o.value)).toEqual(['', 'Low', 'High']);
+    expect(pane.querySelector('[name="size"]').options).toHaveLength(2);
+    expect(generate()).toBe('Name: \nSize: S');
+    priority.value = 'High';
+    expect(generate()).toBe('Name: \nPriority: High\nSize: S');
+  });
 });
