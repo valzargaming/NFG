@@ -232,6 +232,22 @@ other lines are unaffected. The JSON fallback omits a blank optional field, and
 the form shows _(optional)_ beside its label. To drop only part of a line, use
 an optional section (`[[ ]]`) instead.
 
+### Conditional blank lines
+
+A blank line that separates an optional field from what follows can go with
+that field. Write `[[?]]` alone on the line:
+
+```json
+{ "type": "template", "template": "Name: {name}\nComments: {comments}\n[[?]]\nEnd" }
+```
+
+With `comments` filled this outputs `Name: …`, `Comments: …`, a blank line and
+`End`; with it blank, both the `Comments:` line and the blank line are left
+out. The nearest line above that holds a placeholder decides: when that line
+is dropped for a blank optional field the blank line goes too, otherwise it is
+output as an ordinary empty line (as it is when there is no field above it).
+`[[?]]` only has this meaning when it is the whole line.
+
 ## Visual Designer
 
 Turn on **Dev** and open the **Designer** tab to build a form and its output
@@ -250,7 +266,9 @@ without writing JSON. Everything runs inside the single HTML file, offline.
   the field has a value, so separators such as `-` never dangle. An
   _Optional group_ keeps everything inside it only when every field in it has a
   value. These are saved as ordinary `[[ ]]` optional sections, and fields
-  marked optional still drop their whole line when blank. _Add a line per field_
+  marked optional still drop their whole line when blank. _+ Blank line_ adds
+  an empty line; tick _Only if the field above is included_ on it to save it as
+  a `[[?]]` conditional blank line. _Add a line per field_
   fills in `Label: {name}` lines for fields the output does not show yet, and
   the output can instead be raw JSON of every value.
 - **Preview:** type sample values into the cards to see exactly what Generate
@@ -285,7 +303,7 @@ without writing JSON. Everything runs inside the single HTML file, offline.
 
 Forms written by hand load into the Designer as they are: `{name}` and
 `%(name)s` tokens, plain text formats, `[[ ]]` sections (nested ones become
-nested groups) and blank lines all survive a save unchanged. Field types and
+nested groups), blank lines and `[[?]]` lines all survive a save unchanged. Field types and
 settings the Designer has no control for are kept as they are.
 
 ## Browser render smoke checks
