@@ -1,4 +1,4 @@
-var NFG=(()=>{var o=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var l=o((u,s)=>{s.exports=`<!DOCTYPE html>
+var NFG=(()=>{var i=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var l=i((u,s)=>{s.exports=`<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -471,6 +471,47 @@ var NFG=(()=>{var o=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
       }
       .dz-toolbar .dz-inline-label {
         margin: 0;
+      }
+      .dz-import {
+        margin-top: 10px;
+        padding: 12px;
+        border: 1px solid var(--accent);
+        border-radius: 8px;
+        background: var(--panel);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .dz-import h3 {
+        margin: 0;
+        font-size: 15px;
+      }
+      .dz-import p {
+        margin: 0;
+        max-width: var(--measure);
+      }
+      .dz-import input[type='file'] {
+        min-height: 0;
+        padding: 6px;
+      }
+      .dz-import-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .dz-import > .btn {
+        align-self: flex-start;
+      }
+      .dz-imported {
+        padding-top: 8px;
+        border-top: 1px solid var(--border);
+      }
+      .dz-import-error {
+        color: var(--warn);
+        font-weight: 600;
       }
       .dz-style {
         display: inline-flex;
@@ -1126,6 +1167,7 @@ var NFG=(()=>{var o=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
         theme: 'nfg-theme',
         tabs: 'nfg-tabs',
         seed: 'nfg-seed',
+        imported: 'nfg-import',
       };
 
       /**
@@ -1479,86 +1521,7 @@ var NFG=(()=>{var o=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
             'click',
             wrapHandler(async () => {
               try {
-                const seed = [];
-                const isBuiltIn = (id) => id === '__json__' || /^tpl-\\d+$/.test(String(id));
-                const oldToNew = {};
-                const exportedTabs = formConfig.map((tab, ei) => {
-                  if (tab && tab._formId) oldToNew[tab._formId] = \`tpl-\${ei}\`;
-                  const def = tab && tab._formId ? formsMap[tab._formId] : null;
-                  let format = deepCopy(tab.format === undefined ? null : tab.format);
-                  if (def && Object.prototype.hasOwnProperty.call(def, 'cfg')) {
-                    format =
-                      typeof def.cfg === 'string'
-                        ? { type: 'template', template: def.cfg }
-                        : deepCopy(def.cfg);
-                  }
-                  return { title: tab.title, fields: deepCopy(tab.fields || []), format };
-                });
-                const tabsLine = 'window.formConfig = ' + safeJson(exportedTabs) + ';';
-                safe(() =>
-                  seed.push(
-                    "localStorage.setItem('nfg-forms', " +
-                      safeJson(forms.filter((f) => f && !isBuiltIn(f.id))) +
-                      ');'
-                  )
-                );
-                safe(() =>
-                  seed.push("localStorage.setItem('nfg-outputs', " + safeJson(outputs) + ');')
-                );
-                safe(() => {
-                  const exportMap = {};
-                  formConfig.forEach((tab, ei) => {
-                    const sel = tab && tab._templateId;
-                    if (!sel) return;
-                    if (isBuiltIn(sel)) {
-                      if (oldToNew[sel]) exportMap[ei] = oldToNew[sel];
-                    } else if (formsMap && formsMap[sel]) {
-                      exportMap[ei] = sel;
-                    }
-                  });
-                  seed.push("localStorage.setItem('nfg-form-map', " + safeJson(exportMap) + ');');
-                });
-                safe(() => seed.push("localStorage.setItem('nfg-dev-mode', 'false');"));
-                const exportId =
-                  'nfg-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-                const idJson = safeJson(exportId);
-                const seedScript =
-                  \`<script data-nfg-seed>try{\${tabsLine}}catch(e){}\` +
-                  \`try{if(localStorage.getItem('\${KEYS.seed}')!==\${idJson}){\${seed.join('')}\` +
-                  \`localStorage.setItem('\${KEYS.seed}',\${idJson});}}catch(e){}<\\/script>\`;
-                const docClone = document.documentElement.cloneNode(true);
-                safe(() => {
-                  const toRemove = qAll(docClone, '[data-dev-toggle], [data-export-button]');
-                  toRemove.forEach((n) => n.remove());
-                  qAll(docClone, 'body script').forEach((n) => {
-                    if (
-                      n.hasAttribute('data-nfg-seed') ||
-                      /^\\s*try\\{\\s*window\\.formConfig\\s*=/.test(n.textContent || '')
-                    )
-                      n.remove();
-                  });
-                });
-                let html = '<!doctype html>\\n' + docClone.outerHTML;
-                html = html.replace(/<body([^>]*)>/i, (m, attrs) => \`<body\${attrs}>\${seedScript}\`);
-                let wantCopy = false;
-                safe(() => {
-                  if (typeof window.confirm === 'function') {
-                    wantCopy = window.confirm(
-                      'Copy exported HTML to clipboard? Press OK to copy, Cancel to save to a file.'
-                    );
-                  }
-                });
-
-                if (wantCopy && navigator.clipboard && navigator.clipboard.writeText) {
-                  try {
-                    await navigator.clipboard.writeText(html);
-                    alert('Exported HTML copied to clipboard');
-                  } catch (e) {
-                    downloadFile(html);
-                  }
-                } else {
-                  downloadFile(html);
-                }
+                await deliverExport(buildExportHtml(formConfig, forms, outputs));
               } catch (err) {
                 alert('Export failed: ' + (err && err.message));
               }
@@ -1594,6 +1557,106 @@ var NFG=(()=>{var o=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
           apply();
         });
       })();
+
+      /**
+       * Hand an exported document to the user: copy it to the clipboard when they
+       * choose to, otherwise download it.
+       *
+       * @param {string} html Exported document.
+       * @param {string} [filename='nfg-export.html'] Suggested file name for a download.
+       * @returns {Promise<void>} Resolves once copied or downloaded.
+       */
+      async function deliverExport(html, filename) {
+        let wantCopy = false;
+        safe(() => {
+          if (typeof window.confirm === 'function') {
+            wantCopy = window.confirm(
+              'Copy exported HTML to clipboard? Press OK to copy, Cancel to save to a file.'
+            );
+          }
+        });
+        if (wantCopy && navigator.clipboard && navigator.clipboard.writeText) {
+          try {
+            await navigator.clipboard.writeText(html);
+            alert('Exported HTML copied to clipboard');
+          } catch (e) {
+            downloadFile(html, filename);
+          }
+        } else {
+          downloadFile(html, filename);
+        }
+      }
+
+      /**
+       * Build a standalone copy of this app, with its current CSS and code, seeded
+       * with the given tabs, form definitions and outputs.
+       *
+       * @param {Object[]} tabs Tabs to export, shaped like \`formConfig\` entries.
+       * @param {Object[]} formList Form definitions available to those tabs.
+       * @param {Object[]} outputList Output definitions to include.
+       * @param {boolean} [promoteTabs=false] Export forms shown as tabs only as the
+       *   exported page's own tabs, instead of also as separate saved forms.
+       * @returns {string} The exported HTML document.
+       */
+      function buildExportHtml(tabs, formList, outputList, promoteTabs) {
+        const defs = rebuildMap(formList);
+        const seed = [];
+        const isBuiltIn = (id) => id === '__json__' || /^tpl-\\d+$/.test(String(id));
+        const oldToNew = {};
+        const exportedTabs = tabs.map((tab, ei) => {
+          if (tab && tab._formId) oldToNew[tab._formId] = \`tpl-\${ei}\`;
+          const def = tab && tab._formId ? defs[tab._formId] : null;
+          let format = deepCopy(tab.format === undefined ? null : tab.format);
+          if (def && Object.prototype.hasOwnProperty.call(def, 'cfg')) {
+            format =
+              typeof def.cfg === 'string' && !promoteTabs
+                ? { type: 'template', template: def.cfg }
+                : deepCopy(def.cfg);
+          }
+          return { title: tab.title, fields: deepCopy(tab.fields || []), format };
+        });
+        const tabsLine = 'window.formConfig = ' + safeJson(exportedTabs) + ';';
+        const keep = (f) => f && !isBuiltIn(f.id) && !(promoteTabs && oldToNew[f.id]);
+        safe(() =>
+          seed.push("localStorage.setItem('nfg-forms', " + safeJson(formList.filter(keep)) + ');')
+        );
+        safe(() => seed.push("localStorage.setItem('nfg-outputs', " + safeJson(outputList) + ');'));
+        safe(() => {
+          const exportMap = {};
+          tabs.forEach((tab, ei) => {
+            const sel = tab && tab._templateId;
+            if (!sel) return;
+            if (isBuiltIn(sel) || (promoteTabs && oldToNew[sel])) {
+              if (oldToNew[sel]) exportMap[ei] = oldToNew[sel];
+            } else if (defs[sel]) {
+              exportMap[ei] = sel;
+            }
+          });
+          seed.push("localStorage.setItem('nfg-form-map', " + safeJson(exportMap) + ');');
+        });
+        safe(() => seed.push("localStorage.setItem('nfg-dev-mode', 'false');"));
+        const exportId = 'nfg-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        const idJson = safeJson(exportId);
+        const seedScript =
+          \`<script data-nfg-seed>try{\${tabsLine}}catch(e){}\` +
+          \`try{if(localStorage.getItem('\${KEYS.seed}')!==\${idJson}){\${seed.join('')}\` +
+          \`localStorage.setItem('\${KEYS.seed}',\${idJson});}}catch(e){}<\\/script>\`;
+        const docClone = document.documentElement.cloneNode(true);
+        safe(() => {
+          const toRemove = qAll(docClone, '[data-dev-toggle], [data-export-button]');
+          toRemove.forEach((n) => n.remove());
+          qAll(docClone, 'body script').forEach((n) => {
+            if (
+              n.hasAttribute('data-nfg-seed') ||
+              /^\\s*try\\{\\s*window\\.formConfig\\s*=/.test(n.textContent || '')
+            )
+              n.remove();
+          });
+          qAll(docClone, '#contents, #tabbar').forEach((n) => (n.innerHTML = ''));
+        });
+        const html = '<!doctype html>\\n' + docClone.outerHTML;
+        return html.replace(/<body([^>]*)>/i, (m, attrs) => \`<body\${attrs}>\${seedScript}\`);
+      }
 
       /**
        * Deep-copy a JSON-compatible value.
@@ -4277,7 +4340,9 @@ var NFG=(()=>{var o=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
        *   jsonCfg: ?Object, fields: Array<{key: string, def: Object, autoName: boolean}>,
        *   lines: Object[][], selected: ?string, piece: ?Object,
        *   sample: Object<string, string>, saved: string, notice: string, status: string,
-       *   statusUntil: number, loaded: boolean, root: ?HTMLElement}}
+       *   statusUntil: number, importOpen: boolean, importFound: ?Object[], importError: string,
+       *   importName: string, imported: ?{name: string, tabs: string[], forms: string[],
+       *   outputs: string[]}, loaded: boolean, root: ?HTMLElement}}
        */
       const designer = {
         kind: 'forms',
@@ -4297,6 +4362,11 @@ var NFG=(()=>{var o=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
         notice: '',
         status: '',
         statusUntil: 0,
+        importOpen: false,
+        importFound: null,
+        importError: '',
+        importName: '',
+        imported: null,
         loaded: false,
         root: null,
       };
@@ -5094,12 +5164,479 @@ var NFG=(()=>{var o=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
         const scroll = window.scrollY;
         root.innerHTML = '';
         root.appendChild(designerToolbar());
+        if (designer.importOpen) root.appendChild(designerImportPanel());
         if (designer.notice)
           root.appendChild(el('div', { className: 'dz-notice', role: 'note' }, designer.notice));
         root.appendChild(designerFormSection());
         root.appendChild(designerOutputSection());
         root.appendChild(designerPreviewSection());
         if (window.scrollY !== scroll) safe(() => window.scrollTo(window.scrollX, scroll));
+      }
+
+      /**
+       * Read the JSON value that starts at \`at\` in \`text\`, skipping leading spaces.
+       * Strings are respected so brackets inside them do not count.
+       *
+       * @param {string} text Source text.
+       * @param {number} at Index to start reading from.
+       * @returns {*} The parsed value, or undefined when no valid JSON starts there.
+       */
+      function readJsonAt(text, at) {
+        let i = at;
+        while (i < text.length && /\\s/.test(text[i])) i++;
+        const start = i;
+        if (text.startsWith('null', i)) return null;
+        if (text[i] !== '[' && text[i] !== '{') return undefined;
+        let depth = 0;
+        let inString = false;
+        for (; i < text.length; i++) {
+          const c = text[i];
+          if (inString) {
+            if (c === '\\\\') i++;
+            else if (c === '"') inString = false;
+          } else if (c === '"') {
+            inString = true;
+          } else if (c === '[' || c === '{') {
+            depth++;
+          } else if (c === ']' || c === '}') {
+            depth--;
+            if (depth === 0) return safeParse(text.slice(start, i + 1), undefined);
+          }
+        }
+        return undefined;
+      }
+
+      /**
+       * The first array assigned after any match of \`pattern\` in \`text\`.
+       *
+       * @param {string} text Source text.
+       * @param {RegExp} pattern Global pattern ending just before the value.
+       * @returns {?Array} The array, or null when none is found.
+       */
+      function firstArrayAfter(text, pattern) {
+        for (const m of text.matchAll(pattern)) {
+          const value = readJsonAt(text, m.index + m[0].length);
+          if (Array.isArray(value)) return value;
+        }
+        return null;
+      }
+
+      /**
+       * Read the forms and outputs held in a file made by Export HTML, without
+       * running any of it. Also accepts JSON: an array of tabs (\`title\`, \`fields\`,
+       * \`format\`), an array of form definitions (\`label\`, \`fields\`, \`cfg\`), or an
+       * object with \`formConfig\`, \`forms\` and/or \`outputs\` arrays.
+       *
+       * @param {string} text File contents.
+       * @returns {Array<{kind: string, label: string, cfg: (string|Object|null),
+       *   fields: Object[], oldId: ?string, outputId: ?string, fromTab: (boolean|undefined)}>}
+       *   Definitions found; \`fromTab\` marks the export's own tabs, in order.
+       */
+      function parseNfgExport(text) {
+        const src = String(text == null ? '' : text);
+        const trimmed = src.trim();
+        let tabs = null;
+        let saved = null;
+        let outs = null;
+        if (trimmed[0] === '[' || trimmed[0] === '{') {
+          const data = safeParse(trimmed, null);
+          if (Array.isArray(data)) {
+            if (data.some((d) => d && Object.prototype.hasOwnProperty.call(d, 'title')))
+              tabs = data;
+            else saved = data;
+          } else if (data && typeof data === 'object') {
+            tabs = Array.isArray(data.formConfig) ? data.formConfig : null;
+            saved = Array.isArray(data.forms) ? data.forms : null;
+            outs = Array.isArray(data.outputs) ? data.outputs : null;
+          }
+        } else {
+          tabs = firstArrayAfter(src, /window\\.formConfig\\s*=\\s*/g);
+          saved = firstArrayAfter(src, /localStorage\\.setItem\\(\\s*['"]nfg-forms['"]\\s*,\\s*/g);
+          outs = firstArrayAfter(src, /localStorage\\.setItem\\(\\s*['"]nfg-outputs['"]\\s*,\\s*/g);
+        }
+        const valid = (d) => d && typeof d === 'object' && Array.isArray(d.fields);
+        const found = [];
+        const seen = new Set();
+        const add = (item) => {
+          const sig = JSON.stringify([item.kind, item.label, item.cfg, item.fields]);
+          if (seen.has(sig)) return;
+          seen.add(sig);
+          found.push(item);
+        };
+        (outs || []).filter(valid).forEach((o) =>
+          add({
+            kind: 'outputs',
+            label: String(o.label || o.id || 'Imported output'),
+            cfg: o.cfg === undefined ? null : deepCopy(o.cfg),
+            fields: deepCopy(o.fields),
+            oldId: o.id ? String(o.id) : null,
+            outputId: null,
+          })
+        );
+        (tabs || []).filter(valid).forEach((t) =>
+          add({
+            kind: 'forms',
+            label: String(t.title || 'Imported form'),
+            cfg: t.format === undefined ? null : deepCopy(t.format),
+            fields: deepCopy(t.fields),
+            oldId: null,
+            outputId: null,
+            fromTab: true,
+          })
+        );
+        (saved || [])
+          .filter((f) => valid(f) && f.id !== '__json__' && !/^tpl-\\d+$/.test(String(f.id)))
+          .forEach((f) =>
+            add({
+              kind: 'forms',
+              label: String(f.label || f.id || 'Imported form'),
+              cfg: f.cfg === undefined ? null : deepCopy(f.cfg),
+              fields: deepCopy(f.fields),
+              oldId: f.id ? String(f.id) : null,
+              outputId: f.outputId ? String(f.outputId) : null,
+            })
+          );
+        return found;
+      }
+
+      /**
+       * Add imported definitions to the saved forms and outputs, giving each a new
+       * id and keeping form-to-output links, then open the first form for editing.
+       *
+       * @param {Object[]} items Definitions from \`parseNfgExport\` to add.
+       * @param {boolean} openTabs Also open each imported form as a tab.
+       * @returns {void}
+       */
+      function designerApplyImport(items, openTabs) {
+        const stamp = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        const unique = (label, list) => {
+          const taken = new Set(list.map((r) => r && r.label));
+          if (!taken.has(label)) return label;
+          let name = label + ' (imported)';
+          for (let n = 2; taken.has(name); n++) name = \`\${label} (imported \${n})\`;
+          return name;
+        };
+        const outMap = {};
+        const added = [];
+        const record = { name: designer.importName || '', tabs: [], forms: [], outputs: [] };
+        items
+          .filter((it) => it.kind === 'outputs')
+          .forEach((it) => {
+            const rec = {
+              id: 'out-' + stamp(),
+              label: unique(it.label, outputs),
+              cfg: deepCopy(it.cfg),
+              fields: deepCopy(it.fields),
+            };
+            if (it.oldId) outMap[it.oldId] = rec.id;
+            outputs.push(rec);
+            record.outputs.push(rec.id);
+          });
+        items
+          .filter((it) => it.kind === 'forms')
+          .forEach((it) => {
+            const rec = {
+              id: 'custom-' + stamp(),
+              label: unique(it.label, forms),
+              cfg: deepCopy(it.cfg),
+              fields: deepCopy(it.fields),
+            };
+            if (it.outputId && outMap[it.outputId]) rec.outputId = outMap[it.outputId];
+            forms.push(rec);
+            added.push(rec);
+            (it.fromTab ? record.tabs : record.forms).push(rec.id);
+          });
+        outputsMap = rebuildMap(outputs);
+        storageSet(outputsKey, outputs);
+        formsMap = rebuildMap(forms);
+        storageSet(KEYS.forms, forms);
+        designer.imported = record;
+        storageSet(KEYS.imported, record);
+        if (openTabs) {
+          added.forEach((rec) =>
+            formConfig.push({
+              title: rec.label,
+              format: deepCopy(rec.cfg),
+              fields: deepCopy(rec.fields),
+              _formId: rec.id,
+              _templateId: rec.id,
+            })
+          );
+        }
+        const firstOutput = outputs.find((o) => Object.values(outMap).includes(o.id));
+        if (added.length) designerLoad('forms', added[0].id);
+        else if (firstOutput) designerLoad('outputs', firstOutput.id);
+        designer.importOpen = false;
+        designer.importFound = null;
+        designer.importError = '';
+        const count = items.length;
+        designerFlash(\`Imported \${count} definition\${count === 1 ? '' : 's'}\`);
+        const allPrev = captureValuesByForm();
+        safe(() => persistFormMap());
+        safe(() => build());
+        safe(() => restoreValuesByForm(allPrev));
+        safe(() => refreshOutputsSelectors());
+        safe(() => activateDesignerTab());
+      }
+
+      /**
+       * Read export text into the import panel's list of definitions.
+       *
+       * @param {string} text Export file contents or pasted text.
+       * @param {string} [name] File name it came from, reused when saving it again.
+       * @returns {void}
+       */
+      function designerReadImport(text, name) {
+        const found = parseNfgExport(text);
+        designer.importName = name ? String(name) : '';
+        designer.importFound = found.map((it) => Object.assign({ checked: true }, it));
+        designer.importError = found.length
+          ? ''
+          : 'No forms or outputs were found. Choose a file saved with Export HTML, or paste its text.';
+        designerRender();
+      }
+
+      /**
+       * Definitions still present from the last import, in export order.
+       *
+       * @returns {?{name: string, tabs: Object[], forms: Object[], outputs: Object[]}} The
+       *   imported tab forms, other forms and outputs, or null when nothing is left.
+       */
+      function designerImportedDefs() {
+        const rec = designer.imported;
+        if (!rec) return null;
+        const pick = (ids, list) =>
+          (ids || []).map((id) => list.find((r) => r && r.id === id)).filter(Boolean);
+        const out = {
+          name: String(rec.name || ''),
+          tabs: pick(rec.tabs, forms),
+          forms: pick(rec.forms, forms),
+          outputs: pick(rec.outputs, outputs),
+        };
+        return out.tabs.length || out.forms.length || out.outputs.length ? out : null;
+      }
+
+      /**
+       * Save the imported export again: the imported tabs, forms and outputs with
+       * every edit made since, inside a copy of this app with its current CSS and
+       * code, so an export made with an older version comes back up to date.
+       * Unsaved Designer changes are saved first.
+       *
+       * @returns {Promise<boolean>} True when the export was produced.
+       */
+      async function designerSaveImportedExport() {
+        if (designerIsDirty() && !designerSave(false)) return false;
+        const defs = designerImportedDefs();
+        if (!defs) return false;
+        const tabs = (defs.tabs.length ? defs.tabs : defs.forms).map((rec) => ({
+          title: rec.label,
+          fields: deepCopy(rec.fields || []),
+          format: deepCopy(rec.cfg === undefined ? null : rec.cfg),
+          _formId: rec.id,
+          _templateId: rec.id,
+        }));
+        const html = buildExportHtml(tabs, defs.tabs.concat(defs.forms), defs.outputs, true);
+        const name = /\\.html?$/i.test(defs.name) ? defs.name : 'nfg-export.html';
+        await deliverExport(html, name);
+        designerFlash('Updated export saved');
+        designerSyncSaveState();
+        return true;
+      }
+
+      /**
+       * The toolbar row for an imported export: what it holds, and the buttons to
+       * save it again or stop tracking it.
+       *
+       * @returns {?HTMLElement} The row, or null when nothing was imported.
+       */
+      function designerImportedRow() {
+        const defs = designerImportedDefs();
+        if (!defs) return null;
+        const nForms = defs.tabs.length + defs.forms.length;
+        const nOut = defs.outputs.length;
+        const summary =
+          \`\${nForms} form\${nForms === 1 ? '' : 's'}\` +
+          (nOut ? \`, \${nOut} output\${nOut === 1 ? '' : 's'}\` : '');
+        return el(
+          'div',
+          { className: 'action-row dz-imported', dataset: { designer: 'imported' } },
+          el(
+            'span',
+            { className: 'meta' },
+            'Imported ',
+            el('strong', { text: defs.name || 'export' }),
+            \` (\${summary}).\`
+          ),
+          el('button', {
+            type: 'button',
+            className: 'btn',
+            text: 'Save updated export',
+            title:
+              'Download the imported export again with your edits, using this version\u2019s styles and code',
+            dataset: { designer: 'export-import' },
+            onclick: wrapHandler(() => designerSaveImportedExport()),
+          }),
+          el('button', {
+            type: 'button',
+            className: 'btn ghost',
+            text: 'Stop tracking',
+            title: 'Keep the imported forms but stop offering to save them as their own export',
+            onclick: wrapHandler(() => {
+              designer.imported = null;
+              safe(() => localStorage.removeItem(KEYS.imported));
+              designerRender();
+            }),
+          })
+        );
+      }
+
+      /**
+       * The import panel: choose or paste an export, pick what to bring in, import.
+       *
+       * @returns {HTMLElement} The panel.
+       */
+      function designerImportPanel() {
+        const panel = el(
+          'section',
+          { className: 'dz-import', 'aria-label': 'Import an export' },
+          el('h3', { text: 'Import an export' }),
+          el('p', {
+            className: 'small',
+            text: 'Choose an HTML file saved with Export HTML, or paste the text it copied. Nothing in it is run: only its forms and outputs are read, and they are added next to your own.',
+          })
+        );
+        const file = el('input', {
+          type: 'file',
+          accept: '.html,.htm,.json,.txt,text/html,application/json,text/plain',
+          'aria-label': 'Export file',
+          dataset: { designer: 'import-file' },
+        });
+        file.addEventListener(
+          'change',
+          wrapHandler(() => {
+            const chosen = file.files && file.files[0];
+            if (!chosen) return;
+            const reader = new FileReader();
+            reader.onload = wrapHandler(() =>
+              designerReadImport(String(reader.result || ''), chosen.name)
+            );
+            reader.onerror = wrapHandler(() => {
+              designer.importError = 'That file could not be read.';
+              designerRender();
+            });
+            reader.readAsText(chosen);
+          })
+        );
+        const paste = el('textarea', {
+          rows: 3,
+          placeholder: 'Or paste exported HTML or JSON here',
+          'aria-label': 'Pasted export',
+          dataset: { designer: 'import-text' },
+        });
+        panel.appendChild(el('div', { className: 'action-row' }, file));
+        panel.appendChild(paste);
+        panel.appendChild(
+          el(
+            'div',
+            { className: 'action-row' },
+            el('button', {
+              type: 'button',
+              className: 'btn ghost',
+              text: 'Read pasted text',
+              dataset: { designer: 'import-read' },
+              onclick: wrapHandler(() => designerReadImport(paste.value)),
+            }),
+            el('button', {
+              type: 'button',
+              className: 'btn ghost',
+              text: 'Cancel',
+              onclick: wrapHandler(() => {
+                designer.importOpen = false;
+                designer.importFound = null;
+                designer.importError = '';
+                designerRender();
+              }),
+            })
+          )
+        );
+        if (designer.importError)
+          panel.appendChild(
+            el('p', { className: 'dz-import-error', role: 'alert', text: designer.importError })
+          );
+        const found = designer.importFound;
+        if (!found || !found.length) return panel;
+        panel.appendChild(
+          el('p', {
+            className: 'small',
+            text:
+              (designer.importName ? \`Read \${designer.importName}. \` : '') +
+              'Untick anything you do not want to bring in.',
+          })
+        );
+        const list = el('ul', {
+          className: 'dz-import-list',
+          dataset: { designer: 'import-list' },
+        });
+        found.forEach((it) => {
+          const box = el('input', { type: 'checkbox', checked: it.checked });
+          box.addEventListener(
+            'change',
+            wrapHandler(() => {
+              it.checked = box.checked;
+              const go = q(panel, '[data-designer="import-go"]');
+              if (go) go.disabled = !found.some((x) => x.checked);
+            })
+          );
+          const n = it.fields.filter((f) => f && f.type !== 'header').length;
+          list.appendChild(
+            el(
+              'li',
+              null,
+              el(
+                'label',
+                { className: 'dz-check' },
+                box,
+                el(
+                  'span',
+                  null,
+                  el('strong', { text: it.kind === 'outputs' ? 'Output: ' : 'Form: ' }),
+                  it.label
+                ),
+                el('span', { className: 'small', text: \` (\${n} field\${n === 1 ? '' : 's'})\` })
+              )
+            )
+          );
+        });
+        panel.appendChild(list);
+        const openBox = el('input', { type: 'checkbox', dataset: { designer: 'import-open' } });
+        panel.appendChild(
+          el(
+            'label',
+            { className: 'dz-check' },
+            openBox,
+            el('span', { text: 'Also open the imported forms as tabs' })
+          )
+        );
+        panel.appendChild(
+          el('button', {
+            type: 'button',
+            className: 'btn',
+            text: 'Import selected',
+            dataset: { designer: 'import-go' },
+            onclick: wrapHandler(() => {
+              const chosen = found.filter((x) => x.checked);
+              if (!chosen.length) return;
+              if (
+                !designerConfirmDiscard(
+                  'Importing opens the first imported form. Discard your unsaved design changes?'
+                )
+              )
+                return;
+              designerApplyImport(chosen, openBox.checked);
+            }),
+          })
+        );
+        return panel;
       }
 
       /**
@@ -5339,8 +5876,28 @@ var NFG=(()=>{var o=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
         return el(
           'div',
           { className: 'dz-toolbar' },
-          el('div', { className: 'action-row' }, kindSel, recSel, newBtn),
+          el(
+            'div',
+            { className: 'action-row' },
+            kindSel,
+            recSel,
+            newBtn,
+            el('button', {
+              type: 'button',
+              className: 'btn ghost',
+              text: 'Import export\u2026',
+              title: 'Bring in the forms and outputs from a file saved with Export HTML',
+              'aria-expanded': String(!!designer.importOpen),
+              dataset: { designer: 'import' },
+              onclick: wrapHandler(() => {
+                designer.importOpen = !designer.importOpen;
+                designerRender();
+                if (designer.importOpen) designerFocus('[data-designer="import-file"]');
+              }),
+            })
+          ),
           linkRow,
+          designerImportedRow(),
           el(
             'div',
             { className: 'action-row' },
@@ -6840,6 +7397,8 @@ var NFG=(()=>{var o=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
         );
         designer.root = root;
         if (!designer.loaded) {
+          const rec = storageGet(KEYS.imported, null);
+          if (rec && Array.isArray(rec.tabs)) designer.imported = rec;
           const first = forms.find((r) => r && r.id !== '__json__');
           designerLoad('forms', first ? first.id : null);
         }
@@ -6883,4 +7442,4 @@ var NFG=(()=>{var o=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var 
     <\/script>
   </body>
 </html>
-`});var c=o((exports,module)=>{function loadHtml(){try{let e=l();if(typeof e=="string"&&e.indexOf("<script")!==-1)return e}catch{}try{let nodeRequire=eval('typeof require === "function" ? require : null');if(nodeRequire){let e=nodeRequire("fs"),n=nodeRequire("path");return e.readFileSync(n.join(__dirname,"form-generator.html"),"utf8")}}catch{}return""}var html=loadHtml();function mount(e,n){let a=n||{};if(typeof e=="string"&&(e=document.querySelector(e)),!e||typeof e.appendChild!="function")throw new Error("mount(): first argument must be a DOM element or a selector that resolves to one");if(!html)throw new Error("mount(): runtime HTML is unavailable \u2014 run `npm run build:html`");let r=html;if(Array.isArray(a.formConfig)){let d="<script>window.formConfig = "+JSON.stringify(a.formConfig).replace(/</g,"\\u003c")+";<\/script>";r=r.replace(/<head(\s[^>]*)?>/i,p=>p+d)}let i=e.ownerDocument||(typeof document<"u"?document:null);if(!i)throw new Error("mount(): no document available to create the iframe");let t=i.createElement("iframe");return t.setAttribute("title","Note Form Generator"),t.style.border="0",t.style.width="100%",t.style.height=a.height||"100%",t.srcdoc=r,e.innerHTML="",e.appendChild(t),t}module.exports={html,mount};module.exports.default=module.exports});return c();})();
+`});var c=i((exports,module)=>{function loadHtml(){try{let n=l();if(typeof n=="string"&&n.indexOf("<script")!==-1)return n}catch{}try{let nodeRequire=eval('typeof require === "function" ? require : null');if(nodeRequire){let n=nodeRequire("fs"),e=nodeRequire("path");return n.readFileSync(e.join(__dirname,"form-generator.html"),"utf8")}}catch{}return""}var html=loadHtml();function mount(n,e){let a=e||{};if(typeof n=="string"&&(n=document.querySelector(n)),!n||typeof n.appendChild!="function")throw new Error("mount(): first argument must be a DOM element or a selector that resolves to one");if(!html)throw new Error("mount(): runtime HTML is unavailable \u2014 run `npm run build:html`");let r=html;if(Array.isArray(a.formConfig)){let d="<script>window.formConfig = "+JSON.stringify(a.formConfig).replace(/</g,"\\u003c")+";<\/script>";r=r.replace(/<head(\s[^>]*)?>/i,p=>p+d)}let o=n.ownerDocument||(typeof document<"u"?document:null);if(!o)throw new Error("mount(): no document available to create the iframe");let t=o.createElement("iframe");return t.setAttribute("title","Note Form Generator"),t.style.border="0",t.style.width="100%",t.style.height=a.height||"100%",t.srcdoc=r,n.innerHTML="",n.appendChild(t),t}module.exports={html,mount};module.exports.default=module.exports});return c();})();
