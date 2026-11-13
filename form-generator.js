@@ -1,4 +1,4 @@
-var NFG=(()=>{var i=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var l=i((u,s)=>{s.exports=`<!DOCTYPE html>
+var NFG=(()=>{var o=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var l=o((u,s)=>{s.exports=`<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -780,6 +780,15 @@ var NFG=(()=>{var i=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
       .dz-check input {
         margin-top: 4px;
       }
+      .dz-line > .dz-check {
+        flex: 0 1 auto;
+        align-items: center;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .dz-line > .dz-check input {
+        margin-top: 0;
+      }
       .dz-option {
         display: flex;
         gap: 6px;
@@ -897,10 +906,14 @@ var NFG=(()=>{var i=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
         display: flex;
         align-items: center;
         justify-content: space-between;
+        flex-wrap: wrap;
         gap: 8px;
         padding: 6px 10px;
         border: 2px dashed var(--border);
         border-radius: 8px;
+      }
+      .dz-tail > span {
+        flex: 1 1 auto;
       }
       .dz-problems {
         margin: 0 0 10px;
@@ -3206,6 +3219,7 @@ var NFG=(()=>{var i=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
                 <p>To include headings inside the form, add a field with <code>"type":"header"</code>. Use <code>label</code> for the heading text and optionally <code>level</code> (1-6) or <code>size</code> (<code>h1</code>.. <code>h6</code>) to control the heading element.</p>
                 <p>To layout fields side-by-side, set a field's <code>inline</code> property to <code>true</code> and optionally provide <code>width</code> (e.g. <code>"45%"</code> or <code>"200px"</code>); default width is <code>45%</code>.</p>
                 <p>Set <code>"optional": true</code> on a field to leave it out of the output entirely when it is blank: every template line holding its placeholder is removed, label included, so <code>Additional Comments: {comments}</code> disappears instead of printing an empty label. The form shows <em>(optional)</em> beside its label. Use <code>[[ ]]</code> instead when only part of a line should go.</p>
+                <p>Put <code>[[?]]</code> alone on a template line for a blank line that goes with the optional field above it: it outputs an empty line when that field's line is included and is left out when the field is blank, so no stray gap is left behind.</p>
                 <p>Fields support an optional <code>placeholder</code> property. When generating fields from a template, placeholders default to an empty string.</p>
                 <p><strong>Steps fields:</strong> step-like fields (<code>"type":"steps"</code>) now support a <code>keyMode</code> property to control the default per-step key style. Supported values:
                 <code>"none"</code> (no key), <code>"numbered"</code> (1., 2., ...), or <code>"bullet"</code> (-). Example field definition:
@@ -4139,8 +4153,16 @@ var NFG=(()=>{var i=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
         values && values[name] !== undefined && values[name] !== null ? values[name] : '';
 
       /**
+       * Template line that stands for a blank line kept only when the field above it
+       * was included.
+       */
+      const CONDITIONAL_BLANK_LINE = '[[?]]';
+
+      /**
        * Remove every template line that holds a token for a blank optional field,
-       * so the line's label (such as "Additional Comments:") goes with it.
+       * so the line's label (such as "Additional Comments:") goes with it. A line
+       * holding only \`[[?]]\` becomes a blank line when the nearest line above it
+       * with a field was kept, and is removed when that line was dropped.
        *
        * @param {string} tpl Template text.
        * @param {RegExp} tokenRe Global token pattern whose first group is the name.
@@ -4150,18 +4172,27 @@ var NFG=(()=>{var i=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
        */
       function dropBlankOptionalLines(tpl, tokenRe, resolve, optional) {
         const src = String(tpl == null ? '' : tpl);
-        if (!optional || optional.length === 0) return src;
-        const isBlankOptional = (line) =>
-          Array.from(line.matchAll(tokenRe)).some(
+        const names = optional || [];
+        if (names.length === 0 && src.indexOf(CONDITIONAL_BLANK_LINE) === -1) return src;
+        const isBlankOptional = (tokens) =>
+          tokens.some(
             (m) =>
-              (optional.includes(m[1]) || optional.includes(m[1].replace(/_combined$/, ''))) &&
+              (names.includes(m[1]) || names.includes(m[1].replace(/_combined$/, ''))) &&
               !String(resolve(m[1])).trim()
           );
-        const kept = src
-          .split(/(?<=\\n)/)
-          .filter((line) => !isBlankOptional(line))
-          .join('');
-        return src.endsWith('\\n') ? kept : kept.replace(/\\n$/, '');
+        let aboveKept = true;
+        const lines = src.split(/(?<=\\n)/).map((line) => {
+          if (line.trim() === CONDITIONAL_BLANK_LINE)
+            return aboveKept ? line.replace(/[^\\n]+/, '') : null;
+          const tokens = Array.from(line.matchAll(tokenRe));
+          if (!tokens.length) return line;
+          aboveKept = !isBlankOptional(tokens);
+          return aboveKept ? line : null;
+        });
+        const kept = lines.filter((line) => line !== null).join('');
+        return lines[lines.length - 1] === null && !src.endsWith('\\n')
+          ? kept.replace(/\\n$/, '')
+          : kept;
       }
 
       /**
@@ -4505,7 +4536,9 @@ var NFG=(()=>{var i=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
        * Parse a \`type: "template"\` output into Designer lines. Each line is a list of
        * pieces: text, a field (with optional separators kept only when the field has
        * a value), or an optional group of pieces kept only when all its fields have
-       * values. Compiling the result gives back the same template text.
+       * values. A \`[[?]]\` line becomes an empty line flagged \`ifAbove\`, a blank line
+       * kept only when the field above it was included. Compiling the result gives
+       * back the same template text.
        *
        * @param {string} tpl Template text.
        * @param {string} [style='template'] Placeholder style, a key of \`DESIGNER_TOKEN_STYLES\`.
@@ -4553,7 +4586,16 @@ var NFG=(()=>{var i=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
             if (part) lines[lines.length - 1].push({ kind: 'text', text: part });
           });
         });
-        return lines;
+        return lines.map((line) => {
+          const only = line.length === 1 ? line[0] : null;
+          const marker =
+            only &&
+            only.kind === 'group' &&
+            only.pieces.length === 1 &&
+            only.pieces[0].kind === 'text' &&
+            only.pieces[0].text.trim() === '?';
+          return marker ? Object.assign([], { ifAbove: true }) : line;
+        });
       }
 
       /**
@@ -4586,7 +4628,13 @@ var NFG=(()=>{var i=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
        * @returns {string} Template text.
        */
       function compileOutputTemplate(lines, nameOf, style) {
-        return lines.map((line) => compileOutputPieces(line, nameOf, style)).join('\\n');
+        return lines
+          .map((line) =>
+            line.ifAbove && !line.length
+              ? CONDITIONAL_BLANK_LINE
+              : compileOutputPieces(line, nameOf, style)
+          )
+          .join('\\n');
       }
 
       /**
@@ -6907,6 +6955,7 @@ var NFG=(()=>{var i=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
               text: '\u22EE\u22EE',
             }),
             pieces,
+            line.length ? null : designerIfAboveCheck(line),
             designerIconButton('\u2191', \`Move line \${li + 1} up\`, li === 0, () => {
               designer.lines.splice(li - 1, 0, designer.lines.splice(li, 1)[0]);
               designerRender();
@@ -6969,6 +7018,17 @@ var NFG=(()=>{var i=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
               designerRender();
               designerFocus(\`[data-piece="\${line[0].uid}"] input\`);
             }),
+          }),
+          el('button', {
+            type: 'button',
+            className: 'btn ghost',
+            text: '+ Blank line',
+            title: 'Adds an empty line, which can be kept only when the field above it is included',
+            dataset: { designer: 'blank-line' },
+            onclick: wrapHandler(() => {
+              designer.lines.push([]);
+              designerRender();
+            }),
           })
         );
         designerDropZone(
@@ -6993,6 +7053,29 @@ var NFG=(()=>{var i=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
           );
         }
         return wrap;
+      }
+
+      /**
+       * Checkbox on a blank output line that keeps the line only when the field
+       * above it was included, saved as a \`[[?]]\` line.
+       *
+       * @param {Object[]} line Blank output line.
+       * @returns {HTMLElement} The checkbox row.
+       */
+      function designerIfAboveCheck(line) {
+        const check = designerCheck(
+          'Only if the field above is included',
+          line.ifAbove === true,
+          (on) => {
+            if (on) line.ifAbove = true;
+            else delete line.ifAbove;
+            designerRender();
+          },
+          'ifAbove'
+        );
+        check.title =
+          'Keeps this blank line only when the nearest field above it is in the output; an optional field left blank drops it';
+        return check;
       }
 
       /**
@@ -7147,7 +7230,7 @@ var NFG=(()=>{var i=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
             }),
             el('p', {
               className: 'small',
-              text: 'An optional group keeps everything inside only when every field in it has a value. Mark a field optional to drop its whole line when blank.',
+              text: 'An optional group keeps everything inside only when every field in it has a value. Mark a field optional to drop its whole line when blank, and tick "Only if the field above is included" on a blank line to drop it with that field.',
             }),
           ];
         }
@@ -7442,4 +7525,4 @@ var NFG=(()=>{var i=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
     <\/script>
   </body>
 </html>
-`});var c=i((exports,module)=>{function loadHtml(){try{let n=l();if(typeof n=="string"&&n.indexOf("<script")!==-1)return n}catch{}try{let nodeRequire=eval('typeof require === "function" ? require : null');if(nodeRequire){let n=nodeRequire("fs"),e=nodeRequire("path");return n.readFileSync(e.join(__dirname,"form-generator.html"),"utf8")}}catch{}return""}var html=loadHtml();function mount(n,e){let a=e||{};if(typeof n=="string"&&(n=document.querySelector(n)),!n||typeof n.appendChild!="function")throw new Error("mount(): first argument must be a DOM element or a selector that resolves to one");if(!html)throw new Error("mount(): runtime HTML is unavailable \u2014 run `npm run build:html`");let r=html;if(Array.isArray(a.formConfig)){let d="<script>window.formConfig = "+JSON.stringify(a.formConfig).replace(/</g,"\\u003c")+";<\/script>";r=r.replace(/<head(\s[^>]*)?>/i,p=>p+d)}let o=n.ownerDocument||(typeof document<"u"?document:null);if(!o)throw new Error("mount(): no document available to create the iframe");let t=o.createElement("iframe");return t.setAttribute("title","Note Form Generator"),t.style.border="0",t.style.width="100%",t.style.height=a.height||"100%",t.srcdoc=r,n.innerHTML="",n.appendChild(t),t}module.exports={html,mount};module.exports.default=module.exports});return c();})();
+`});var c=o((exports,module)=>{function loadHtml(){try{let n=l();if(typeof n=="string"&&n.indexOf("<script")!==-1)return n}catch{}try{let nodeRequire=eval('typeof require === "function" ? require : null');if(nodeRequire){let n=nodeRequire("fs"),e=nodeRequire("path");return n.readFileSync(e.join(__dirname,"form-generator.html"),"utf8")}}catch{}return""}var html=loadHtml();function mount(n,e){let a=e||{};if(typeof n=="string"&&(n=document.querySelector(n)),!n||typeof n.appendChild!="function")throw new Error("mount(): first argument must be a DOM element or a selector that resolves to one");if(!html)throw new Error("mount(): runtime HTML is unavailable \u2014 run `npm run build:html`");let r=html;if(Array.isArray(a.formConfig)){let d="<script>window.formConfig = "+JSON.stringify(a.formConfig).replace(/</g,"\\u003c")+";<\/script>";r=r.replace(/<head(\s[^>]*)?>/i,p=>p+d)}let i=n.ownerDocument||(typeof document<"u"?document:null);if(!i)throw new Error("mount(): no document available to create the iframe");let t=i.createElement("iframe");return t.setAttribute("title","Note Form Generator"),t.style.border="0",t.style.width="100%",t.style.height=a.height||"100%",t.srcdoc=r,n.innerHTML="",n.appendChild(t),t}module.exports={html,mount};module.exports.default=module.exports});return c();})();
