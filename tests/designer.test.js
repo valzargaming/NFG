@@ -343,17 +343,139 @@ describe('designer tab', () => {
     expect(root(win).querySelectorAll('.dz-card')).toHaveLength(4);
   });
 
-  test('sprintf outputs load as fields with a notice', async () => {
+  test('sprintf outputs stay sprintf when saved', async () => {
+    const tpl = 'Hi %(name)s[[ from %(team)s]] {literal}';
     const dom = await setup([
       {
         title: 'Old',
-        fields: [{ label: 'Name', name: 'name', type: 'text' }],
-        format: { type: 'sprintf', template: 'Hi %(name)s' },
+        fields: [
+          { label: 'Name', name: 'name', type: 'text' },
+          { label: 'Team', name: 'team', type: 'text' },
+        ],
+        format: { type: 'sprintf', template: tpl },
       },
     ]);
     const win = dom.window;
     openDesigner(win);
-    expect(root(win).querySelector('.dz-notice').textContent).toMatch(/%\(name\)s/);
-    expect(template(win)).toBe('Hi {name}');
+    expect(template(win)).toBe(tpl);
+    expect(root(win).querySelector('[data-designer="style"]').value).toBe('sprintf');
+    sample(win, 'Name', 'Ada');
+    expect(preview(win)).toBe('Hi Ada {literal}');
+    root(win).querySelector('[data-designer-add="text"]').click();
+    root(win).querySelector('[data-designer="save"]').click();
+    const saved = JSON.parse(win.localStorage.getItem('nfg-forms')).find((f) => f.id === 'tpl-0');
+    expect(saved.cfg).toEqual({ type: 'sprintf', template: tpl });
+  });
+
+  test('plain text outputs stay plain text, and the style can be switched', async () => {
+    const dom = await setup([
+      {
+        title: 'Plain',
+        fields: [{ label: 'Name', name: 'name', type: 'text' }],
+        format: 'Hello {name}',
+      },
+    ]);
+    const win = dom.window;
+    openDesigner(win);
+    expect(root(win).querySelector('[data-designer="style"]').value).toBe('string');
+    expect(win.designerDefinition().cfg).toBe('Hello {name}');
+    const style = root(win).querySelector('[data-designer="style"]');
+    style.value = 'sprintf';
+    style.dispatchEvent(new win.Event('change'));
+    expect(template(win)).toBe('Hello %(name)s');
+    expect(win.designerDefinition().cfg).toEqual({ type: 'sprintf', template: 'Hello %(name)s' });
+  });
+
+  test('a steps chip can show the steps exactly as typed', async () => {
+    const dom = await setup([
+      {
+        title: 'Fix',
+        fields: [{ label: 'Steps', name: 'steps', type: 'steps', keyMode: 'numbered' }],
+        format: { type: 'template', template: 'Steps:{steps}' },
+      },
+    ]);
+    const win = dom.window;
+    openDesigner(win);
+    sample(win, 'Steps', 'Open > Save');
+    expect(preview(win)).toBe('Steps:1. Open\n2. Save');
+    root(win).querySelector('.dz-field').click();
+    const show = root(win).querySelector('[data-prop="piece-variant"]');
+    show.value = '_combined';
+    show.dispatchEvent(new win.Event('change'));
+    expect(template(win)).toBe('Steps:{steps_combined}');
+    expect(preview(win)).toBe('Steps:Open > Save');
+    expect(root(win).querySelector('.dz-field').textContent).toMatch(/as typed/);
+  });
+
+  test('every extra input type can be added from the palette', async () => {
+    const dom = await setup(TICKET);
+    const win = dom.window;
+    openDesigner(win);
+    ['time', 'datetime-local', 'tel', 'url'].forEach((t) =>
+      root(win).querySelector(`[data-designer-add="${t}"]`).click()
+    );
+    const types = Array.from(root(win).querySelectorAll('[data-sample]'))
+      .slice(-4)
+      .map((n) => n.type);
+    expect(types).toEqual(['time', 'datetime-local', 'tel', 'url']);
+  });
+
+  test('a checkbox outputs Yes or its own text only when ticked', async () => {
+    const dom = await setup([
+      {
+        title: 'Check',
+        fields: [{ label: 'Name', name: 'name', type: 'text' }],
+        format: { type: 'template', template: 'Name: {name}' },
+      },
+    ]);
+    const win = dom.window;
+    openDesigner(win);
+    root(win).querySelector('[data-designer-add="checkbox"]').click();
+    type(win, root(win).querySelector('.dz-inspector [data-prop="label"]'), 'Escalated');
+    const opt = root(win).querySelector('.dz-inspector [data-prop="optional"]');
+    opt.checked = true;
+    opt.dispatchEvent(new win.Event('change'));
+    root(win).querySelector('[data-designer="fill"]').click();
+    expect(template(win)).toBe('Name: {name}\nEscalated: {escalated}');
+    expect(preview(win)).toBe('Name: ');
+    const box = root(win).querySelector('.dz-card:last-child [data-sample]');
+    box.checked = true;
+    box.dispatchEvent(new win.Event('change'));
+    expect(preview(win)).toBe('Name: \nEscalated: Yes');
+    root(win).querySelectorAll('.dz-card-head')[1].click();
+    type(win, root(win).querySelector('.dz-inspector [data-prop="default"]'), 'Tier 2');
+    expect(preview(win)).toBe('Name: \nEscalated: Tier 2');
+
+    root(win).querySelector('[data-designer="save"]').click();
+    const formPane = win.document.querySelector(".tab-pane[data-index='0']");
+    const gen = Array.from(formPane.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Generate'
+    );
+    const out = formPane.querySelector('textarea[readonly]');
+    formPane.querySelector('[name="name"]').value = 'Val';
+    gen.click();
+    expect(out.value).toBe('Name: Val');
+    formPane.querySelector('[name="escalated"]').checked = true;
+    gen.click();
+    expect(out.value).toBe('Name: Val\nEscalated: Tier 2');
+  });
+
+  test('a new form can start from an Output and stays linked to it', async () => {
+    const dom = await setup(TICKET);
+    const win = dom.window;
+    openDesigner(win);
+    root(win).querySelector('[data-designer="new"]').click();
+    const link = root(win).querySelector('[data-designer="output-link"]');
+    link.value = 'out-0';
+    link.dispatchEvent(new win.Event('change'));
+    expect(root(win).querySelectorAll('.dz-card')).toHaveLength(3);
+    expect(root(win).querySelector('[data-designer="label"]').value).toBe('Ticket');
+    expect(template(win)).toBe(TICKET[0].format.template);
+    root(win).querySelector('[data-designer="save"]').click();
+    const created = JSON.parse(win.localStorage.getItem('nfg-forms')).find((f) =>
+      /^custom-/.test(f.id)
+    );
+    expect(created.outputId).toBe('out-0');
+    expect(root(win).querySelector('[data-designer="output-link"]').value).toBe('out-0');
   });
 });

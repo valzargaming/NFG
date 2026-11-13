@@ -472,6 +472,14 @@
       .dz-toolbar .dz-inline-label {
         margin: 0;
       }
+      .dz-style {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dz-style select {
+        width: auto;
+      }
       .dz-status {
         white-space: nowrap;
       }
@@ -564,8 +572,10 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        flex: 0 0 26px;
+        flex: 0 0 auto;
+        min-width: 26px;
         height: 26px;
+        padding: 0 4px;
         border-radius: 5px;
         background: var(--ghost-bg);
         color: var(--accent);
@@ -2548,6 +2558,10 @@
               const values = {};
               Array.from(form.elements).forEach((e) => {
                 if (!e.name || e.dataset.step === 'click') return;
+                if (e.type === 'checkbox') {
+                  values[e.name] = e.checked ? (e.value && e.value !== 'on' ? e.value : 'Yes') : '';
+                  return;
+                }
                 const click =
                   e.closest('.step-row') && q(e.closest('.step-row'), '[data-step="click"]');
                 const raw = e.value !== undefined ? e.value : '';
@@ -4218,9 +4232,42 @@
         { type: 'number', label: 'Number', hint: 'Digits only' },
         { type: 'date', label: 'Date', hint: 'A calendar date' },
         { type: 'email', label: 'Email', hint: 'An email address' },
+        { type: 'time', label: 'Time', hint: 'A time of day' },
+        { type: 'datetime-local', label: 'Date & time', hint: 'A date with a time' },
+        { type: 'tel', label: 'Phone', hint: 'A phone number' },
+        { type: 'url', label: 'Web address', hint: 'A link to a page' },
+        {
+          type: 'checkbox',
+          label: 'Checkbox',
+          hint: 'A tick box; outputs Yes or a text you choose',
+        },
         { type: 'steps', label: 'Steps', hint: 'An ordered list of steps' },
         { type: 'header', label: 'Heading', hint: 'A section title with no value' },
       ];
+
+      /**
+       * Placeholder styles the Designer can write an output in: `{name}` templates,
+       * `%(name)s` sprintf templates, and plain text strings.
+       *
+       * @type {Object<string, {label: string, re: function(): RegExp, wrap: function(string): string}>}
+       */
+      const DESIGNER_TOKEN_STYLES = {
+        template: {
+          label: '{name} template',
+          re: () => /\{([^}]+)\}/g,
+          wrap: (n) => '{' + n + '}',
+        },
+        sprintf: {
+          label: '%(name)s template',
+          re: () => /%\(([^)]+)\)s/g,
+          wrap: (n) => '%(' + n + ')s',
+        },
+        string: {
+          label: 'Plain text with {name}',
+          re: () => /\{([^}]+)\}/g,
+          wrap: (n) => '{' + n + '}',
+        },
+      };
 
       /**
        * Working copy edited by the Designer pane. It lives outside `build()` so a
@@ -4237,6 +4284,8 @@
         id: null,
         label: '',
         mode: 'template',
+        format: 'template',
+        outputId: '',
         cfgBase: null,
         jsonCfg: null,
         fields: [],
@@ -4389,13 +4438,15 @@
        * values. Compiling the result gives back the same template text.
        *
        * @param {string} tpl Template text.
+       * @param {string} [style='template'] Placeholder style, a key of `DESIGNER_TOKEN_STYLES`.
        * @returns {Object[][]} The template's lines.
        */
-      function parseOutputTemplate(tpl) {
+      function parseOutputTemplate(tpl, style) {
         const src = String(tpl == null ? '' : tpl);
         const ends = matchOptionalSections(src);
+        const tokens = DESIGNER_TOKEN_STYLES[style] || DESIGNER_TOKEN_STYLES.template;
         const pushText = (text, into) => {
-          const re = /\{([^}]+)\}/g;
+          const re = tokens.re();
           let last = 0;
           let m;
           while ((m = re.exec(text)) !== null) {
@@ -4440,14 +4491,17 @@
        *
        * @param {Object[]} pieces Pieces of one line or group.
        * @param {function(Object): string} nameOf Returns the token name for a field piece.
+       * @param {string} [style='template'] Placeholder style, a key of `DESIGNER_TOKEN_STYLES`.
        * @returns {string} Template text.
        */
-      function compileOutputPieces(pieces, nameOf) {
+      function compileOutputPieces(pieces, nameOf, style) {
+        const tokens = DESIGNER_TOKEN_STYLES[style] || DESIGNER_TOKEN_STYLES.template;
         return pieces
           .map((p) => {
             if (p.kind === 'text') return p.text;
-            if (p.kind === 'group') return '[[' + compileOutputPieces(p.pieces, nameOf) + ']]';
-            const token = '{' + nameOf(p) + '}';
+            if (p.kind === 'group')
+              return '[[' + compileOutputPieces(p.pieces, nameOf, style) + ']]';
+            const token = tokens.wrap(nameOf(p));
             return p.before || p.after ? '[[' + p.before + token + p.after + ']]' : token;
           })
           .join('');
@@ -4458,10 +4512,11 @@
        *
        * @param {Object[][]} lines Output lines.
        * @param {function(Object): string} nameOf Returns the token name for a field piece.
+       * @param {string} [style='template'] Placeholder style, a key of `DESIGNER_TOKEN_STYLES`.
        * @returns {string} Template text.
        */
-      function compileOutputTemplate(lines, nameOf) {
-        return lines.map((line) => compileOutputPieces(line, nameOf)).join('\n');
+      function compileOutputTemplate(lines, nameOf, style) {
+        return lines.map((line) => compileOutputPieces(line, nameOf, style)).join('\n');
       }
 
       /**
@@ -4481,7 +4536,8 @@
        *
        * @returns {string} Template text.
        */
-      const designerTemplate = () => compileOutputTemplate(designer.lines, designerPieceName);
+      const designerTemplate = () =>
+        compileOutputTemplate(designer.lines, designerPieceName, designer.format);
 
       /**
        * Visit every piece in the output, nested groups included.
@@ -4576,31 +4632,8 @@
         designer.selected = designer.fields.length ? designer.fields[0].key : null;
         designer.piece = null;
         designer.notice = '';
-        designer.cfgBase = null;
-        designer.jsonCfg = null;
-        const cfg = rec ? rec.cfg : null;
-        let template = '';
-        designer.mode = 'template';
-        if (typeof cfg === 'string') {
-          template = cfg;
-          designer.notice =
-            'This output was stored as plain text. Saving here stores it as a template, which lists steps one per line.';
-        } else if (cfg && typeof cfg === 'object' && cfg.type === 'template') {
-          template = String(cfg.template || '');
-          designer.cfgBase = deepCopy(cfg);
-        } else if (cfg && typeof cfg === 'object' && cfg.type === 'sprintf') {
-          template = String(cfg.template || '').replace(/%\(([^)]+)\)s/g, '{$1}');
-          designer.cfgBase = deepCopy(cfg);
-          designer.notice =
-            'This output used %(name)s placeholders. Saving here converts them to {name} placeholders.';
-        } else if (rec) {
-          designer.mode = 'json';
-          if (cfg && typeof cfg === 'object') designer.jsonCfg = deepCopy(cfg);
-        }
-        designer.lines = designer.mode === 'json' ? [] : parseOutputTemplate(template);
-        if (designer.lines.length === 1 && designer.lines[0].length === 0 && !template)
-          designer.lines = [];
-        eachOutputPiece(designerBindPiece);
+        designer.outputId = rec && kind === 'forms' && rec.outputId ? String(rec.outputId) : '';
+        designerLoadOutput(rec ? rec.cfg : null, !rec);
         designer.saved = JSON.stringify(designerDefinition());
         designer.status = '';
         designer.statusUntil = 0;
@@ -4608,25 +4641,66 @@
       }
 
       /**
+       * Load an output format into the Designer's output builder, keeping its
+       * placeholder style (`{name}`, `%(name)s` or a plain text string).
+       *
+       * @param {(string|Object|null)} cfg Output format.
+       * @param {boolean} fresh True for a brand new definition, which starts as a template.
+       * @returns {void}
+       */
+      function designerLoadOutput(cfg, fresh) {
+        designer.cfgBase = null;
+        designer.jsonCfg = null;
+        designer.mode = 'template';
+        designer.format = 'template';
+        let template = '';
+        if (typeof cfg === 'string') {
+          template = cfg;
+          designer.format = 'string';
+        } else if (
+          cfg &&
+          typeof cfg === 'object' &&
+          (cfg.type === 'template' || cfg.type === 'sprintf')
+        ) {
+          template = String(cfg.template || '');
+          designer.format = cfg.type;
+          designer.cfgBase = deepCopy(cfg);
+        } else if (!fresh) {
+          designer.mode = 'json';
+          if (cfg && typeof cfg === 'object') designer.jsonCfg = deepCopy(cfg);
+        }
+        designer.lines =
+          designer.mode === 'json' ? [] : parseOutputTemplate(template, designer.format);
+        if (designer.lines.length === 1 && designer.lines[0].length === 0 && !template)
+          designer.lines = [];
+        eachOutputPiece(designerBindPiece);
+      }
+
+      /**
        * The definition the Designer would save: label, output format and fields.
        *
-       * @returns {{label: string, cfg: ?Object, fields: Object[]}} The definition.
+       * @returns {{label: string, cfg: (string|Object|null), fields: Object[], outputId: (string|undefined)}}
+       *   The definition.
        */
       function designerDefinition() {
         let cfg = null;
         if (designer.mode === 'json') {
           cfg = designer.jsonCfg ? deepCopy(designer.jsonCfg) : null;
+        } else if (designer.format === 'string') {
+          cfg = designerTemplate();
         } else {
           cfg = Object.assign({}, designer.cfgBase ? deepCopy(designer.cfgBase) : {}, {
-            type: 'template',
+            type: designer.format === 'sprintf' ? 'sprintf' : 'template',
             template: designerTemplate(),
           });
         }
-        return {
+        const def = {
           label: String(designer.label || '').trim() || 'Untitled',
           cfg,
           fields: designer.fields.map((f) => deepCopy(f.def)),
         };
+        if (designer.kind === 'forms' && designer.outputId) def.outputId = designer.outputId;
+        return def;
       }
 
       /**
@@ -4671,7 +4745,11 @@
         if (designer.mode === 'template') {
           eachOutputPiece((p) => {
             if (p.kind === 'field' && !(p.ref && designerField(p.ref)) && p.name)
-              warnings.push(`The output uses {${p.name}}, which no field in this form fills in.`);
+              warnings.push(
+                `The output uses ${DESIGNER_TOKEN_STYLES[designer.format].wrap(
+                  p.name
+                )}, which no field in this form fills in.`
+              );
           });
         }
         return { errors, warnings: Array.from(new Set(warnings)) };
@@ -4694,6 +4772,10 @@
             raw = String(o && typeof o === 'object' ? o.value ?? o.label : o);
           }
           raw = raw === undefined ? '' : String(raw);
+          if (d.type === 'checkbox') {
+            values[d.name] = raw ? (d.default ? String(d.default) : 'Yes') : '';
+            return;
+          }
           if (d.type !== 'steps') {
             values[d.name] = raw;
             return;
@@ -5198,10 +5280,67 @@
                 onclick: wrapHandler(() => designerSave(true)),
               })
             : null;
+        let linkRow = null;
+        if (designer.kind === 'forms') {
+          const linkSel = el(
+            'select',
+            { id: 'dz-output-link', dataset: { designer: 'output-link' } },
+            createOption('', '(none)'),
+            outputs.map((o) => createOption(o.id, o.label || o.id))
+          );
+          if (designer.outputId && !outputs.some((o) => o.id === designer.outputId))
+            linkSel.appendChild(createOption(designer.outputId, designer.outputId + ' (missing)'));
+          linkSel.value = designer.outputId || '';
+          const copyBtn = el('button', {
+            type: 'button',
+            className: 'btn ghost',
+            text: 'Copy its fields & output',
+            disabled: !linkSel.value,
+            title: "Replace this form's fields and output with the linked output's",
+            dataset: { designer: 'copy-output' },
+            onclick: wrapHandler(() => {
+              const empty = !designer.fields.length && !designer.lines.length;
+              if (
+                !empty &&
+                !safe(
+                  () =>
+                    window.confirm(
+                      "Replace this form's fields and output with the linked output's?"
+                    ),
+                  true
+                )
+              )
+                return;
+              designerCopyOutput(designer.outputId);
+            }),
+          });
+          linkSel.addEventListener(
+            'change',
+            wrapHandler(() => {
+              designer.outputId = linkSel.value;
+              copyBtn.disabled = !linkSel.value;
+              if (linkSel.value && !designer.fields.length && !designer.lines.length)
+                designerCopyOutput(linkSel.value);
+              else designerSyncSaveState();
+            })
+          );
+          linkRow = el(
+            'div',
+            { className: 'action-row' },
+            el('label', {
+              className: 'dz-inline-label',
+              htmlFor: 'dz-output-link',
+              text: 'Based on output',
+            }),
+            linkSel,
+            copyBtn
+          );
+        }
         return el(
           'div',
           { className: 'dz-toolbar' },
           el('div', { className: 'action-row' }, kindSel, recSel, newBtn),
+          linkRow,
           el(
             'div',
             { className: 'action-row' },
@@ -5217,6 +5356,27 @@
             )
           )
         );
+      }
+
+      /**
+       * Replace the design's fields and output with a copy of an Output's, the way
+       * the Forms pane's "+ New" starts a form from an Output.
+       *
+       * @param {string} id Output id.
+       * @returns {void}
+       */
+      function designerCopyOutput(id) {
+        const o = outputs.find((x) => x && x.id === id);
+        if (!o) return;
+        designer.fields = (Array.isArray(o.fields) ? o.fields : [])
+          .filter((d) => d && typeof d === 'object')
+          .map((d) => ({ key: designerKey('f'), def: deepCopy(d), autoName: false }));
+        designer.sample = {};
+        designer.selected = designer.fields.length ? designer.fields[0].key : null;
+        designer.piece = null;
+        if (!designer.id && designer.label === 'New form') designer.label = String(o.label || o.id);
+        designerLoadOutput(o.cfg, false);
+        designerRender();
       }
 
       /**
@@ -5247,6 +5407,8 @@
         rec.label = def.label;
         rec.cfg = def.cfg;
         rec.fields = def.fields;
+        if (def.outputId) rec.outputId = def.outputId;
+        else delete rec.outputId;
         designer.id = rec.id;
         designer.label = def.label;
         if (isOutputs) {
@@ -5385,6 +5547,11 @@
             email: '@',
             steps: '1.',
             header: 'H',
+            time: '9:30',
+            'datetime-local': '31+',
+            tel: '+1',
+            url: 'www',
+            checkbox: '✓',
           }[type] || '•'
         );
       }
@@ -5555,9 +5722,36 @@
               )
             )
           );
+        } else if (d.type === 'checkbox') {
+          input = el('input', { type: 'checkbox', checked: !!designer.sample[f.key] });
+          input.id = id;
+          input.dataset.sample = f.key;
+          input.addEventListener(
+            'change',
+            wrapHandler(() => {
+              designer.sample[f.key] = input.checked ? 'on' : '';
+              designerRefreshPreview();
+            })
+          );
+          return el(
+            'div',
+            { className: 'dz-check' },
+            input,
+            el('span', {
+              className: 'small',
+              text:
+                'Ticked outputs "' +
+                (d.default ? String(d.default) : 'Yes') +
+                '"; unticked is blank.',
+            })
+          );
         } else {
           input = el('input', {
-            type: ['number', 'date', 'email'].includes(d.type) ? d.type : 'text',
+            type: ['number', 'date', 'email', 'time', 'datetime-local', 'tel', 'url'].includes(
+              d.type
+            )
+              ? d.type
+              : 'text',
           });
         }
         input.id = id;
@@ -5720,7 +5914,7 @@
           )
         );
 
-        if (d.type !== 'select' && d.type !== 'date') {
+        if (!['select', 'date', 'time', 'datetime-local', 'checkbox'].includes(d.type)) {
           const ph = el('input', {
             type: 'text',
             value: d.placeholder || '',
@@ -5746,16 +5940,19 @@
           'input',
           wrapHandler(() => {
             setFieldProp(d, 'default', def.value);
-            designer.sample[f.key] = def.value;
+            if (d.type !== 'checkbox') designer.sample[f.key] = def.value;
             changed();
           })
         );
+        if (d.type === 'checkbox') def.placeholder = 'Yes';
         parts.push(
-          row(
-            'Starting value',
-            def,
-            d.type === 'steps' ? 'For example: Open > Settings > Save' : ''
-          )
+          d.type === 'checkbox'
+            ? row('Text when ticked', def, 'Left blank, a ticked box outputs "Yes".')
+            : row(
+                'Starting value',
+                def,
+                d.type === 'steps' ? 'For example: Open > Settings > Save' : ''
+              )
         );
 
         if (d.type === 'select') parts.push(designerOptionsEditor(d));
@@ -5987,7 +6184,43 @@
           );
           modeRow.appendChild(el('label', { className: 'dz-check' }, radio, el('span', { text })));
         });
+        if (designer.mode === 'template') {
+          const styleSel = el(
+            'select',
+            { id: 'dz-style', dataset: { designer: 'style' } },
+            Object.keys(DESIGNER_TOKEN_STYLES).map((k) =>
+              createOption(k, DESIGNER_TOKEN_STYLES[k].label)
+            )
+          );
+          styleSel.value = designer.format;
+          styleSel.addEventListener(
+            'change',
+            wrapHandler(() => {
+              designer.format = styleSel.value;
+              designerRender();
+            })
+          );
+          modeRow.appendChild(
+            el(
+              'span',
+              { className: 'dz-style' },
+              el('label', { htmlFor: 'dz-style', className: 'dz-inline-label', text: 'Saved as' }),
+              styleSel
+            )
+          );
+        }
         section.appendChild(modeRow);
+        if (designer.mode === 'template' && designer.format !== 'template') {
+          section.appendChild(
+            el('p', {
+              className: 'small',
+              text:
+                designer.format === 'sprintf'
+                  ? 'Saved with %(name)s placeholders. Steps are joined with commas; choose "{name} template" to list them one per line.'
+                  : 'Saved as plain text. Steps are joined with commas; choose "{name} template" to list them one per line.',
+            })
+          );
+        }
         if (designer.mode === 'json') {
           section.appendChild(
             el('p', {
@@ -6408,11 +6641,38 @@
               null,
               el('strong', { text: f ? f.def.label || f.def.name : p.name }),
               ' ',
-              el('code', { text: '{' + designerPieceName(p) + '}' })
+              el('code', {
+                text: DESIGNER_TOKEN_STYLES[designer.format].wrap(designerPieceName(p)),
+              })
             )
           );
           if (!f)
             out.push(el('p', { className: 'small', text: 'No field in this form has this name.' }));
+          if (f && f.def.type === 'steps') {
+            const show = el(
+              'select',
+              { id: 'dz-steps-show', dataset: { prop: 'piece-variant' } },
+              createOption('', 'One per line, with step markers'),
+              createOption('_combined', 'Exactly as typed (A > B > C)')
+            );
+            show.value = p.variant === '_combined' ? '_combined' : '';
+            show.addEventListener(
+              'change',
+              wrapHandler(() => {
+                if (show.value) p.variant = show.value;
+                else delete p.variant;
+                designerRender();
+              })
+            );
+            out.push(
+              el(
+                'div',
+                { className: 'dz-prop' },
+                el('label', { htmlFor: 'dz-steps-show', text: 'Show steps' }),
+                show
+              )
+            );
+          }
           out.push(sepInput('before', 'Text before, only when filled'));
           out.push(sepInput('after', 'Text after, only when filled'));
           if (f && f.def.optional !== true) {

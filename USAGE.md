@@ -238,7 +238,8 @@ Turn on **Dev** and open the **Designer** tab to build a form and its output
 without writing JSON. Everything runs inside the single HTML file, offline.
 
 - **Form fields:** drag a field type (Short text, Paragraph, Dropdown, Number,
-  Date, Email, Steps, Heading) onto the form, or click it to add it at the end.
+  Date, Email, Time, Date & time, Phone, Web address, Checkbox, Steps, Heading)
+  onto the form, or click it to add it at the end.
   Drag a card's header, or use its arrows, to reorder. Select a card to change
   its label, field name (it follows the label until you edit it), placeholder,
   starting value, dropdown options, step markers, the Click checkbox, side by
@@ -259,9 +260,21 @@ without writing JSON. Everything runs inside the single HTML file, offline.
   as a tab. Unsaved design changes trigger the leave-page prompt, and switching
   to another definition asks first.
 
-Forms written by hand load into the Designer as they are: `{name}` tokens,
-`[[ ]]` sections (nested ones become nested groups) and blank lines all survive
-a save unchanged. Outputs written with `%(name)s` are converted to `{name}`.
+- **Steps in the output:** select a steps chip to show the steps one per line
+  with their markers (`{steps}`) or exactly as typed (`{steps_combined}`).
+- **Checkbox:** a ticked box outputs `Yes`, or the _Text when ticked_ you set;
+  an unticked box is blank, so an optional checkbox drops its line.
+- **Saved as:** outputs keep their placeholder style. Pick `{name}` templates,
+  `%(name)s` templates, or plain text; `%(name)s` and plain text join steps with
+  commas instead of one per line.
+- **Based on output:** a form can be linked to an Output, as in the Forms pane.
+  Linking a blank form copies the Output's fields and output; _Copy its fields &
+  output_ does it again on demand.
+
+Forms written by hand load into the Designer as they are: `{name}` and
+`%(name)s` tokens, plain text formats, `[[ ]]` sections (nested ones become
+nested groups) and blank lines all survive a save unchanged. Field types and
+settings the Designer has no control for are kept as they are.
 
 ## Browser render smoke checks
 
