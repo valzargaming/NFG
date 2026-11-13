@@ -1,4 +1,4 @@
-var NFG=(()=>{var l=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var i=l((u,s)=>{s.exports=`<!DOCTYPE html>
+var NFG=(()=>{var o=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports);var l=o((u,s)=>{s.exports=`<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -446,6 +446,471 @@ var NFG=(()=>{var l=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
         max-width: 1100px;
         margin: 0 auto;
         padding: 0 18px;
+      }
+      .dz-intro {
+        margin: 4px 0 12px;
+        max-width: var(--measure);
+      }
+      .dz-toolbar {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+      .dz-toolbar select {
+        flex: 0 1 auto;
+        width: auto;
+        max-width: 100%;
+      }
+      .dz-toolbar input[type='text'] {
+        flex: 1 1 220px;
+        width: auto;
+      }
+      .dz-toolbar .dz-inline-label {
+        margin: 0;
+      }
+      .dz-style {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dz-style select {
+        width: auto;
+      }
+      .dz-status {
+        white-space: nowrap;
+      }
+      .dz-notice {
+        margin-top: 10px;
+        padding: 8px 12px;
+        border-left: 4px solid var(--accent);
+        background: var(--ghost-bg);
+        border-radius: 6px;
+        max-width: var(--measure);
+      }
+      .dz-section {
+        margin-top: 20px;
+      }
+      .dz-heading {
+        font-size: 17px;
+        margin: 0 0 10px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--border);
+      }
+      .dz-grid {
+        display: grid;
+        grid-template-columns: minmax(150px, 180px) minmax(0, 1fr) minmax(220px, 290px);
+        grid-template-areas: 'palette canvas inspector';
+        gap: 14px;
+        align-items: start;
+      }
+      .dz-grid > .dz-palette {
+        grid-area: palette;
+      }
+      .dz-grid > .dz-canvas,
+      .dz-grid > .dz-lines {
+        grid-area: canvas;
+      }
+      .dz-grid > .dz-inspector {
+        grid-area: inspector;
+      }
+      .dz-palette,
+      .dz-inspector {
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+      .dz-palette {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        position: sticky;
+        top: 110px;
+      }
+      .dz-palette h3,
+      .dz-inspector h3 {
+        font-size: 14px;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+      .dz-palette p,
+      .dz-inspector p {
+        margin: 2px 0 4px;
+      }
+      .dz-tool {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 36px;
+        padding: 6px 10px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--card);
+        color: var(--text);
+        cursor: grab;
+        text-align: left;
+        font-size: 14px;
+      }
+      .dz-tool:hover {
+        border-color: var(--accent);
+      }
+      .dz-tool:focus-visible,
+      .dz-card-head:focus-visible,
+      .dz-piece:focus-visible,
+      .dz-icon-btn:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      .dz-tool-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        min-width: 26px;
+        height: 26px;
+        padding: 0 4px;
+        border-radius: 5px;
+        background: var(--ghost-bg);
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 13px;
+      }
+      .dz-chip-tool {
+        border-style: dashed;
+        border-color: var(--ghost-border);
+        background: var(--ghost-bg);
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .dz-fill {
+        margin-top: 6px;
+        white-space: normal;
+      }
+      .dz-canvas {
+        min-width: 0;
+      }
+      .dz-cards {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        min-height: 140px;
+        padding: 10px;
+        border: 2px dashed var(--border);
+        border-radius: 10px;
+        background: var(--bg);
+        align-content: flex-start;
+      }
+      .dz-cards.dz-over,
+      .dz-lines.dz-over,
+      .dz-tail.dz-over,
+      .dz-line-pieces.dz-over,
+      .dz-group-pieces.dz-over {
+        border-color: var(--accent);
+      }
+      .dz-empty {
+        flex: 1 1 100%;
+        align-self: center;
+        padding: 24px 8px;
+        text-align: center;
+        color: var(--muted);
+      }
+      .dz-card {
+        flex: 1 1 100%;
+        min-width: 0;
+        padding: 0 12px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--card);
+        transition: box-shadow 0.12s, border-color 0.12s;
+      }
+      .dz-card.inline {
+        flex-grow: 0;
+      }
+      .dz-card.selected {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--focus);
+      }
+      .dz-card.dz-drop-before,
+      .dz-line.dz-drop-before {
+        box-shadow: 0 -4px 0 var(--accent);
+      }
+      .dz-card.dz-drop-after,
+      .dz-line.dz-drop-after {
+        box-shadow: 0 4px 0 var(--accent);
+      }
+      .dz-card.inline.dz-drop-before {
+        box-shadow: -4px 0 0 var(--accent);
+      }
+      .dz-card.inline.dz-drop-after {
+        box-shadow: 4px 0 0 var(--accent);
+      }
+      .dz-dragging {
+        opacity: 0.45;
+      }
+      .dz-card-head {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin: 0 -12px 8px;
+        padding: 6px 8px 6px 10px;
+        border-bottom: 1px solid var(--border);
+        border-radius: 8px 8px 0 0;
+        background: var(--panel);
+        cursor: grab;
+        font-size: 13px;
+      }
+      .dz-card .field-header {
+        margin: 4px 0 0;
+      }
+      .dz-grip {
+        color: var(--muted);
+        letter-spacing: -2px;
+        cursor: grab;
+        user-select: none;
+        padding: 0 4px;
+      }
+      .dz-type {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .dz-badge {
+        padding: 0 8px;
+        border-radius: 999px;
+        background: var(--ghost-bg);
+        border: 1px solid var(--ghost-border);
+        color: var(--accent);
+        font-size: 12px;
+      }
+      .dz-icon-btn {
+        flex: 0 0 auto;
+        min-width: 28px;
+        height: 28px;
+        padding: 0 6px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--card);
+        color: var(--text);
+        cursor: pointer;
+        line-height: 1;
+      }
+      .dz-icon-btn:hover:not(:disabled) {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .dz-icon-btn.danger:hover:not(:disabled) {
+        border-color: var(--warn);
+        color: var(--warn);
+      }
+      .dz-icon-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .dz-inspector {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .dz-prop label {
+        font-size: 14px;
+      }
+      .dz-prop .small {
+        margin-top: 2px;
+      }
+      .dz-check {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin: 0;
+        font-weight: 400;
+        cursor: pointer;
+      }
+      .dz-check input {
+        margin-top: 4px;
+      }
+      .dz-option {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        margin-bottom: 6px;
+      }
+      .dz-option input:not([type='checkbox']) {
+        min-width: 0;
+      }
+      .dz-option input:nth-child(2) {
+        flex: 0 0 34%;
+      }
+      .dz-options > .btn {
+        align-self: flex-start;
+      }
+      .dz-lines {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+      }
+      .dz-line {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--card);
+      }
+      .dz-line-pieces,
+      .dz-group-pieces {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 36px;
+        padding: 3px;
+        border: 1px dashed transparent;
+        border-radius: 6px;
+      }
+      .dz-group-pieces {
+        min-height: 30px;
+        border-color: var(--ghost-border);
+      }
+      .dz-blank {
+        color: var(--muted);
+        font-size: 13px;
+        font-style: italic;
+        padding: 0 6px;
+      }
+      .dz-piece {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        border-radius: 6px;
+        cursor: grab;
+        font-size: 14px;
+      }
+      .dz-piece.dz-drop-before {
+        box-shadow: -4px 0 0 var(--accent);
+      }
+      .dz-piece.dz-drop-after {
+        box-shadow: 4px 0 0 var(--accent);
+      }
+      .dz-piece.selected {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      .dz-text input[type='text'] {
+        width: auto;
+        min-height: 32px;
+        padding: 3px 6px;
+        font-family: Consolas, 'Cascadia Mono', Menlo, monospace;
+        font-size: 14px;
+        background: var(--input-bg);
+      }
+      .dz-field {
+        gap: 2px;
+        min-height: 32px;
+        padding: 3px 10px;
+        background: var(--accent);
+        color: var(--accent-text);
+        font-weight: 600;
+      }
+      .dz-field.dz-missing {
+        background: var(--warn);
+        color: #fff;
+      }
+      .dz-sep {
+        padding: 0 4px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.25);
+        font-family: Consolas, 'Cascadia Mono', Menlo, monospace;
+        font-weight: 400;
+        white-space: pre;
+      }
+      .dz-group {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 2px 4px 4px;
+        border: 1px dashed var(--accent);
+        background: var(--ghost-bg);
+      }
+      .dz-group-tag {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--accent);
+      }
+      .dz-tail {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 6px 10px;
+        border: 2px dashed var(--border);
+        border-radius: 8px;
+      }
+      .dz-problems {
+        margin: 0 0 10px;
+        padding: 8px 12px 8px 30px;
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--warn);
+        border-radius: 6px;
+        background: var(--panel);
+        max-width: var(--measure);
+      }
+      .dz-problems .error {
+        color: var(--warn);
+        font-weight: 600;
+      }
+      .dz-preview .output {
+        font-family: Consolas, 'Cascadia Mono', Menlo, monospace;
+      }
+      .dz-preview .help {
+        max-width: none;
+      }
+      @media (orientation: portrait), (max-width: 1000px) {
+        .dz-grid {
+          grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+          grid-template-areas: 'palette palette' 'canvas inspector';
+        }
+        .dz-palette {
+          position: static;
+          flex-direction: row;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+        .dz-palette h3,
+        .dz-palette p {
+          flex: 1 1 100%;
+        }
+        .dz-tool {
+          width: auto;
+          flex: 0 1 auto;
+        }
+        .dz-fill {
+          margin-top: 0;
+        }
+      }
+      @media (max-width: 720px) {
+        .dz-grid {
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-areas: 'palette' 'canvas' 'inspector';
+        }
+        .dz-card.inline {
+          flex-basis: 100% !important;
+        }
       }
       @media (orientation: portrait) and (min-height: 1100px) {
         .container {
@@ -1298,7 +1763,7 @@ var NFG=(()=>{var l=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
       }
 
       window.addEventListener('beforeunload', (ev) => {
-        if (!anyFormHasEntries()) return;
+        if (!anyFormHasEntries() && !designerIsDirty()) return;
         ev.preventDefault();
         ev.returnValue = '';
       });
@@ -2093,6 +2558,10 @@ var NFG=(()=>{var l=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
               const values = {};
               Array.from(form.elements).forEach((e) => {
                 if (!e.name || e.dataset.step === 'click') return;
+                if (e.type === 'checkbox') {
+                  values[e.name] = e.checked ? (e.value && e.value !== 'on' ? e.value : 'Yes') : '';
+                  return;
+                }
                 const click =
                   e.closest('.step-row') && q(e.closest('.step-row'), '[data-step="click"]');
                 const raw = e.value !== undefined ? e.value : '';
@@ -3322,6 +3791,8 @@ var NFG=(()=>{var l=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
           contents.appendChild(tplPane);
         })();
 
+        addDesignerTab();
+
         activateTab(0);
       }
 
@@ -3749,6 +4220,2632 @@ var NFG=(()=>{var l=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
         });
       }
 
+      /**
+       * Field types offered by the Designer palette, in display order.
+       *
+       * @type {Array<{type: string, label: string, hint: string}>}
+       */
+      const DESIGNER_FIELD_TYPES = [
+        { type: 'text', label: 'Short text', hint: 'One line of text' },
+        { type: 'textarea', label: 'Paragraph', hint: 'Several lines of text' },
+        { type: 'select', label: 'Dropdown', hint: 'Pick one of a list' },
+        { type: 'number', label: 'Number', hint: 'Digits only' },
+        { type: 'date', label: 'Date', hint: 'A calendar date' },
+        { type: 'email', label: 'Email', hint: 'An email address' },
+        { type: 'time', label: 'Time', hint: 'A time of day' },
+        { type: 'datetime-local', label: 'Date & time', hint: 'A date with a time' },
+        { type: 'tel', label: 'Phone', hint: 'A phone number' },
+        { type: 'url', label: 'Web address', hint: 'A link to a page' },
+        {
+          type: 'checkbox',
+          label: 'Checkbox',
+          hint: 'A tick box; outputs Yes or a text you choose',
+        },
+        { type: 'steps', label: 'Steps', hint: 'An ordered list of steps' },
+        { type: 'header', label: 'Heading', hint: 'A section title with no value' },
+      ];
+
+      /**
+       * Placeholder styles the Designer can write an output in: \`{name}\` templates,
+       * \`%(name)s\` sprintf templates, and plain text strings.
+       *
+       * @type {Object<string, {label: string, re: function(): RegExp, wrap: function(string): string}>}
+       */
+      const DESIGNER_TOKEN_STYLES = {
+        template: {
+          label: '{name} template',
+          re: () => /\\{([^}]+)\\}/g,
+          wrap: (n) => '{' + n + '}',
+        },
+        sprintf: {
+          label: '%(name)s template',
+          re: () => /%\\(([^)]+)\\)s/g,
+          wrap: (n) => '%(' + n + ')s',
+        },
+        string: {
+          label: 'Plain text with {name}',
+          re: () => /\\{([^}]+)\\}/g,
+          wrap: (n) => '{' + n + '}',
+        },
+      };
+
+      /**
+       * Working copy edited by the Designer pane. It lives outside \`build()\` so a
+       * rebuild of the tabs never loses unsaved design work.
+       *
+       * @type {{kind: string, id: ?string, label: string, mode: string, cfgBase: ?Object,
+       *   jsonCfg: ?Object, fields: Array<{key: string, def: Object, autoName: boolean}>,
+       *   lines: Object[][], selected: ?string, piece: ?Object,
+       *   sample: Object<string, string>, saved: string, notice: string, status: string,
+       *   statusUntil: number, loaded: boolean, root: ?HTMLElement}}
+       */
+      const designer = {
+        kind: 'forms',
+        id: null,
+        label: '',
+        mode: 'template',
+        format: 'template',
+        outputId: '',
+        cfgBase: null,
+        jsonCfg: null,
+        fields: [],
+        lines: [],
+        selected: null,
+        piece: null,
+        sample: {},
+        saved: '',
+        notice: '',
+        status: '',
+        statusUntil: 0,
+        loaded: false,
+        root: null,
+      };
+
+      /**
+       * What is being dragged inside the Designer, or null when nothing is.
+       *
+       * @type {?Object}
+       */
+      let designerDrag = null;
+      let designerSeq = 0;
+
+      /**
+       * Build a unique key for a Designer field or output piece.
+       *
+       * @param {string} prefix Key prefix.
+       * @returns {string} A key unique within this page.
+       */
+      const designerKey = (prefix) => prefix + ++designerSeq;
+
+      /**
+       * Look up a palette entry by field type.
+       *
+       * @param {string} type Field type.
+       * @returns {{type: string, label: string, hint: string}} The entry, or a generic one.
+       */
+      function designerTypeInfo(type) {
+        return (
+          DESIGNER_FIELD_TYPES.find((t) => t.type === type) || {
+            type: String(type || 'text'),
+            label: String(type || 'text'),
+            hint: '',
+          }
+        );
+      }
+
+      /**
+       * Turn a label into a field name such as "additionalComments" that no other
+       * field already uses.
+       *
+       * @param {string} label Field label.
+       * @param {string[]} taken Names in use by other fields.
+       * @returns {string} A unique field name.
+       */
+      function fieldNameFromLabel(label, taken) {
+        const words = String(label || '')
+          .normalize('NFKD')
+          .replace(/[^A-Za-z0-9\\s]/g, ' ')
+          .trim()
+          .split(/\\s+/)
+          .filter(Boolean);
+        let base =
+          words
+            .map((w, i) =>
+              i ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase()
+            )
+            .join('') || 'field';
+        if (/^\\d/.test(base)) base = 'field' + base;
+        let name = base;
+        for (let n = 2; taken.includes(name); n++) name = base + n;
+        return name;
+      }
+
+      /**
+       * Reduce typed text to the characters allowed in a field name.
+       *
+       * @param {string} raw Typed name.
+       * @returns {string} Letters, digits and underscores only.
+       */
+      const cleanFieldName = (raw) => String(raw || '').replace(/[^A-Za-z0-9_]/g, '');
+
+      /**
+       * Set a property on a field definition, removing it when the value is blank or
+       * false so saved definitions stay minimal.
+       *
+       * @param {Object} def Field definition.
+       * @param {string} prop Property name.
+       * @param {*} value New value.
+       * @returns {void}
+       */
+      function setFieldProp(def, prop, value) {
+        if (value === '' || value === false || value === null || value === undefined)
+          delete def[prop];
+        else def[prop] = value;
+      }
+
+      /**
+       * Find a Designer field by key.
+       *
+       * @param {?string} key Field key.
+       * @returns {?{key: string, def: Object, autoName: boolean}} The field, or null.
+       */
+      const designerField = (key) => designer.fields.find((f) => f.key === key) || null;
+
+      /**
+       * Pair every \`[[\` with its \`]]\`, the same way output generation does.
+       *
+       * @param {string} src Template text.
+       * @returns {Map<number, number>} Index of each matched \`[[\` to its \`]]\`.
+       */
+      function matchOptionalSections(src) {
+        const ends = new Map();
+        const opens = [];
+        for (let i = 0; i < src.length - 1; i++) {
+          if (src.startsWith('[[', i)) {
+            opens.push(i);
+            i++;
+          } else if (src.startsWith(']]', i) && opens.length) {
+            ends.set(opens.pop(), i);
+            i++;
+          }
+        }
+        return ends;
+      }
+
+      /**
+       * Turn an optional group holding one field and nothing but text around it into
+       * a field piece with separators, which is how the Designer shows it.
+       *
+       * @param {{kind: string, pieces: Object[]}} group Parsed optional group.
+       * @returns {Object} A field piece with \`before\`/\`after\`, or the group unchanged.
+       */
+      function simplifyOptionalGroup(group) {
+        const p = group.pieces;
+        const tokens = p.filter((x) => x.kind === 'field');
+        if (tokens.length !== 1 || p.some((x) => x.kind === 'group')) return group;
+        const at = p.indexOf(tokens[0]);
+        if (at > 1 || p.length - at > 2) return group;
+        const before = at === 1 ? p[0].text : '';
+        const after = at < p.length - 1 ? p[at + 1].text : '';
+        if (!before && !after) return group;
+        return Object.assign(tokens[0], { before, after });
+      }
+
+      /**
+       * Parse a \`type: "template"\` output into Designer lines. Each line is a list of
+       * pieces: text, a field (with optional separators kept only when the field has
+       * a value), or an optional group of pieces kept only when all its fields have
+       * values. Compiling the result gives back the same template text.
+       *
+       * @param {string} tpl Template text.
+       * @param {string} [style='template'] Placeholder style, a key of \`DESIGNER_TOKEN_STYLES\`.
+       * @returns {Object[][]} The template's lines.
+       */
+      function parseOutputTemplate(tpl, style) {
+        const src = String(tpl == null ? '' : tpl);
+        const ends = matchOptionalSections(src);
+        const tokens = DESIGNER_TOKEN_STYLES[style] || DESIGNER_TOKEN_STYLES.template;
+        const pushText = (text, into) => {
+          const re = tokens.re();
+          let last = 0;
+          let m;
+          while ((m = re.exec(text)) !== null) {
+            if (m.index > last) into.push({ kind: 'text', text: text.slice(last, m.index) });
+            into.push({ kind: 'field', name: m[1], before: '', after: '' });
+            last = re.lastIndex;
+          }
+          if (last < text.length) into.push({ kind: 'text', text: text.slice(last) });
+        };
+        const parse = (start, end) => {
+          const out = [];
+          let text = '';
+          for (let i = start; i < end; i++) {
+            if (ends.has(i)) {
+              pushText(text, out);
+              text = '';
+              out.push(simplifyOptionalGroup({ kind: 'group', pieces: parse(i + 2, ends.get(i)) }));
+              i = ends.get(i) + 1;
+            } else {
+              text += src[i];
+            }
+          }
+          pushText(text, out);
+          return out;
+        };
+        const lines = [[]];
+        parse(0, src.length).forEach((p) => {
+          if (p.kind !== 'text' || p.text.indexOf('\\n') === -1) {
+            lines[lines.length - 1].push(p);
+            return;
+          }
+          p.text.split('\\n').forEach((part, idx) => {
+            if (idx > 0) lines.push([]);
+            if (part) lines[lines.length - 1].push({ kind: 'text', text: part });
+          });
+        });
+        return lines;
+      }
+
+      /**
+       * Compile Designer pieces back into template text.
+       *
+       * @param {Object[]} pieces Pieces of one line or group.
+       * @param {function(Object): string} nameOf Returns the token name for a field piece.
+       * @param {string} [style='template'] Placeholder style, a key of \`DESIGNER_TOKEN_STYLES\`.
+       * @returns {string} Template text.
+       */
+      function compileOutputPieces(pieces, nameOf, style) {
+        const tokens = DESIGNER_TOKEN_STYLES[style] || DESIGNER_TOKEN_STYLES.template;
+        return pieces
+          .map((p) => {
+            if (p.kind === 'text') return p.text;
+            if (p.kind === 'group')
+              return '[[' + compileOutputPieces(p.pieces, nameOf, style) + ']]';
+            const token = tokens.wrap(nameOf(p));
+            return p.before || p.after ? '[[' + p.before + token + p.after + ']]' : token;
+          })
+          .join('');
+      }
+
+      /**
+       * Compile Designer lines into template text.
+       *
+       * @param {Object[][]} lines Output lines.
+       * @param {function(Object): string} nameOf Returns the token name for a field piece.
+       * @param {string} [style='template'] Placeholder style, a key of \`DESIGNER_TOKEN_STYLES\`.
+       * @returns {string} Template text.
+       */
+      function compileOutputTemplate(lines, nameOf, style) {
+        return lines.map((line) => compileOutputPieces(line, nameOf, style)).join('\\n');
+      }
+
+      /**
+       * Token name a field piece stands for, following its field when it is renamed.
+       *
+       * @param {Object} piece Field piece.
+       * @returns {string} Token name.
+       */
+      function designerPieceName(piece) {
+        const f = piece.ref ? designerField(piece.ref) : null;
+        if (f && f.def.name) return f.def.name + (piece.variant || '');
+        return piece.name || '';
+      }
+
+      /**
+       * The Designer's current output template text.
+       *
+       * @returns {string} Template text.
+       */
+      const designerTemplate = () =>
+        compileOutputTemplate(designer.lines, designerPieceName, designer.format);
+
+      /**
+       * Visit every piece in the output, nested groups included.
+       *
+       * @param {function(Object, Object[]): void} fn Receives each piece and its list.
+       * @param {Object[][]} [lists] Lists to walk; defaults to every line.
+       * @returns {void}
+       */
+      function eachOutputPiece(fn, lists) {
+        (lists || designer.lines).forEach((list) =>
+          list.slice().forEach((p) => {
+            fn(p, list);
+            if (p.kind === 'group') eachOutputPiece(fn, [p.pieces]);
+          })
+        );
+      }
+
+      /**
+       * Link a field piece to the Designer field its token names, and give every
+       * piece a stable id.
+       *
+       * @param {Object} piece Output piece.
+       * @returns {void}
+       */
+      function designerBindPiece(piece) {
+        piece.uid = piece.uid || designerKey('p');
+        if (piece.kind !== 'field' || piece.ref) return;
+        const name = String(piece.name || '');
+        const exact = designer.fields.find((f) => f.def.name && f.def.name === name);
+        const base = /_combined$/.test(name)
+          ? designer.fields.find((f) => f.def.name && f.def.name + '_combined' === name)
+          : null;
+        if (exact) piece.ref = exact.key;
+        else if (base) {
+          piece.ref = base.key;
+          piece.variant = '_combined';
+        }
+      }
+
+      /**
+       * The list holding \`piece\`, searching nested groups.
+       *
+       * @param {Object} piece Output piece.
+       * @returns {?Object[]} The containing list, or null.
+       */
+      function designerListOf(piece) {
+        let found = null;
+        eachOutputPiece((p, list) => {
+          if (p === piece) found = list;
+        });
+        return found;
+      }
+
+      /**
+       * Whether \`list\` is \`group\`'s own list or sits anywhere inside it.
+       *
+       * @param {Object} group Group piece.
+       * @param {Object[]} list Candidate list.
+       * @returns {boolean} True when dropping into \`list\` would put the group in itself.
+       */
+      function groupContainsList(group, list) {
+        if (!group || group.kind !== 'group') return false;
+        if (group.pieces === list) return true;
+        return group.pieces.some((p) => groupContainsList(p, list));
+      }
+
+      /**
+       * Load a form or output definition into the Designer, or start a blank one.
+       *
+       * @param {string} kind 'forms' or 'outputs'.
+       * @param {?string} id Definition id, or null for a new definition.
+       * @returns {void}
+       */
+      function designerLoad(kind, id) {
+        const list = kind === 'outputs' ? outputs : forms;
+        const rec = id ? list.find((r) => r && r.id === id) : null;
+        designer.kind = kind;
+        designer.id = rec ? rec.id : null;
+        designer.label = rec
+          ? String(rec.label || rec.id)
+          : kind === 'outputs'
+          ? 'New output'
+          : 'New form';
+        designer.fields = (rec && Array.isArray(rec.fields) ? rec.fields : [])
+          .filter((d) => d && typeof d === 'object')
+          .map((d) => ({ key: designerKey('f'), def: deepCopy(d), autoName: false }));
+        designer.sample = {};
+        designer.fields.forEach((f) => {
+          if (f.def.default !== undefined && typeof f.def.default !== 'object')
+            designer.sample[f.key] = String(f.def.default);
+        });
+        designer.selected = designer.fields.length ? designer.fields[0].key : null;
+        designer.piece = null;
+        designer.notice = '';
+        designer.outputId = rec && kind === 'forms' && rec.outputId ? String(rec.outputId) : '';
+        designerLoadOutput(rec ? rec.cfg : null, !rec);
+        designer.saved = JSON.stringify(designerDefinition());
+        designer.status = '';
+        designer.statusUntil = 0;
+        designer.loaded = true;
+      }
+
+      /**
+       * Load an output format into the Designer's output builder, keeping its
+       * placeholder style (\`{name}\`, \`%(name)s\` or a plain text string).
+       *
+       * @param {(string|Object|null)} cfg Output format.
+       * @param {boolean} fresh True for a brand new definition, which starts as a template.
+       * @returns {void}
+       */
+      function designerLoadOutput(cfg, fresh) {
+        designer.cfgBase = null;
+        designer.jsonCfg = null;
+        designer.mode = 'template';
+        designer.format = 'template';
+        let template = '';
+        if (typeof cfg === 'string') {
+          template = cfg;
+          designer.format = 'string';
+        } else if (
+          cfg &&
+          typeof cfg === 'object' &&
+          (cfg.type === 'template' || cfg.type === 'sprintf')
+        ) {
+          template = String(cfg.template || '');
+          designer.format = cfg.type;
+          designer.cfgBase = deepCopy(cfg);
+        } else if (!fresh) {
+          designer.mode = 'json';
+          if (cfg && typeof cfg === 'object') designer.jsonCfg = deepCopy(cfg);
+        }
+        designer.lines =
+          designer.mode === 'json' ? [] : parseOutputTemplate(template, designer.format);
+        if (designer.lines.length === 1 && designer.lines[0].length === 0 && !template)
+          designer.lines = [];
+        eachOutputPiece(designerBindPiece);
+      }
+
+      /**
+       * The definition the Designer would save: label, output format and fields.
+       *
+       * @returns {{label: string, cfg: (string|Object|null), fields: Object[], outputId: (string|undefined)}}
+       *   The definition.
+       */
+      function designerDefinition() {
+        let cfg = null;
+        if (designer.mode === 'json') {
+          cfg = designer.jsonCfg ? deepCopy(designer.jsonCfg) : null;
+        } else if (designer.format === 'string') {
+          cfg = designerTemplate();
+        } else {
+          cfg = Object.assign({}, designer.cfgBase ? deepCopy(designer.cfgBase) : {}, {
+            type: designer.format === 'sprintf' ? 'sprintf' : 'template',
+            template: designerTemplate(),
+          });
+        }
+        const def = {
+          label: String(designer.label || '').trim() || 'Untitled',
+          cfg,
+          fields: designer.fields.map((f) => deepCopy(f.def)),
+        };
+        if (designer.kind === 'forms' && designer.outputId) def.outputId = designer.outputId;
+        return def;
+      }
+
+      /**
+       * Whether the Designer holds changes that have not been saved.
+       *
+       * @returns {boolean} True when leaving would lose design work.
+       */
+      function designerIsDirty() {
+        return !!(designer.loaded && JSON.stringify(designerDefinition()) !== designer.saved);
+      }
+
+      /**
+       * Ask before discarding unsaved Designer changes.
+       *
+       * @param {string} message Prompt text.
+       * @returns {boolean} True when it is fine to continue.
+       */
+      function designerConfirmDiscard(message) {
+        if (!designerIsDirty()) return true;
+        return !!safe(() => window.confirm(message), true);
+      }
+
+      /**
+       * Problems that stop the design from saving, and warnings that do not.
+       *
+       * @returns {{errors: string[], warnings: string[]}} Messages to show.
+       */
+      function designerProblems() {
+        const errors = [];
+        const warnings = [];
+        const seen = {};
+        designer.fields.forEach((f, i) => {
+          const d = f.def;
+          const where = \`Field \${i + 1} (\${d.label || designerTypeInfo(d.type).label})\`;
+          if (d.type === 'header') return;
+          if (!d.name) errors.push(\`\${where} needs a field name.\`);
+          else if (seen[d.name]) errors.push(\`\${where} uses the name "\${d.name}" twice.\`);
+          seen[d.name] = true;
+          if (d.type === 'select' && !(d.options || []).length)
+            warnings.push(\`\${where} has no options to pick from.\`);
+        });
+        if (designer.mode === 'template') {
+          eachOutputPiece((p) => {
+            if (p.kind === 'field' && !(p.ref && designerField(p.ref)) && p.name)
+              warnings.push(
+                \`The output uses \${DESIGNER_TOKEN_STYLES[designer.format].wrap(
+                  p.name
+                )}, which no field in this form fills in.\`
+              );
+          });
+        }
+        return { errors, warnings: Array.from(new Set(warnings)) };
+      }
+
+      /**
+       * Values the preview feeds to the output generator, built from the sample
+       * values typed on the canvas the same way a real form submits them.
+       *
+       * @returns {Object<string, (string|string[])>} Values by field name.
+       */
+      function designerSampleValues() {
+        const values = {};
+        designer.fields.forEach((f) => {
+          const d = f.def;
+          if (!d.name || d.type === 'header') return;
+          let raw = designer.sample[f.key];
+          if (raw === undefined && d.type === 'select' && (d.options || []).length) {
+            const o = d.options[0];
+            raw = String(o && typeof o === 'object' ? o.value ?? o.label : o);
+          }
+          raw = raw === undefined ? '' : String(raw);
+          if (d.type === 'checkbox') {
+            values[d.name] = raw ? (d.default ? String(d.default) : 'Yes') : '';
+            return;
+          }
+          if (d.type !== 'steps') {
+            values[d.name] = raw;
+            return;
+          }
+          const parts = splitSteps(raw).map((p, i) => {
+            const kv = parseStepPart(p);
+            let key = kv.key;
+            if (!key && d.keyMode === 'numbered') key = i + 1 + '.';
+            if (!key && d.keyMode === 'bullet') key = '-';
+            return (key ? key + ' ' : '') + kv.val;
+          });
+          values[d.name] = parts.length === 1 ? parts[0] : parts;
+          values[d.name + '_combined'] = raw;
+        });
+        return values;
+      }
+
+      /**
+       * The output the current design produces for the canvas sample values.
+       *
+       * @returns {string} Generated text.
+       */
+      function designerPreviewOutput() {
+        const def = designerDefinition();
+        const optional = def.fields.filter((d) => d.optional === true && d.name).map((d) => d.name);
+        return generateOutput(def.cfg, designerSampleValues(), optional);
+      }
+
+      /**
+       * Default definition for a field dropped from the palette.
+       *
+       * @param {string} type Field type.
+       * @returns {{key: string, def: Object, autoName: boolean}} The new field.
+       */
+      function designerNewField(type) {
+        const info = designerTypeInfo(type);
+        const taken = designer.fields.map((f) => f.def.name).filter(Boolean);
+        const def =
+          type === 'header'
+            ? { label: 'Section', type: 'header' }
+            : { label: info.label, name: fieldNameFromLabel(info.label, taken), type };
+        if (type === 'select') def.options = ['Option 1', 'Option 2'];
+        return { key: designerKey('f'), def, autoName: type !== 'header' };
+      }
+
+      /**
+       * Add a palette field at a canvas position and select it.
+       *
+       * @param {string} type Field type.
+       * @param {number} [at] Insert position; defaults to the end.
+       * @returns {void}
+       */
+      function designerAddField(type, at) {
+        const f = designerNewField(type);
+        const index = at === undefined ? designer.fields.length : at;
+        designer.fields.splice(index, 0, f);
+        designer.selected = f.key;
+        designerRender();
+        designerFocus(\`.dz-inspector [data-prop="label"]\`);
+      }
+
+      /**
+       * Move a canvas field to a new position.
+       *
+       * @param {number} from Current index.
+       * @param {number} to Target index, counted before the field is removed.
+       * @returns {void}
+       */
+      function designerMoveField(from, to) {
+        if (from < 0 || from >= designer.fields.length) return;
+        let target = Math.max(0, Math.min(to, designer.fields.length));
+        if (from < target) target -= 1;
+        if (target === from) return;
+        const [f] = designer.fields.splice(from, 1);
+        designer.fields.splice(target, 0, f);
+        designerRender();
+      }
+
+      /**
+       * Delete a canvas field and every output piece that showed it.
+       *
+       * @param {string} key Field key.
+       * @returns {void}
+       */
+      function designerRemoveField(key) {
+        designer.fields = designer.fields.filter((f) => f.key !== key);
+        eachOutputPiece((p, list) => {
+          if (p.kind === 'field' && p.ref === key) list.splice(list.indexOf(p), 1);
+        });
+        if (designer.selected === key) designer.selected = null;
+        if (designer.piece && !designerListOf(designer.piece)) designer.piece = null;
+        delete designer.sample[key];
+        designerRender();
+      }
+
+      /**
+       * Copy a canvas field below itself under a fresh name.
+       *
+       * @param {string} key Field key.
+       * @returns {void}
+       */
+      function designerDuplicateField(key) {
+        const i = designer.fields.findIndex((f) => f.key === key);
+        if (i < 0) return;
+        const def = deepCopy(designer.fields[i].def);
+        if (def.name) {
+          const taken = designer.fields.map((f) => f.def.name).filter(Boolean);
+          def.name = fieldNameFromLabel(def.name, taken);
+        }
+        const copy = { key: designerKey('f'), def, autoName: false };
+        designer.fields.splice(i + 1, 0, copy);
+        designer.selected = copy.key;
+        designerRender();
+      }
+
+      /**
+       * A fresh output piece for a palette entry.
+       *
+       * @param {Object} spec \`{kind: 'field', ref}\`, \`{kind: 'text'}\` or \`{kind: 'group'}\`.
+       * @returns {Object} The new piece.
+       */
+      function designerNewPiece(spec) {
+        if (spec.kind === 'field')
+          return { kind: 'field', ref: spec.ref, before: '', after: '', uid: designerKey('p') };
+        if (spec.kind === 'group') return { kind: 'group', pieces: [], uid: designerKey('p') };
+        return { kind: 'text', text: spec.text || '', uid: designerKey('p') };
+      }
+
+      /**
+       * Put a piece into an output list, moving it there if it is already placed.
+       *
+       * @param {Object} piece Piece to place.
+       * @param {Object[]} list Target list.
+       * @param {number} at Target index, counted before the piece is removed.
+       * @returns {boolean} False when the move would put a group inside itself.
+       */
+      function designerPlacePiece(piece, list, at) {
+        if (groupContainsList(piece, list)) return false;
+        const from = designerListOf(piece);
+        let index = Math.max(0, Math.min(at, list.length));
+        if (from) {
+          const old = from.indexOf(piece);
+          from.splice(old, 1);
+          if (from === list && old < index) index -= 1;
+        }
+        list.splice(index, 0, piece);
+        return true;
+      }
+
+      /**
+       * Add a line for every named field the output does not show yet, laid out as
+       * "Label: {name}". Headings become their own text line.
+       *
+       * @returns {void}
+       */
+      function designerAddFieldLines() {
+        const used = new Set();
+        eachOutputPiece((p) => {
+          if (p.kind === 'field' && p.ref) used.add(p.ref);
+        });
+        designer.fields.forEach((f) => {
+          const d = f.def;
+          if (d.type === 'header') {
+            if (d.label) designer.lines.push([designerNewPiece({ kind: 'text', text: d.label })]);
+            return;
+          }
+          if (!d.name || used.has(f.key)) return;
+          const line = [];
+          const label = String(d.label || d.name);
+          line.push(designerNewPiece({ kind: 'text', text: label + ': ' }));
+          line.push(designerNewPiece({ kind: 'field', ref: f.key }));
+          designer.lines.push(line);
+        });
+        designerRender();
+      }
+
+      /**
+       * Focus an element inside the Designer once it has been rendered.
+       *
+       * @param {string} selector CSS selector inside the Designer root.
+       * @returns {void}
+       */
+      function designerFocus(selector) {
+        safe(() => {
+          const node = q(designer.root, selector);
+          if (node) {
+            node.focus();
+            if (typeof node.select === 'function' && node.tagName === 'INPUT') node.select();
+          }
+        });
+      }
+
+      /**
+       * Index to insert at when something is dropped among \`items\`, read in page
+       * order: the first item the pointer sits before.
+       *
+       * @param {Element[]} items Items in the drop target.
+       * @param {DragEvent} ev Drag event.
+       * @returns {number} Insert index.
+       */
+      function designerDropIndex(items, ev) {
+        for (let i = 0; i < items.length; i++) {
+          const r = items[i].getBoundingClientRect();
+          if (ev.clientY < r.top) return i;
+          if (ev.clientY <= r.bottom && ev.clientX < r.left + r.width / 2) return i;
+        }
+        return items.length;
+      }
+
+      /**
+       * Direct children of \`parent\` that carry a class.
+       *
+       * @param {?Element} parent Parent element.
+       * @param {string} cls Class name.
+       * @returns {Element[]} Matching children in order.
+       */
+      const childrenWith = (parent, cls) =>
+        parent ? Array.from(parent.children).filter((c) => c.classList.contains(cls)) : [];
+
+      /**
+       * Mark where a drop would land by highlighting the edge of the neighbouring
+       * item, so the layout never shifts under the pointer.
+       *
+       * @param {HTMLElement} zone Drop target.
+       * @param {Element[]} items Items in the drop target.
+       * @param {number} index Insert index.
+       * @returns {void}
+       */
+      function designerShowMarker(zone, items, index) {
+        designerClearMarkers();
+        zone.classList.add('dz-over');
+        if (items[index]) items[index].classList.add('dz-drop-before');
+        else if (items.length) items[items.length - 1].classList.add('dz-drop-after');
+      }
+
+      /**
+       * Remove every drop highlight.
+       *
+       * @returns {void}
+       */
+      function designerClearMarkers() {
+        qAll(designer.root, '.dz-over, .dz-drop-before, .dz-drop-after').forEach((n) =>
+          n.classList.remove('dz-over', 'dz-drop-before', 'dz-drop-after')
+        );
+      }
+
+      /**
+       * Start a Designer drag, giving the browser the data it needs to begin one.
+       *
+       * @param {DragEvent} ev Drag event.
+       * @param {Object} payload What is being dragged.
+       * @param {HTMLElement} [image] Element to show under the pointer.
+       * @returns {void}
+       */
+      function designerDragStart(ev, payload, image) {
+        designerDrag = payload;
+        if (ev.dataTransfer) {
+          ev.dataTransfer.effectAllowed = 'copyMove';
+          safe(() => ev.dataTransfer.setData('text/plain', 'nfg-designer'));
+          if (image) safe(() => ev.dataTransfer.setDragImage(image, 12, 12));
+        }
+        ev.stopPropagation();
+      }
+
+      /**
+       * Make \`zone\` accept Designer drops.
+       *
+       * @param {HTMLElement} zone Drop target.
+       * @param {function(Object): boolean} accepts Whether a drag payload may drop here.
+       * @param {function(): Element[]} items Current items in the zone.
+       * @param {function(Object, number): void} onDrop Handles a drop at an index.
+       * @returns {void}
+       */
+      function designerDropZone(zone, accepts, items, onDrop) {
+        zone.addEventListener(
+          'dragover',
+          wrapHandler((ev) => {
+            if (!designerDrag || !accepts(designerDrag)) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (ev.dataTransfer)
+              ev.dataTransfer.dropEffect = designerDrag.from === 'palette' ? 'copy' : 'move';
+            const list = items();
+            designerShowMarker(zone, list, designerDropIndex(list, ev));
+          })
+        );
+        zone.addEventListener(
+          'dragleave',
+          wrapHandler((ev) => {
+            if (!ev.relatedTarget || !zone.contains(ev.relatedTarget)) designerClearMarkers();
+          })
+        );
+        zone.addEventListener(
+          'drop',
+          wrapHandler((ev) => {
+            if (!designerDrag || !accepts(designerDrag)) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            const payload = designerDrag;
+            const index = designerDropIndex(items(), ev);
+            designerDrag = null;
+            designerClearMarkers();
+            onDrop(payload, index);
+          })
+        );
+      }
+
+      /**
+       * Render the whole Designer pane from its state.
+       *
+       * @returns {void}
+       */
+      function designerRender() {
+        const root = designer.root;
+        if (!root) return;
+        const scroll = window.scrollY;
+        root.innerHTML = '';
+        root.appendChild(designerToolbar());
+        if (designer.notice)
+          root.appendChild(el('div', { className: 'dz-notice', role: 'note' }, designer.notice));
+        root.appendChild(designerFormSection());
+        root.appendChild(designerOutputSection());
+        root.appendChild(designerPreviewSection());
+        if (window.scrollY !== scroll) safe(() => window.scrollTo(window.scrollX, scroll));
+      }
+
+      /**
+       * Re-render everything except the field inspector, so typing there keeps focus.
+       *
+       * @returns {void}
+       */
+      function designerRefreshAround() {
+        const swap = (sel, node) => {
+          const old = q(designer.root, sel);
+          if (old) old.replaceWith(node);
+        };
+        swap('.dz-canvas', designerCanvas());
+        swap('.dz-output', designerOutputSection());
+        designerRefreshPreview();
+      }
+
+      /**
+       * Update the template text, generated preview, problems and save state.
+       *
+       * @returns {void}
+       */
+      function designerRefreshPreview() {
+        const old = q(designer.root, '.dz-preview');
+        if (old) {
+          const fresh = designerPreviewSection();
+          const wasOpen = q(old, 'details');
+          const nowOpen = q(fresh, 'details');
+          if (wasOpen && nowOpen) nowOpen.open = wasOpen.open;
+          old.replaceWith(fresh);
+        }
+        designerSyncSaveState();
+      }
+
+      /**
+       * The status line text: a recent message such as "Saved", or the save state.
+       *
+       * @param {boolean} dirty Whether there are unsaved changes.
+       * @returns {string} Status text.
+       */
+      function designerStatusText(dirty) {
+        if (designer.status && Date.now() < designer.statusUntil) return designer.status;
+        return dirty ? 'Unsaved changes' : designer.id ? 'All changes saved' : 'Not saved yet';
+      }
+
+      /**
+       * Show a short status message in the toolbar.
+       *
+       * @param {string} text Message.
+       * @returns {void}
+       */
+      function designerFlash(text) {
+        designer.status = text;
+        designer.statusUntil = Date.now() + 2500;
+        setTimeout(designerSyncSaveState, 2600);
+      }
+
+      /**
+       * Update the toolbar's buttons and status without rebuilding it, so focus in
+       * the name box is kept.
+       *
+       * @returns {void}
+       */
+      function designerSyncSaveState() {
+        const root = designer.root;
+        if (!root) return;
+        const dirty = designerIsDirty();
+        const save = q(root, '[data-designer="save"]');
+        if (save) save.disabled = !dirty && !!designer.id;
+        const discard = q(root, '[data-designer="discard"]');
+        if (discard) discard.disabled = !dirty;
+        const open = q(root, '[data-designer="open"]');
+        if (open) open.textContent = dirty || !designer.id ? 'Save & open tab' : 'Open tab';
+        const status = q(root, '[data-designer="status"]');
+        if (status) status.textContent = designerStatusText(dirty);
+      }
+
+      /**
+       * The Designer's top bar: what is being edited, its name, and save controls.
+       *
+       * @returns {HTMLElement} The toolbar.
+       */
+      function designerToolbar() {
+        const kindSel = el(
+          'select',
+          { 'aria-label': 'What to design', dataset: { designer: 'kind' } },
+          createOption('forms', 'Forms'),
+          createOption('outputs', 'Outputs')
+        );
+        kindSel.value = designer.kind;
+        const records = (designer.kind === 'outputs' ? outputs : forms).filter(
+          (r) => r && r.id !== '__json__'
+        );
+        const recSel = el(
+          'select',
+          { 'aria-label': 'Definition to edit', dataset: { designer: 'record' } },
+          records.map((r) => createOption(r.id, r.label || r.id))
+        );
+        if (!designer.id)
+          recSel.insertBefore(createOption('', '(new, not saved yet)'), recSel.firstChild);
+        recSel.value = designer.id || '';
+        const switchTo = (kind, id, revert) => {
+          if (!designerConfirmDiscard('Discard your unsaved design changes?')) {
+            revert();
+            return;
+          }
+          designerLoad(kind, id);
+          designerRender();
+        };
+        kindSel.addEventListener(
+          'change',
+          wrapHandler(() => {
+            const list = (kindSel.value === 'outputs' ? outputs : forms).filter(
+              (r) => r && r.id !== '__json__'
+            );
+            switchTo(kindSel.value, list.length ? list[0].id : null, () => {
+              kindSel.value = designer.kind;
+            });
+          })
+        );
+        recSel.addEventListener(
+          'change',
+          wrapHandler(() =>
+            switchTo(designer.kind, recSel.value || null, () => {
+              recSel.value = designer.id || '';
+            })
+          )
+        );
+        const nameIn = el('input', {
+          type: 'text',
+          id: 'dz-name',
+          value: designer.label,
+          autocomplete: 'off',
+          dataset: { designer: 'label' },
+          placeholder: 'Name shown in lists and on the tab',
+          oninput: wrapHandler(() => {
+            designer.label = nameIn.value;
+            designerSyncSaveState();
+          }),
+        });
+        const dirty = designerIsDirty();
+        const problems = designerProblems();
+        const newBtn = el('button', {
+          type: 'button',
+          className: 'btn ghost',
+          text: '+ New',
+          dataset: { designer: 'new' },
+          onclick: wrapHandler(() => switchTo(designer.kind, null, () => {})),
+        });
+        const discardBtn = el('button', {
+          type: 'button',
+          className: 'btn ghost',
+          text: 'Discard changes',
+          disabled: !dirty,
+          dataset: { designer: 'discard' },
+          onclick: wrapHandler(() => {
+            if (!designerConfirmDiscard('Discard your unsaved design changes?')) return;
+            designerLoad(designer.kind, designer.id);
+            designerRender();
+          }),
+        });
+        const saveBtn = el('button', {
+          type: 'button',
+          className: 'btn',
+          text: 'Save',
+          disabled: !dirty && !!designer.id,
+          title: problems.errors.length ? problems.errors.join('\\n') : '',
+          dataset: { designer: 'save' },
+          onclick: wrapHandler(() => designerSave(false)),
+        });
+        const openBtn =
+          designer.kind === 'forms'
+            ? el('button', {
+                type: 'button',
+                className: 'btn ghost',
+                text: dirty || !designer.id ? 'Save & open tab' : 'Open tab',
+                dataset: { designer: 'open' },
+                onclick: wrapHandler(() => designerSave(true)),
+              })
+            : null;
+        let linkRow = null;
+        if (designer.kind === 'forms') {
+          const linkSel = el(
+            'select',
+            { id: 'dz-output-link', dataset: { designer: 'output-link' } },
+            createOption('', '(none)'),
+            outputs.map((o) => createOption(o.id, o.label || o.id))
+          );
+          if (designer.outputId && !outputs.some((o) => o.id === designer.outputId))
+            linkSel.appendChild(createOption(designer.outputId, designer.outputId + ' (missing)'));
+          linkSel.value = designer.outputId || '';
+          const copyBtn = el('button', {
+            type: 'button',
+            className: 'btn ghost',
+            text: 'Copy its fields & output',
+            disabled: !linkSel.value,
+            title: "Replace this form's fields and output with the linked output's",
+            dataset: { designer: 'copy-output' },
+            onclick: wrapHandler(() => {
+              const empty = !designer.fields.length && !designer.lines.length;
+              if (
+                !empty &&
+                !safe(
+                  () =>
+                    window.confirm(
+                      "Replace this form's fields and output with the linked output's?"
+                    ),
+                  true
+                )
+              )
+                return;
+              designerCopyOutput(designer.outputId);
+            }),
+          });
+          linkSel.addEventListener(
+            'change',
+            wrapHandler(() => {
+              designer.outputId = linkSel.value;
+              copyBtn.disabled = !linkSel.value;
+              if (linkSel.value && !designer.fields.length && !designer.lines.length)
+                designerCopyOutput(linkSel.value);
+              else designerSyncSaveState();
+            })
+          );
+          linkRow = el(
+            'div',
+            { className: 'action-row' },
+            el('label', {
+              className: 'dz-inline-label',
+              htmlFor: 'dz-output-link',
+              text: 'Based on output',
+            }),
+            linkSel,
+            copyBtn
+          );
+        }
+        return el(
+          'div',
+          { className: 'dz-toolbar' },
+          el('div', { className: 'action-row' }, kindSel, recSel, newBtn),
+          linkRow,
+          el(
+            'div',
+            { className: 'action-row' },
+            el('label', { className: 'dz-inline-label', htmlFor: 'dz-name', text: 'Name' }),
+            nameIn,
+            discardBtn,
+            saveBtn,
+            openBtn,
+            el(
+              'span',
+              { className: 'meta dz-status', role: 'status', dataset: { designer: 'status' } },
+              designerStatusText(dirty)
+            )
+          )
+        );
+      }
+
+      /**
+       * Replace the design's fields and output with a copy of an Output's, the way
+       * the Forms pane's "+ New" starts a form from an Output.
+       *
+       * @param {string} id Output id.
+       * @returns {void}
+       */
+      function designerCopyOutput(id) {
+        const o = outputs.find((x) => x && x.id === id);
+        if (!o) return;
+        designer.fields = (Array.isArray(o.fields) ? o.fields : [])
+          .filter((d) => d && typeof d === 'object')
+          .map((d) => ({ key: designerKey('f'), def: deepCopy(d), autoName: false }));
+        designer.sample = {};
+        designer.selected = designer.fields.length ? designer.fields[0].key : null;
+        designer.piece = null;
+        if (!designer.id && designer.label === 'New form') designer.label = String(o.label || o.id);
+        designerLoadOutput(o.cfg, false);
+        designerRender();
+      }
+
+      /**
+       * Save the design into its form or output definition and refresh the tabs.
+       *
+       * @param {boolean} openTab Also open the form as a tab afterwards.
+       * @returns {boolean} True when saved.
+       */
+      function designerSave(openTab) {
+        const problems = designerProblems();
+        if (problems.errors.length) {
+          designerFlash('Fix the problems listed under Preview first.');
+          designerRefreshPreview();
+          safe(() => {
+            const box = q(designer.root, '.dz-problems');
+            if (box) box.scrollIntoView({ block: 'center' });
+          });
+          return false;
+        }
+        const def = designerDefinition();
+        const isOutputs = designer.kind === 'outputs';
+        const list = isOutputs ? outputs : forms;
+        let rec = designer.id ? list.find((r) => r && r.id === designer.id) : null;
+        if (!rec) {
+          rec = { id: (isOutputs ? 'out-' : 'custom-') + Date.now().toString(36) };
+          list.push(rec);
+        }
+        rec.label = def.label;
+        rec.cfg = def.cfg;
+        rec.fields = def.fields;
+        if (def.outputId) rec.outputId = def.outputId;
+        else delete rec.outputId;
+        designer.id = rec.id;
+        designer.label = def.label;
+        if (isOutputs) {
+          outputsMap = rebuildMap(outputs);
+          storageSet(outputsKey, outputs);
+        } else {
+          formsMap = rebuildMap(forms);
+          storageSet(KEYS.forms, forms);
+          formConfig.forEach((tab) => {
+            if (!tab) return;
+            if (tab._formId === rec.id) {
+              tab.fields = deepCopy(rec.fields);
+              if (!/^tpl-\\d+$/.test(rec.id)) tab.title = rec.label;
+            }
+            if (tab._templateId === rec.id) tab.format = deepCopy(rec.cfg);
+          });
+        }
+        let openAt = -1;
+        if (openTab && !isOutputs) {
+          openAt = formConfig.findIndex((t) => t && t._formId === rec.id);
+          if (openAt < 0) {
+            formConfig.push({
+              title: rec.label,
+              format: deepCopy(rec.cfg),
+              fields: deepCopy(rec.fields),
+              _formId: rec.id,
+              _templateId: rec.id,
+            });
+            openAt = formConfig.length - 1;
+          }
+        }
+        designer.saved = JSON.stringify(designerDefinition());
+        designerFlash('Saved');
+        const allPrev = captureValuesByForm();
+        safe(() => persistFormMap());
+        safe(() => build());
+        safe(() => restoreValuesByForm(allPrev));
+        safe(() => refreshOutputsSelectors());
+        if (openAt >= 0) safe(() => activateTab(openAt));
+        else safe(() => activateDesignerTab());
+        return true;
+      }
+
+      /**
+       * Show the Designer tab.
+       *
+       * @returns {void}
+       */
+      function activateDesignerTab() {
+        const tab = q(tabbar, '.tab[data-designer="true"]');
+        if (tab) activateTab(Number(tab.dataset.index));
+      }
+
+      /**
+       * The Form section: palette, canvas and field inspector.
+       *
+       * @returns {HTMLElement} The section.
+       */
+      function designerFormSection() {
+        const palette = el(
+          'div',
+          { className: 'dz-palette', role: 'group', 'aria-label': 'Add a field' },
+          el('h3', { text: 'Add a field' }),
+          el('p', { className: 'small', text: 'Drag onto the form, or click to add at the end.' }),
+          DESIGNER_FIELD_TYPES.map((t) => {
+            const item = el(
+              'button',
+              {
+                type: 'button',
+                className: 'dz-tool',
+                draggable: true,
+                title: t.hint,
+                dataset: { designerAdd: t.type },
+                onclick: wrapHandler(() => designerAddField(t.type)),
+              },
+              el('span', {
+                className: 'dz-tool-icon',
+                'aria-hidden': 'true',
+                text: designerIcon(t.type),
+              }),
+              el('span', { text: t.label })
+            );
+            item.addEventListener(
+              'dragstart',
+              wrapHandler((ev) =>
+                designerDragStart(ev, { kind: 'field', from: 'palette', type: t.type })
+              )
+            );
+            item.addEventListener('dragend', wrapHandler(designerDragEnd));
+            return item;
+          })
+        );
+        return el(
+          'section',
+          { className: 'dz-section', 'aria-label': 'Form' },
+          el('h2', { className: 'dz-heading', text: '1. Form fields' }),
+          el(
+            'div',
+            { className: 'dz-grid' },
+            palette,
+            designerCanvas(),
+            el(
+              'div',
+              { className: 'dz-inspector', 'aria-label': 'Field settings' },
+              designerInspector()
+            )
+          )
+        );
+      }
+
+      /**
+       * Clear drag state once a drag ends, dropped or not.
+       *
+       * @returns {void}
+       */
+      function designerDragEnd() {
+        designerDrag = null;
+        designerClearMarkers();
+        qAll(designer.root, '.dz-dragging').forEach((n) => n.classList.remove('dz-dragging'));
+      }
+
+      /**
+       * A short glyph for a field type, drawn with plain text so nothing loads.
+       *
+       * @param {string} type Field type.
+       * @returns {string} Glyph.
+       */
+      function designerIcon(type) {
+        return (
+          {
+            text: 'Aa',
+            textarea: '\xB6',
+            select: '\u25BE',
+            number: '#',
+            date: '31',
+            email: '@',
+            steps: '1.',
+            header: 'H',
+            time: '9:30',
+            'datetime-local': '31+',
+            tel: '+1',
+            url: 'www',
+            checkbox: '\u2713',
+          }[type] || '\u2022'
+        );
+      }
+
+      /**
+       * The canvas: one card per field, laid out like the finished form, each with
+       * a live sample input that feeds the output preview.
+       *
+       * @returns {HTMLElement} The canvas.
+       */
+      function designerCanvas() {
+        const list = el('div', { className: 'dz-cards', dataset: { designer: 'canvas' } });
+        designer.fields.forEach((f, i) => list.appendChild(designerCard(f, i)));
+        if (!designer.fields.length) {
+          list.appendChild(
+            el('div', { className: 'dz-empty' }, 'Drag a field here, or click one on the left.')
+          );
+        }
+        designerDropZone(
+          list,
+          (d) => d.kind === 'field',
+          () => childrenWith(list, 'dz-card'),
+          (d, index) => {
+            if (d.from === 'palette') designerAddField(d.type, index);
+            else
+              designerMoveField(
+                designer.fields.findIndex((f) => f.key === d.key),
+                index
+              );
+          }
+        );
+        return el('div', { className: 'dz-canvas', 'aria-label': 'Form preview' }, list);
+      }
+
+      /**
+       * One canvas card for a field.
+       *
+       * @param {{key: string, def: Object}} f Designer field.
+       * @param {number} i Position in the form.
+       * @returns {HTMLElement} The card.
+       */
+      function designerCard(f, i) {
+        const d = f.def;
+        const selected = designer.selected === f.key;
+        const card = el('div', {
+          className: 'dz-card' + (selected ? ' selected' : '') + (d.inline ? ' inline' : ''),
+          dataset: { key: f.key },
+        });
+        if (d.inline) card.style.flexBasis = String(d.width || '45%');
+        const select = () => {
+          if (designer.selected === f.key) return;
+          designer.selected = f.key;
+          designerRender();
+          designerFocus(\`.dz-card[data-key="\${f.key}"] .dz-card-head\`);
+        };
+        const badges = [];
+        if (d.optional === true) badges.push('optional');
+        const head = el(
+          'div',
+          {
+            className: 'dz-card-head',
+            draggable: true,
+            tabIndex: 0,
+            role: 'button',
+            'aria-pressed': String(selected),
+            'aria-label': \`Edit field \${i + 1}: \${
+              d.label || designerTypeInfo(d.type).label
+            }. Drag to move.\`,
+            title: 'Click to edit, drag to move',
+            onclick: wrapHandler(select),
+            onkeydown: wrapHandler((ev) => {
+              if (ev.key === 'Enter' || ev.key === ' ') {
+                ev.preventDefault();
+                select();
+              }
+            }),
+          },
+          el('span', { className: 'dz-grip', 'aria-hidden': 'true', text: '\u22EE\u22EE' }),
+          el('span', {
+            className: 'dz-type',
+            text: designerTypeInfo(d.type).label,
+            title: designerTypeInfo(d.type).label,
+          }),
+          badges.map((b) => el('span', { className: 'dz-badge', text: b })),
+          designerIconButton('\u2191', 'Move up', i === 0, () => designerMoveField(i, i - 1)),
+          designerIconButton('\u2193', 'Move down', i === designer.fields.length - 1, () =>
+            designerMoveField(i, i + 2)
+          ),
+          designerIconButton('\u29C9', 'Duplicate', false, () => designerDuplicateField(f.key)),
+          designerIconButton('\u2715', 'Delete', false, () => designerRemoveField(f.key), true)
+        );
+        head.addEventListener(
+          'dragstart',
+          wrapHandler((ev) => {
+            designerDragStart(ev, { kind: 'field', from: 'canvas', key: f.key }, card);
+            card.classList.add('dz-dragging');
+          })
+        );
+        head.addEventListener('dragend', wrapHandler(designerDragEnd));
+        card.appendChild(head);
+        card.addEventListener(
+          'click',
+          wrapHandler((ev) => {
+            if (!ev.target.closest('input, textarea, select, button')) select();
+          })
+        );
+        if (d.type === 'header') {
+          const lv = Math.max(1, Math.min(6, Number(d.level) || 2));
+          card.appendChild(el('h' + lv, { className: 'field-header', text: d.label || 'Heading' }));
+          return card;
+        }
+        const label = el('label', { text: d.label || d.name || '(no label)' });
+        if (d.optional === true)
+          label.appendChild(el('span', { className: 'meta', text: ' (optional)' }));
+        card.appendChild(label);
+        card.appendChild(designerSampleControl(f, label));
+        return card;
+      }
+
+      /**
+       * A small icon button used on cards and output lines.
+       *
+       * @param {string} glyph Button text.
+       * @param {string} label Accessible name and tooltip.
+       * @param {boolean} disabled Whether the button is disabled.
+       * @param {Function} onClick Click handler.
+       * @param {boolean} [danger] Style as a destructive action.
+       * @returns {HTMLButtonElement} The button.
+       */
+      function designerIconButton(glyph, label, disabled, onClick, danger) {
+        return el('button', {
+          type: 'button',
+          className: 'dz-icon-btn' + (danger ? ' danger' : ''),
+          text: glyph,
+          title: label,
+          'aria-label': label,
+          disabled,
+          draggable: false,
+          onclick: wrapHandler((ev) => {
+            ev.stopPropagation();
+            onClick();
+          }),
+        });
+      }
+
+      /**
+       * The live sample input shown on a field's card.
+       *
+       * @param {{key: string, def: Object}} f Designer field.
+       * @param {HTMLLabelElement} label The card's label, linked to the input.
+       * @returns {HTMLElement} The control.
+       */
+      function designerSampleControl(f, label) {
+        const d = f.def;
+        const id = 'dz-sample-' + f.key;
+        label.htmlFor = id;
+        let input;
+        if (d.type === 'textarea') {
+          input = el('textarea', { rows: 2 });
+        } else if (d.type === 'select') {
+          input = el(
+            'select',
+            null,
+            (d.options || []).map((o) =>
+              createOption(
+                String(o && typeof o === 'object' ? o.value ?? o.label : o),
+                String(o && typeof o === 'object' ? o.label ?? o.value : o)
+              )
+            )
+          );
+        } else if (d.type === 'checkbox') {
+          input = el('input', { type: 'checkbox', checked: !!designer.sample[f.key] });
+          input.id = id;
+          input.dataset.sample = f.key;
+          input.addEventListener(
+            'change',
+            wrapHandler(() => {
+              designer.sample[f.key] = input.checked ? 'on' : '';
+              designerRefreshPreview();
+            })
+          );
+          return el(
+            'div',
+            { className: 'dz-check' },
+            input,
+            el('span', {
+              className: 'small',
+              text:
+                'Ticked outputs "' +
+                (d.default ? String(d.default) : 'Yes') +
+                '"; unticked is blank.',
+            })
+          );
+        } else {
+          input = el('input', {
+            type: ['number', 'date', 'email', 'time', 'datetime-local', 'tel', 'url'].includes(
+              d.type
+            )
+              ? d.type
+              : 'text',
+          });
+        }
+        input.id = id;
+        input.autocomplete = 'off';
+        input.dataset.sample = f.key;
+        input.placeholder =
+          d.type === 'steps'
+            ? String(d.placeholder || 'Step 1 > Step 2 > Step 3')
+            : String(d.placeholder || '');
+        if (designer.sample[f.key] !== undefined) input.value = designer.sample[f.key];
+        const update = wrapHandler(() => {
+          designer.sample[f.key] = input.value;
+          designerRefreshPreview();
+        });
+        input.addEventListener('input', update);
+        input.addEventListener('change', update);
+        if (d.type !== 'steps') return input;
+        const keys = { numbered: 'numbered 1. 2. 3.', bullet: 'bullets -' };
+        return el(
+          'div',
+          null,
+          input,
+          el('div', {
+            className: 'small',
+            text:
+              'Separate steps with ">"' +
+              (keys[d.keyMode] ? ', shown ' + keys[d.keyMode] : '') +
+              '.',
+          })
+        );
+      }
+
+      /**
+       * The settings panel for the selected field.
+       *
+       * @returns {HTMLElement[]} Panel contents.
+       */
+      function designerInspector() {
+        const f = designerField(designer.selected);
+        if (!f) {
+          return [
+            el('h3', { text: 'Field settings' }),
+            el('p', {
+              className: 'small',
+              text: 'Select a field on the form to change its settings.',
+            }),
+          ];
+        }
+        const d = f.def;
+        const isHeader = d.type === 'header';
+        const parts = [el('h3', { text: 'Field settings' })];
+        const row = (labelText, control, hint) => {
+          const id = 'dz-prop-' + designerKey('i');
+          control.id = id;
+          return el(
+            'div',
+            { className: 'dz-prop' },
+            el('label', { htmlFor: id, text: labelText }),
+            control,
+            hint ? el('div', { className: 'small', text: hint }) : null
+          );
+        };
+        const changed = () => designerRefreshAround();
+
+        const typeSel = el(
+          'select',
+          { dataset: { prop: 'type' } },
+          DESIGNER_FIELD_TYPES.map((t) => createOption(t.type, t.label))
+        );
+        if (!DESIGNER_FIELD_TYPES.some((t) => t.type === d.type))
+          typeSel.appendChild(createOption(d.type, String(d.type)));
+        typeSel.value = d.type || 'text';
+        typeSel.addEventListener(
+          'change',
+          wrapHandler(() => {
+            d.type = typeSel.value;
+            if (d.type === 'header') {
+              delete d.name;
+              delete d.optional;
+            } else if (!d.name) {
+              d.name = fieldNameFromLabel(
+                d.label,
+                designer.fields
+                  .filter((x) => x !== f)
+                  .map((x) => x.def.name)
+                  .filter(Boolean)
+              );
+              f.autoName = true;
+            }
+            if (d.type === 'select' && !Array.isArray(d.options))
+              d.options = ['Option 1', 'Option 2'];
+            designerRender();
+          })
+        );
+        parts.push(row('Type', typeSel));
+
+        const labelIn = el('input', {
+          type: 'text',
+          value: d.label || '',
+          dataset: { prop: 'label' },
+        });
+        const nameIn = el('input', {
+          type: 'text',
+          value: d.name || '',
+          dataset: { prop: 'name' },
+        });
+        labelIn.addEventListener(
+          'input',
+          wrapHandler(() => {
+            setFieldProp(d, 'label', labelIn.value);
+            if (f.autoName && !isHeader) {
+              const taken = designer.fields
+                .filter((x) => x !== f)
+                .map((x) => x.def.name)
+                .filter(Boolean);
+              d.name = fieldNameFromLabel(labelIn.value, taken);
+              nameIn.value = d.name;
+            }
+            changed();
+          })
+        );
+        parts.push(row(isHeader ? 'Heading text' : 'Label', labelIn));
+        if (isHeader) {
+          const lvSel = el(
+            'select',
+            { dataset: { prop: 'level' } },
+            [1, 2, 3, 4, 5, 6].map((n) =>
+              createOption(String(n), n === 1 ? 'Level 1 (largest)' : 'Level ' + n)
+            )
+          );
+          lvSel.value = String(Math.max(1, Math.min(6, Number(d.level) || 2)));
+          lvSel.addEventListener(
+            'change',
+            wrapHandler(() => {
+              d.level = Number(lvSel.value);
+              delete d.size;
+              changed();
+            })
+          );
+          parts.push(row('Size', lvSel));
+          return parts;
+        }
+        nameIn.addEventListener(
+          'input',
+          wrapHandler(() => {
+            const clean = cleanFieldName(nameIn.value);
+            if (clean !== nameIn.value) nameIn.value = clean;
+            f.autoName = false;
+            setFieldProp(d, 'name', clean);
+            changed();
+          })
+        );
+        parts.push(
+          row(
+            'Field name',
+            nameIn,
+            f.autoName
+              ? 'Follows the label until you change it.'
+              : 'Used for {' + (d.name || 'name') + '} in the output.'
+          )
+        );
+
+        if (!['select', 'date', 'time', 'datetime-local', 'checkbox'].includes(d.type)) {
+          const ph = el('input', {
+            type: 'text',
+            value: d.placeholder || '',
+            dataset: { prop: 'placeholder' },
+          });
+          ph.addEventListener(
+            'input',
+            wrapHandler(() => {
+              setFieldProp(d, 'placeholder', ph.value);
+              changed();
+            })
+          );
+          parts.push(row('Placeholder', ph, 'Hint shown in the empty box.'));
+        }
+
+        const def = el('input', {
+          type: 'text',
+          value:
+            typeof d.default === 'string' || typeof d.default === 'number' ? String(d.default) : '',
+          dataset: { prop: 'default' },
+        });
+        def.addEventListener(
+          'input',
+          wrapHandler(() => {
+            setFieldProp(d, 'default', def.value);
+            if (d.type !== 'checkbox') designer.sample[f.key] = def.value;
+            changed();
+          })
+        );
+        if (d.type === 'checkbox') def.placeholder = 'Yes';
+        parts.push(
+          d.type === 'checkbox'
+            ? row('Text when ticked', def, 'Left blank, a ticked box outputs "Yes".')
+            : row(
+                'Starting value',
+                def,
+                d.type === 'steps' ? 'For example: Open > Settings > Save' : ''
+              )
+        );
+
+        if (d.type === 'select') parts.push(designerOptionsEditor(d));
+
+        if (d.type === 'steps') {
+          const km = el(
+            'select',
+            { dataset: { prop: 'keyMode' } },
+            createOption('none', 'None'),
+            createOption('numbered', 'Numbered (1. 2. 3.)'),
+            createOption('bullet', 'Bullets (-)')
+          );
+          km.value = d.keyMode === 'numbered' || d.keyMode === 'bullet' ? d.keyMode : 'none';
+          km.addEventListener(
+            'change',
+            wrapHandler(() => {
+              setFieldProp(d, 'keyMode', km.value === 'none' ? '' : km.value);
+              changed();
+            })
+          );
+          parts.push(row('Step markers', km));
+          parts.push(
+            designerCheck(
+              'Offer a Click checkbox on each step',
+              d.controls && d.controls.click === true,
+              (on) => {
+                if (on) d.controls = Object.assign({}, d.controls, { click: true });
+                else if (d.controls) {
+                  delete d.controls.click;
+                  if (!Object.keys(d.controls).length) delete d.controls;
+                }
+                changed();
+              },
+              'click'
+            )
+          );
+        }
+
+        parts.push(
+          designerCheck(
+            'Optional: leave its line out of the output when blank',
+            d.optional === true,
+            (on) => {
+              setFieldProp(d, 'optional', on);
+              changed();
+            },
+            'optional'
+          )
+        );
+        const widthIn = el('input', {
+          type: 'text',
+          value: d.width ? String(d.width) : '',
+          placeholder: '45%',
+          dataset: { prop: 'width' },
+        });
+        const widthRow = row('Width', widthIn, 'A percentage such as 45% or a size such as 240px.');
+        widthRow.hidden = !d.inline;
+        widthIn.addEventListener(
+          'input',
+          wrapHandler(() => {
+            const v = widthIn.value.trim();
+            setFieldProp(d, 'width', /^\\d+(\\.\\d+)?(%|px|em|rem|ch)$/.test(v) ? v : '');
+            changed();
+          })
+        );
+        parts.push(
+          designerCheck(
+            'Side by side with the next field',
+            !!d.inline,
+            (on) => {
+              setFieldProp(d, 'inline', on);
+              if (!on) delete d.width;
+              widthRow.hidden = !on;
+              changed();
+            },
+            'inline'
+          )
+        );
+        parts.push(widthRow);
+        return parts;
+      }
+
+      /**
+       * A labelled checkbox for the inspector.
+       *
+       * @param {string} text Label text.
+       * @param {boolean} checked Initial state.
+       * @param {function(boolean): void} onChange Receives the new state.
+       * @param {string} prop Property name, for tests and focus.
+       * @returns {HTMLElement} The checkbox row.
+       */
+      function designerCheck(text, checked, onChange, prop) {
+        const box = el('input', { type: 'checkbox', checked: !!checked, dataset: { prop } });
+        box.addEventListener(
+          'change',
+          wrapHandler(() => onChange(box.checked))
+        );
+        return el('label', { className: 'dz-check' }, box, el('span', { text }));
+      }
+
+      /**
+       * Editor for a dropdown's options: one row per option, reorderable.
+       *
+       * @param {Object} d Field definition.
+       * @returns {HTMLElement} The editor.
+       */
+      function designerOptionsEditor(d) {
+        if (!Array.isArray(d.options)) d.options = [];
+        const wrap = el(
+          'div',
+          { className: 'dz-prop dz-options' },
+          el('label', { text: 'Options' })
+        );
+        const redraw = () => {
+          const fresh = designerOptionsEditor(d);
+          wrap.replaceWith(fresh);
+          designerRefreshAround();
+          return fresh;
+        };
+        d.options.forEach((o, i) => {
+          const isObj = o && typeof o === 'object';
+          const text = String(isObj ? o.label ?? o.value ?? '' : o);
+          const value =
+            isObj && o.value !== undefined && o.value !== o.label ? String(o.value) : '';
+          const textIn = el('input', {
+            type: 'text',
+            value: text,
+            'aria-label': \`Option \${i + 1} text\`,
+            dataset: { option: String(i) },
+          });
+          const valIn = el('input', {
+            type: 'text',
+            value,
+            placeholder: 'same',
+            'aria-label': \`Option \${i + 1} output value\`,
+            title: 'What the output shows when this option is picked; leave blank to use the text',
+          });
+          const sync = wrapHandler(() => {
+            const t = textIn.value;
+            const v = valIn.value;
+            d.options[i] = v && v !== t ? { label: t, value: v } : t;
+            designerRefreshAround();
+          });
+          textIn.addEventListener('input', sync);
+          valIn.addEventListener('input', sync);
+          wrap.appendChild(
+            el(
+              'div',
+              { className: 'dz-option' },
+              textIn,
+              valIn,
+              designerIconButton('\u2191', \`Move option \${i + 1} up\`, i === 0, () => {
+                d.options.splice(i - 1, 0, d.options.splice(i, 1)[0]);
+                redraw();
+              }),
+              designerIconButton(
+                '\u2715',
+                \`Remove option \${i + 1}\`,
+                false,
+                () => {
+                  d.options.splice(i, 1);
+                  redraw();
+                },
+                true
+              )
+            )
+          );
+        });
+        wrap.appendChild(
+          el('button', {
+            type: 'button',
+            className: 'btn ghost',
+            text: '+ Option',
+            onclick: wrapHandler(() => {
+              d.options.push('Option ' + (d.options.length + 1));
+              const fresh = redraw();
+              safe(() => {
+                const inputs = qAll(fresh, '[data-option]');
+                inputs[inputs.length - 1].focus();
+                inputs[inputs.length - 1].select();
+              });
+            }),
+          })
+        );
+        wrap.appendChild(
+          el('div', {
+            className: 'small',
+            text: 'Left: text in the list. Right: what the output shows, if different.',
+          })
+        );
+        return wrap;
+      }
+
+      /**
+       * The Output section: output type, insert palette, lines and piece settings.
+       *
+       * @returns {HTMLElement} The section.
+       */
+      function designerOutputSection() {
+        const section = el('section', {
+          className: 'dz-section dz-output',
+          'aria-label': 'Output',
+        });
+        section.appendChild(el('h2', { className: 'dz-heading', text: '2. Output' }));
+        const modeRow = el('div', {
+          className: 'action-row',
+          role: 'radiogroup',
+          'aria-label': 'Output type',
+        });
+        [
+          ['template', 'Text laid out below'],
+          ['json', 'Raw JSON of every value'],
+        ].forEach(([mode, text]) => {
+          const radio = el('input', {
+            type: 'radio',
+            name: 'dz-mode',
+            value: mode,
+            checked: designer.mode === mode,
+            dataset: { designer: 'mode-' + mode },
+          });
+          radio.addEventListener(
+            'change',
+            wrapHandler(() => {
+              if (!radio.checked) return;
+              designer.mode = mode;
+              if (mode === 'template' && !designer.lines.length) designerAddFieldLines();
+              else designerRender();
+            })
+          );
+          modeRow.appendChild(el('label', { className: 'dz-check' }, radio, el('span', { text })));
+        });
+        if (designer.mode === 'template') {
+          const styleSel = el(
+            'select',
+            { id: 'dz-style', dataset: { designer: 'style' } },
+            Object.keys(DESIGNER_TOKEN_STYLES).map((k) =>
+              createOption(k, DESIGNER_TOKEN_STYLES[k].label)
+            )
+          );
+          styleSel.value = designer.format;
+          styleSel.addEventListener(
+            'change',
+            wrapHandler(() => {
+              designer.format = styleSel.value;
+              designerRender();
+            })
+          );
+          modeRow.appendChild(
+            el(
+              'span',
+              { className: 'dz-style' },
+              el('label', { htmlFor: 'dz-style', className: 'dz-inline-label', text: 'Saved as' }),
+              styleSel
+            )
+          );
+        }
+        section.appendChild(modeRow);
+        if (designer.mode === 'template' && designer.format !== 'template') {
+          section.appendChild(
+            el('p', {
+              className: 'small',
+              text:
+                designer.format === 'sprintf'
+                  ? 'Saved with %(name)s placeholders. Steps are joined with commas; choose "{name} template" to list them one per line.'
+                  : 'Saved as plain text. Steps are joined with commas; choose "{name} template" to list them one per line.',
+            })
+          );
+        }
+        if (designer.mode === 'json') {
+          section.appendChild(
+            el('p', {
+              className: 'small',
+              text: 'The output lists every value as JSON. Blank optional fields are left out.',
+            })
+          );
+          return section;
+        }
+        section.appendChild(
+          el(
+            'div',
+            { className: 'dz-grid' },
+            designerOutputPalette(),
+            designerLines(),
+            el(
+              'div',
+              { className: 'dz-inspector', 'aria-label': 'Piece settings' },
+              designerPieceInspector()
+            )
+          )
+        );
+        return section;
+      }
+
+      /**
+       * Palette of things that can go into an output line.
+       *
+       * @returns {HTMLElement} The palette.
+       */
+      function designerOutputPalette() {
+        const tool = (text, spec, title, extra) => {
+          const b = el(
+            'button',
+            {
+              type: 'button',
+              className: 'dz-tool' + (extra ? ' ' + extra : ''),
+              draggable: true,
+              title,
+              dataset: { designerInsert: spec.kind === 'field' ? spec.ref : spec.kind },
+              onclick: wrapHandler(() => designerInsertPiece(spec)),
+            },
+            text
+          );
+          b.addEventListener(
+            'dragstart',
+            wrapHandler((ev) => designerDragStart(ev, { kind: 'piece', from: 'palette', spec }))
+          );
+          b.addEventListener('dragend', wrapHandler(designerDragEnd));
+          return b;
+        };
+        const named = designer.fields.filter((f) => f.def.type !== 'header' && f.def.name);
+        return el(
+          'div',
+          { className: 'dz-palette', role: 'group', 'aria-label': 'Insert into the output' },
+          el('h3', { text: 'Insert' }),
+          el('p', {
+            className: 'small',
+            text: 'Drag into a line, or click to add to the selected line.',
+          }),
+          named.length
+            ? named.map((f) =>
+                tool(
+                  f.def.label || f.def.name,
+                  { kind: 'field', ref: f.key },
+                  \`Insert the value of \${f.def.name}\`,
+                  'dz-chip-tool'
+                )
+              )
+            : el('p', { className: 'small', text: 'Add fields to the form first.' }),
+          tool('Text', { kind: 'text' }, 'Fixed text such as a label or separator'),
+          tool(
+            'Optional group',
+            { kind: 'group' },
+            'Text and fields kept only when every field inside has a value'
+          ),
+          el('button', {
+            type: 'button',
+            className: 'btn ghost dz-fill',
+            text: 'Add a line per field',
+            title: 'Adds "Label: value" lines for fields the output does not show yet',
+            dataset: { designer: 'fill' },
+            onclick: wrapHandler(designerAddFieldLines),
+          })
+        );
+      }
+
+      /**
+       * Add a palette piece to the line holding the selected piece, or a new line.
+       *
+       * @param {Object} spec Palette piece spec.
+       * @returns {void}
+       */
+      function designerInsertPiece(spec) {
+        const piece = designerNewPiece(spec);
+        const sel = designer.piece;
+        let list = sel ? designerListOf(sel) : null;
+        if (sel && sel.kind === 'group') list = sel.pieces;
+        if (!list) {
+          list = [];
+          designer.lines.push(list);
+        }
+        const at = sel && list !== sel.pieces ? list.indexOf(sel) + 1 : list.length;
+        list.splice(at, 0, piece);
+        designer.piece = piece;
+        designerRender();
+        if (piece.kind === 'text') designerFocus(\`[data-piece="\${piece.uid}"] input\`);
+      }
+
+      /**
+       * The output lines editor.
+       *
+       * @returns {HTMLElement} The editor.
+       */
+      function designerLines() {
+        const wrap = el('div', { className: 'dz-lines', dataset: { designer: 'lines' } });
+        designer.lines.forEach((line, li) => {
+          const pieces = designerPieceList(line, 'dz-line-pieces');
+          const row = el(
+            'div',
+            { className: 'dz-line', dataset: { line: String(li) } },
+            el('span', {
+              className: 'dz-grip',
+              draggable: true,
+              title: 'Drag to move this line',
+              'aria-hidden': 'true',
+              text: '\u22EE\u22EE',
+            }),
+            pieces,
+            designerIconButton('\u2191', \`Move line \${li + 1} up\`, li === 0, () => {
+              designer.lines.splice(li - 1, 0, designer.lines.splice(li, 1)[0]);
+              designerRender();
+            }),
+            designerIconButton(
+              '\u2193',
+              \`Move line \${li + 1} down\`,
+              li === designer.lines.length - 1,
+              () => {
+                designer.lines.splice(li + 1, 0, designer.lines.splice(li, 1)[0]);
+                designerRender();
+              }
+            ),
+            designerIconButton(
+              '\u2715',
+              \`Remove line \${li + 1}\`,
+              false,
+              () => {
+                designer.lines.splice(li, 1);
+                if (designer.piece && !designerListOf(designer.piece)) designer.piece = null;
+                designerRender();
+              },
+              true
+            )
+          );
+          const grip = row.firstChild;
+          grip.addEventListener(
+            'dragstart',
+            wrapHandler((ev) => {
+              designerDragStart(ev, { kind: 'line', index: li }, row);
+              row.classList.add('dz-dragging');
+            })
+          );
+          grip.addEventListener('dragend', wrapHandler(designerDragEnd));
+          wrap.appendChild(row);
+        });
+        designerDropZone(
+          wrap,
+          (d) => d.kind === 'line',
+          () => childrenWith(wrap, 'dz-line'),
+          (d, index) => {
+            let to = index;
+            if (d.index < to) to -= 1;
+            designer.lines.splice(to, 0, designer.lines.splice(d.index, 1)[0]);
+            designerRender();
+          }
+        );
+        const tail = el(
+          'div',
+          { className: 'dz-tail', dataset: { designer: 'new-line' } },
+          el('span', { className: 'small', text: 'Drop here to start a new line' }),
+          el('button', {
+            type: 'button',
+            className: 'btn ghost',
+            text: '+ Line',
+            onclick: wrapHandler(() => {
+              const line = [designerNewPiece({ kind: 'text' })];
+              designer.lines.push(line);
+              designer.piece = line[0];
+              designerRender();
+              designerFocus(\`[data-piece="\${line[0].uid}"] input\`);
+            }),
+          })
+        );
+        designerDropZone(
+          tail,
+          (d) => d.kind === 'piece',
+          () => [],
+          (d) => {
+            const line = [];
+            designer.lines.push(line);
+            designerDropPiece(d, line, 0);
+          }
+        );
+        wrap.appendChild(tail);
+        if (!designer.lines.length) {
+          wrap.insertBefore(
+            el(
+              'div',
+              { className: 'dz-empty' },
+              'The output is empty. Use "Add a line per field" or drop pieces below.'
+            ),
+            tail
+          );
+        }
+        return wrap;
+      }
+
+      /**
+       * Place a dropped piece, creating it first when it came from the palette.
+       *
+       * @param {Object} d Drag payload.
+       * @param {Object[]} list Target list.
+       * @param {number} index Insert index.
+       * @returns {void}
+       */
+      function designerDropPiece(d, list, index) {
+        const piece = d.from === 'palette' ? designerNewPiece(d.spec) : d.piece;
+        const source = d.from === 'palette' ? null : designerListOf(piece);
+        if (!designerPlacePiece(piece, list, index)) return;
+        if (source && !source.length && designer.lines.includes(source))
+          designer.lines.splice(designer.lines.indexOf(source), 1);
+        designer.piece = piece;
+        designerRender();
+        if (d.from === 'palette' && piece.kind === 'text')
+          designerFocus(\`[data-piece="\${piece.uid}"] input\`);
+      }
+
+      /**
+       * A horizontal list of pieces that accepts drops.
+       *
+       * @param {Object[]} list Pieces.
+       * @param {string} className Container class.
+       * @returns {HTMLElement} The list element.
+       */
+      function designerPieceList(list, className) {
+        const box = el('div', { className });
+        list.forEach((p) => box.appendChild(designerPiece(p)));
+        if (!list.length)
+          box.appendChild(
+            el('span', {
+              className: 'dz-blank',
+              text: className === 'dz-line-pieces' ? 'blank line' : 'drop pieces here',
+            })
+          );
+        designerDropZone(
+          box,
+          (d) => d.kind === 'piece' && !(d.piece && groupContainsList(d.piece, list)),
+          () => childrenWith(box, 'dz-piece'),
+          (d, index) => designerDropPiece(d, list, index)
+        );
+        return box;
+      }
+
+      /**
+       * One output piece: an editable text chip, a field chip, or an optional group.
+       *
+       * @param {Object} p Piece.
+       * @returns {HTMLElement} The chip.
+       */
+      function designerPiece(p) {
+        const selected = designer.piece === p;
+        const chip = el('div', {
+          className: 'dz-piece dz-' + p.kind + (selected ? ' selected' : ''),
+          draggable: true,
+          dataset: { piece: p.uid },
+        });
+        chip.addEventListener(
+          'dragstart',
+          wrapHandler((ev) => {
+            designerDragStart(ev, { kind: 'piece', from: 'output', piece: p }, chip);
+            chip.classList.add('dz-dragging');
+          })
+        );
+        chip.addEventListener('dragend', wrapHandler(designerDragEnd));
+        const pick = (ev) => {
+          ev.stopPropagation();
+          if (designer.piece === p) return;
+          designer.piece = p;
+          qAll(designer.root, '.dz-piece.selected').forEach((n) => n.classList.remove('selected'));
+          chip.classList.add('selected');
+          const panel = q(designer.root, '.dz-output .dz-inspector');
+          if (panel) {
+            panel.innerHTML = '';
+            designerPieceInspector().forEach((n) => panel.appendChild(n));
+          }
+        };
+        chip.addEventListener('click', wrapHandler(pick));
+        if (p.kind === 'text') {
+          const shown = String(p.text || '').replace(/\\n/g, '\u21B5');
+          const input = el('input', {
+            type: 'text',
+            value: shown,
+            size: Math.max(2, shown.length + 1),
+            'aria-label': 'Text',
+            placeholder: 'text',
+            draggable: false,
+          });
+          input.addEventListener('focus', wrapHandler(pick));
+          chip.addEventListener('mousedown', (ev) => {
+            chip.draggable = !ev.target.closest('input');
+          });
+          input.addEventListener(
+            'input',
+            wrapHandler(() => {
+              p.text = input.value.replace(/\u21B5/g, '\\n');
+              input.size = Math.max(2, input.value.length + 1);
+              designerRefreshPreview();
+            })
+          );
+          chip.appendChild(input);
+          return chip;
+        }
+        if (p.kind === 'group') {
+          chip.appendChild(el('span', { className: 'dz-group-tag', text: 'if filled' }));
+          chip.appendChild(designerPieceList(p.pieces, 'dz-group-pieces'));
+          return chip;
+        }
+        const f = p.ref ? designerField(p.ref) : null;
+        const name = f ? f.def.label || f.def.name : p.name;
+        if (!f) chip.classList.add('dz-missing');
+        chip.tabIndex = 0;
+        chip.setAttribute('role', 'button');
+        chip.setAttribute('aria-label', \`Field \${name}\`);
+        if (p.before) chip.appendChild(el('span', { className: 'dz-sep', text: p.before }));
+        chip.appendChild(
+          el('span', {
+            className: 'dz-field-name',
+            text: name + (p.variant === '_combined' ? ' (as typed)' : ''),
+          })
+        );
+        if (p.after) chip.appendChild(el('span', { className: 'dz-sep', text: p.after }));
+        chip.addEventListener(
+          'keydown',
+          wrapHandler((ev) => {
+            if (ev.key === 'Enter' || ev.key === ' ') {
+              ev.preventDefault();
+              pick(ev);
+            }
+          })
+        );
+        return chip;
+      }
+
+      /**
+       * Settings for the selected output piece.
+       *
+       * @returns {HTMLElement[]} Panel contents.
+       */
+      function designerPieceInspector() {
+        const p = designer.piece;
+        if (!p || !designerListOf(p)) {
+          return [
+            el('h3', { text: 'Piece settings' }),
+            el('p', {
+              className: 'small',
+              text: 'Each line is text and field values. Select a field to add a separator that only shows when it has a value, so " - " never dangles.',
+            }),
+            el('p', {
+              className: 'small',
+              text: 'An optional group keeps everything inside only when every field in it has a value. Mark a field optional to drop its whole line when blank.',
+            }),
+          ];
+        }
+        const list = designerListOf(p);
+        const idx = list.indexOf(p);
+        const out = [el('h3', { text: 'Piece settings' })];
+        const move = (delta) => {
+          const to = idx + delta;
+          if (to < 0 || to >= list.length) return;
+          list.splice(to, 0, list.splice(idx, 1)[0]);
+          designerRender();
+        };
+        const remove = () => {
+          list.splice(idx, 1);
+          designer.piece = null;
+          designerRender();
+        };
+        const sepInput = (prop, labelText) => {
+          const input = el('input', {
+            type: 'text',
+            value: p[prop] || '',
+            dataset: { prop: 'piece-' + prop },
+            placeholder: prop === 'before' ? ' - ' : ', ',
+          });
+          input.addEventListener(
+            'input',
+            wrapHandler(() => {
+              p[prop] = input.value;
+              const chip = q(designer.root, \`[data-piece="\${p.uid}"]\`);
+              if (chip) chip.replaceWith(designerPiece(p));
+              designerRefreshPreview();
+            })
+          );
+          const id = 'dz-sep-' + prop;
+          input.id = id;
+          return el(
+            'div',
+            { className: 'dz-prop' },
+            el('label', { htmlFor: id, text: labelText }),
+            input
+          );
+        };
+        if (p.kind === 'field') {
+          const f = p.ref ? designerField(p.ref) : null;
+          out.push(
+            el(
+              'p',
+              null,
+              el('strong', { text: f ? f.def.label || f.def.name : p.name }),
+              ' ',
+              el('code', {
+                text: DESIGNER_TOKEN_STYLES[designer.format].wrap(designerPieceName(p)),
+              })
+            )
+          );
+          if (!f)
+            out.push(el('p', { className: 'small', text: 'No field in this form has this name.' }));
+          if (f && f.def.type === 'steps') {
+            const show = el(
+              'select',
+              { id: 'dz-steps-show', dataset: { prop: 'piece-variant' } },
+              createOption('', 'One per line, with step markers'),
+              createOption('_combined', 'Exactly as typed (A > B > C)')
+            );
+            show.value = p.variant === '_combined' ? '_combined' : '';
+            show.addEventListener(
+              'change',
+              wrapHandler(() => {
+                if (show.value) p.variant = show.value;
+                else delete p.variant;
+                designerRender();
+              })
+            );
+            out.push(
+              el(
+                'div',
+                { className: 'dz-prop' },
+                el('label', { htmlFor: 'dz-steps-show', text: 'Show steps' }),
+                show
+              )
+            );
+          }
+          out.push(sepInput('before', 'Text before, only when filled'));
+          out.push(sepInput('after', 'Text after, only when filled'));
+          if (f && f.def.optional !== true) {
+            out.push(
+              el('button', {
+                type: 'button',
+                className: 'btn ghost',
+                text: 'Make this field optional',
+                title: 'Drops this whole line from the output when the field is blank',
+                onclick: wrapHandler(() => {
+                  f.def.optional = true;
+                  designerRender();
+                }),
+              })
+            );
+          }
+        } else if (p.kind === 'text') {
+          out.push(
+            el('p', { className: 'small', text: 'Fixed text. Edit it directly in the line.' })
+          );
+        } else {
+          out.push(
+            el('p', {
+              className: 'small',
+              text: 'Shown only when every field inside has a value. Drag text and fields into it.',
+            })
+          );
+          out.push(
+            el('button', {
+              type: 'button',
+              className: 'btn ghost',
+              text: 'Ungroup',
+              onclick: wrapHandler(() => {
+                list.splice(idx, 1, ...p.pieces);
+                designer.piece = null;
+                designerRender();
+              }),
+            })
+          );
+        }
+        out.push(
+          el(
+            'div',
+            { className: 'action-row' },
+            el('button', {
+              type: 'button',
+              className: 'btn ghost',
+              text: '\u2190 Move',
+              disabled: idx === 0,
+              onclick: wrapHandler(() => move(-1)),
+            }),
+            el('button', {
+              type: 'button',
+              className: 'btn ghost',
+              text: 'Move \u2192',
+              disabled: idx === list.length - 1,
+              onclick: wrapHandler(() => move(1)),
+            }),
+            el('button', {
+              type: 'button',
+              className: 'btn warn',
+              text: 'Remove',
+              onclick: wrapHandler(remove),
+            })
+          )
+        );
+        return out;
+      }
+
+      /**
+       * The preview: problems, the generated output for the sample values, and the
+       * template text the design compiles to.
+       *
+       * @returns {HTMLElement} The section.
+       */
+      function designerPreviewSection() {
+        const { errors, warnings } = designerProblems();
+        const section = el('section', {
+          className: 'dz-section dz-preview',
+          'aria-label': 'Preview',
+        });
+        section.appendChild(el('h2', { className: 'dz-heading', text: '3. Preview' }));
+        if (errors.length || warnings.length) {
+          section.appendChild(
+            el(
+              'ul',
+              { className: 'dz-problems', role: 'alert' },
+              errors.map((m) => el('li', { className: 'error', text: m })),
+              warnings.map((m) => el('li', { text: m }))
+            )
+          );
+        }
+        section.appendChild(
+          el('p', {
+            className: 'small',
+            text: 'Type sample values into the form above to see what Generate will produce.',
+          })
+        );
+        const out = el('textarea', {
+          className: 'output dz-result',
+          readOnly: true,
+          rows: 6,
+          'aria-label': 'Generated output preview',
+          dataset: { designer: 'result' },
+        });
+        out.value = designerPreviewOutput();
+        out.rows = Math.max(4, Math.min(30, out.value.split('\\n').length + 1));
+        section.appendChild(out);
+        if (designer.mode === 'template') {
+          section.appendChild(
+            el(
+              'details',
+              { className: 'help' },
+              el('summary', { text: 'Template text' }),
+              el(
+                'pre',
+                null,
+                el('code', {
+                  dataset: { designer: 'template' },
+                  text: designerTemplate() || '(empty)',
+                })
+              )
+            )
+          );
+        }
+        return section;
+      }
+
+      /**
+       * Add the dev-mode Designer tab and pane, loading a definition the first time.
+       *
+       * @returns {void}
+       */
+      function addDesignerTab() {
+        if (!devMode) return;
+        const index = formConfig.length + 2;
+        tabbar.appendChild(
+          el('div', {
+            className: 'tab right',
+            text: 'Designer',
+            dataset: { index, designer: 'true' },
+            onclick: wrapHandler(() => activateTab(index)),
+          })
+        );
+        const root = el('div', { className: 'designer' });
+        contents.appendChild(
+          el(
+            'div',
+            {
+              className: 'tab-pane',
+              dataset: { index, designer: 'true' },
+              style: { display: 'none' },
+            },
+            el(
+              'div',
+              { className: 'tab-content' },
+              el('label', { text: 'Designer' }),
+              el('p', {
+                className: 'meta dz-intro',
+                text: 'Build a form and its output by dragging pieces into place. Nothing here needs code.',
+              }),
+              root
+            )
+          )
+        );
+        designer.root = root;
+        if (!designer.loaded) {
+          const first = forms.find((r) => r && r.id !== '__json__');
+          designerLoad('forms', first ? first.id : null);
+        }
+        designerRender();
+      }
+
       build();
 
       (function () {
@@ -3786,4 +6883,4 @@ var NFG=(()=>{var l=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
     <\/script>
   </body>
 </html>
-`});var c=l((exports,module)=>{function loadHtml(){try{let n=i();if(typeof n=="string"&&n.indexOf("<script")!==-1)return n}catch{}try{let nodeRequire=eval('typeof require === "function" ? require : null');if(nodeRequire){let n=nodeRequire("fs"),e=nodeRequire("path");return n.readFileSync(e.join(__dirname,"form-generator.html"),"utf8")}}catch{}return""}var html=loadHtml();function mount(n,e){let a=e||{};if(typeof n=="string"&&(n=document.querySelector(n)),!n||typeof n.appendChild!="function")throw new Error("mount(): first argument must be a DOM element or a selector that resolves to one");if(!html)throw new Error("mount(): runtime HTML is unavailable \u2014 run `npm run build:html`");let o=html;if(Array.isArray(a.formConfig)){let d="<script>window.formConfig = "+JSON.stringify(a.formConfig).replace(/</g,"\\u003c")+";<\/script>";o=o.replace(/<head(\s[^>]*)?>/i,p=>p+d)}let r=n.ownerDocument||(typeof document<"u"?document:null);if(!r)throw new Error("mount(): no document available to create the iframe");let t=r.createElement("iframe");return t.setAttribute("title","Note Form Generator"),t.style.border="0",t.style.width="100%",t.style.height=a.height||"100%",t.srcdoc=o,n.innerHTML="",n.appendChild(t),t}module.exports={html,mount};module.exports.default=module.exports});return c();})();
+`});var c=o((exports,module)=>{function loadHtml(){try{let e=l();if(typeof e=="string"&&e.indexOf("<script")!==-1)return e}catch{}try{let nodeRequire=eval('typeof require === "function" ? require : null');if(nodeRequire){let e=nodeRequire("fs"),n=nodeRequire("path");return e.readFileSync(n.join(__dirname,"form-generator.html"),"utf8")}}catch{}return""}var html=loadHtml();function mount(e,n){let a=n||{};if(typeof e=="string"&&(e=document.querySelector(e)),!e||typeof e.appendChild!="function")throw new Error("mount(): first argument must be a DOM element or a selector that resolves to one");if(!html)throw new Error("mount(): runtime HTML is unavailable \u2014 run `npm run build:html`");let r=html;if(Array.isArray(a.formConfig)){let d="<script>window.formConfig = "+JSON.stringify(a.formConfig).replace(/</g,"\\u003c")+";<\/script>";r=r.replace(/<head(\s[^>]*)?>/i,p=>p+d)}let i=e.ownerDocument||(typeof document<"u"?document:null);if(!i)throw new Error("mount(): no document available to create the iframe");let t=i.createElement("iframe");return t.setAttribute("title","Note Form Generator"),t.style.border="0",t.style.width="100%",t.style.height=a.height||"100%",t.srcdoc=r,e.innerHTML="",e.appendChild(t),t}module.exports={html,mount};module.exports.default=module.exports});return c();})();
