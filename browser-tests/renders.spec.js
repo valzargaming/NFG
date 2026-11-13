@@ -133,6 +133,51 @@ test('Designer builds a form and output by dragging', async ({ page }, testInfo)
   await expect(pane(page).locator('[name="contactEmail"]')).toBeVisible();
 });
 
+test('Designer imports an export and saves it updated', async ({ page }, testInfo) => {
+  await open(page, testInfo);
+  page.on('dialog', (dialog) => dialog.dismiss());
+  const legacy =
+    '<!doctype html><html><head><style>.legacy-rule{color:red}</style></head><body>' +
+    '<script data-nfg-seed>try{window.formConfig = ' +
+    JSON.stringify([
+      {
+        title: 'Legacy',
+        fields: [{ label: 'Caller', name: 'caller', type: 'text' }],
+        format: { type: 'template', template: 'Caller: {caller}' },
+      },
+    ]) +
+    ';}catch(e){}</' +
+    'script></body></html>';
+  await page
+    .locator('.tab')
+    .filter({ hasText: /^Designer$/ })
+    .click();
+  const designer = page.locator('.tab-pane:visible .designer');
+  await designer.locator('[data-designer="import"]').click();
+  await designer.locator('[data-designer="import-file"]').setInputFiles({
+    name: 'legacy.html',
+    mimeType: 'text/html',
+    buffer: Buffer.from(legacy),
+  });
+  await expect(designer.locator('[data-designer="import-list"] li')).toHaveText([
+    'Form: Legacy (1 field)',
+  ]);
+  await designer.locator('[data-designer="import-go"]').click();
+  await expect(designer.locator('[data-designer="label"]')).toHaveValue('Legacy');
+  await designer.locator('[data-designer-add="email"]').click();
+  await capture(page, testInfo, 'designer-import');
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    designer.locator('[data-designer="export-import"]').click(),
+  ]);
+  expect(download.suggestedFilename()).toBe('legacy.html');
+  const fs = require('fs');
+  const html = fs.readFileSync(await download.path(), 'utf8');
+  expect(html).not.toContain('legacy-rule');
+  expect(html).toContain('.dz-card {');
+  expect(html).toContain('"name":"email"');
+});
+
 test('explicit false hides Click control', async ({ page }, testInfo) => {
   await open(page, testInfo, { click: false });
   await expect(page.locator('[data-step="click"]')).toHaveCount(0);

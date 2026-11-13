@@ -271,6 +271,18 @@ without writing JSON. Everything runs inside the single HTML file, offline.
   Linking a blank form copies the Output's fields and output; _Copy its fields &
   output_ does it again on demand.
 
+- **Import export…:** choose an HTML file saved with Export HTML (or paste the
+  text it copied, or JSON holding tabs, forms or outputs). The file is only
+  read, never run. Tick the forms and outputs to bring in; they are added next
+  to your own with new ids, links between forms and outputs are kept, and the
+  first form opens for editing.
+- **Save updated export:** after importing, this downloads the export again
+  under its original file name, holding only the imported tabs, forms and
+  outputs with every edit made since. It is built from the version you are
+  running, so an export made with an older version picks up the current styles
+  and code; anything that older file did differently is replaced, and only its
+  forms and outputs carry over.
+
 Forms written by hand load into the Designer as they are: `{name}` and
 `%(name)s` tokens, plain text formats, `[[ ]]` sections (nested ones become
 nested groups) and blank lines all survive a save unchanged. Field types and
