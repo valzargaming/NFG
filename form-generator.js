@@ -2257,6 +2257,7 @@ var NFG=(()=>{var o=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
               input.autocomplete = 'off';
             } else if (f.type === 'select') {
               input = document.createElement('select');
+              if (f.optional === true) input.appendChild(createOption('', '\u2014'));
               (f.options || []).forEach((opt) => {
                 const o = document.createElement('option');
                 o.value = opt.value ?? opt;
@@ -2642,7 +2643,10 @@ var NFG=(()=>{var o=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
                   e.closest('.step-row') && q(e.closest('.step-row'), '[data-step="click"]');
                 const raw = e.value !== undefined ? e.value : '';
                 const v =
-                  click && click.checked && e.name === e.closest('.steps-container').dataset.name
+                  click &&
+                  click.checked &&
+                  String(raw).trim() &&
+                  e.name === e.closest('.steps-container').dataset.name
                     ? 'Click " ' + raw + ' "'
                     : raw;
                 if (Object.prototype.hasOwnProperty.call(values, e.name)) {
@@ -2660,11 +2664,10 @@ var NFG=(()=>{var o=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
                 const vals = Array.isArray(values[base]) ? values[base] : [values[base]];
                 const combined = vals.map((v, i) => {
                   const keyRaw = keys[i] || '';
-                  let prefix = '';
-                  prefix = keyRaw ? keyRaw + ' ' : '';
-                  return prefix + v;
+                  return (keyRaw ? keyRaw + ' ' : '') + v;
                 });
-                values[base] = combined.length === 1 ? combined[0] : combined;
+                const blank = vals.every((v) => !String(v).trim());
+                values[base] = blank ? '' : combined.length === 1 ? combined[0] : combined;
                 delete values[k];
               });
               const sel = tplSelect.value || '__json__';
@@ -4885,7 +4888,12 @@ var NFG=(()=>{var o=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
           const d = f.def;
           if (!d.name || d.type === 'header') return;
           let raw = designer.sample[f.key];
-          if (raw === undefined && d.type === 'select' && (d.options || []).length) {
+          if (
+            raw === undefined &&
+            d.type === 'select' &&
+            d.optional !== true &&
+            (d.options || []).length
+          ) {
             const o = d.options[0];
             raw = String(o && typeof o === 'object' ? o.value ?? o.label : o);
           }
@@ -6320,6 +6328,7 @@ var NFG=(()=>{var o=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports);var 
           input = el(
             'select',
             null,
+            d.optional === true ? createOption('', '\u2014') : null,
             (d.options || []).map((o) =>
               createOption(
                 String(o && typeof o === 'object' ? o.value ?? o.label : o),
