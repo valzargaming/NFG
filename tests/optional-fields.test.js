@@ -77,7 +77,7 @@ describe('optional fields', () => {
   });
 
   test.each(['numbered', 'bullet'])(
-    'an optional %s steps field with only empty rows drops its label line',
+    'an optional %s steps field drops its label line only when every row is empty',
     async (keyMode) => {
       const dom = await setup([
         {
@@ -111,13 +111,12 @@ describe('optional fields', () => {
       pane.querySelector('[data-step="insert"]').click();
       expect(generate()).toBe('Name: Al\nEnd');
       pane.querySelectorAll('[name="nextSteps"]')[1].value = 'Call back';
-      const marker = keyMode === 'numbered' ? '2.' : '-';
-      expect(generate()).toBe(`Name: Al\nNext Steps: ${marker} Call back\nEnd`);
+      const [k1, k2, k3] = keyMode === 'numbered' ? ['1.', '2.', '3.'] : ['-', '-', '-'];
+      expect(generate()).toBe(`Name: Al\nNext Steps: ${k1} \n${k2} Call back\nEnd`);
       pane.querySelector('[data-step="insert"]').click();
       pane.querySelectorAll('[name="nextSteps"]')[0].value = 'Email';
-      const [first, last] = keyMode === 'numbered' ? ['1.', '3.'] : ['-', '-'];
       expect(generate()).toBe(
-        `Name: Al\nNext Steps: ${first} Click " Email "\n${last} Call back\nEnd`
+        `Name: Al\nNext Steps: ${k1} Click " Email "\n${k2} \n${k3} Call back\nEnd`
       );
     }
   );

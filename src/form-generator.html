@@ -2633,9 +2633,6 @@
             'click',
             wrapHandler(() => {
               const values = {};
-              const optional = ((formConfig[i] && formConfig[i].fields) || [])
-                .filter((f) => f && f.optional === true && f.name)
-                .map((f) => f.name);
               Array.from(form.elements).forEach((e) => {
                 if (!e.name || e.dataset.step === 'click') return;
                 if (e.type === 'checkbox') {
@@ -2667,14 +2664,17 @@
                 const vals = Array.isArray(values[base]) ? values[base] : [values[base]];
                 const combined = vals.map((v, i) => {
                   const keyRaw = keys[i] || '';
-                  return String(v).trim() ? (keyRaw ? keyRaw + ' ' : '') + v : '';
+                  return (keyRaw ? keyRaw + ' ' : '') + v;
                 });
-                const rows = optional.includes(base) ? combined.filter((v) => v) : combined;
-                values[base] = rows.length === 1 ? rows[0] : rows.some((v) => v) ? rows : '';
+                const blank = vals.every((v) => !String(v).trim());
+                values[base] = blank ? '' : combined.length === 1 ? combined[0] : combined;
                 delete values[k];
               });
               const sel = tplSelect.value || '__json__';
               const cfg = formsMap[sel] && formsMap[sel].cfg ? formsMap[sel].cfg : null;
+              const optional = ((formConfig[i] && formConfig[i].fields) || [])
+                .filter((f) => f && f.optional === true && f.name)
+                .map((f) => f.name);
               out.value = generateOutput(cfg, values, optional);
               safe(() => {
                 out.style.height = 'auto';
