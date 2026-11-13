@@ -2642,7 +2642,10 @@
                   e.closest('.step-row') && q(e.closest('.step-row'), '[data-step="click"]');
                 const raw = e.value !== undefined ? e.value : '';
                 const v =
-                  click && click.checked && e.name === e.closest('.steps-container').dataset.name
+                  click &&
+                  click.checked &&
+                  String(raw).trim() &&
+                  e.name === e.closest('.steps-container').dataset.name
                     ? 'Click " ' + raw + ' "'
                     : raw;
                 if (Object.prototype.hasOwnProperty.call(values, e.name)) {
@@ -2660,11 +2663,10 @@
                 const vals = Array.isArray(values[base]) ? values[base] : [values[base]];
                 const combined = vals.map((v, i) => {
                   const keyRaw = keys[i] || '';
-                  let prefix = '';
-                  prefix = keyRaw ? keyRaw + ' ' : '';
-                  return prefix + v;
+                  return String(v).trim() ? (keyRaw ? keyRaw + ' ' : '') + v : '';
                 });
-                values[base] = combined.length === 1 ? combined[0] : combined;
+                values[base] =
+                  combined.length === 1 || !combined.some((v) => v) ? combined[0] : combined;
                 delete values[k];
               });
               const sel = tplSelect.value || '__json__';

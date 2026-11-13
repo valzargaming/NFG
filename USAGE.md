@@ -228,7 +228,9 @@ With the template `Name: {name}\nAdditional Comments: {comments}`, a blank
 comment removes the whole `Additional Comments:` line instead of printing an
 empty label. Every template line holding the field's placeholder is removed,
 so put the label on the same line as the placeholder. Blank required fields on
-other lines are unaffected. The JSON fallback omits a blank optional field, and
+other lines are unaffected. A steps field counts as blank when every step row
+is empty, even if the rows still show `1.` or `-` markers or a ticked Click box.
+The JSON fallback omits a blank optional field, and
 the form shows _(optional)_ beside its label. To drop only part of a line, use
 an optional section (`[[ ]]`) instead.
 

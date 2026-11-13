@@ -75,4 +75,44 @@ describe('optional fields', () => {
     pane.querySelector('[name="comments"]').value = 'Thanks';
     expect(generate()).toEqual({ name: '', comments: 'Thanks' });
   });
+
+  test.each(['numbered', 'bullet'])(
+    'an optional %s steps field with only empty rows drops its label line',
+    async (keyMode) => {
+      const dom = await setup([
+        {
+          title: 'Note',
+          fields: [
+            { label: 'Name', name: 'name', type: 'text' },
+            {
+              label: 'Next Steps',
+              name: 'nextSteps',
+              type: 'steps',
+              keyMode,
+              optional: true,
+              controls: { click: true },
+            },
+          ],
+          format: { type: 'template', template: 'Name: {name}\nNext Steps: {nextSteps}\nEnd' },
+        },
+      ]);
+      const pane = dom.window.document.querySelector('.tab-pane[data-index="0"]');
+      const generate = () => {
+        Array.from(pane.querySelectorAll('button'))
+          .find((b) => b.textContent.trim() === 'Generate')
+          .click();
+        return Array.from(pane.querySelectorAll('textarea')).find((e) => e.readOnly).value;
+      };
+      pane.querySelector('[name="name"]').value = 'Al';
+      expect(pane.querySelectorAll('.step-row')).toHaveLength(1);
+      expect(generate()).toBe('Name: Al\nEnd');
+      pane.querySelector('[data-step="click"]').click();
+      expect(generate()).toBe('Name: Al\nEnd');
+      pane.querySelector('[data-step="insert"]').click();
+      expect(generate()).toBe('Name: Al\nEnd');
+      pane.querySelectorAll('[name="nextSteps"]')[1].value = 'Call back';
+      const marker = keyMode === 'numbered' ? '2.' : '-';
+      expect(generate()).toBe(`Name: Al\nNext Steps: \n${marker} Call back\nEnd`);
+    }
+  );
 });
